@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/08 02:36:47 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2004/02/12 21:26:57 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai, Inc.
@@ -774,9 +774,9 @@ int ndiGetPHSRInformation(ndicapi *pol, int i);
 int ndiGetPHINFPortStatus(ndicapi *pol);
 
 /*! \ingroup GetMethods
-  Get a 30-byte string describing the tool.
+  Get a 31-byte string describing the tool.
 
-  \param pol         valid NDI Measurement System handle
+  \param piol         valid NDI Measurement System handle
   \param information array that information is returned in (the
                      resulting string is not null-terminated)
 
@@ -785,14 +785,14 @@ int ndiGetPHINFPortStatus(ndicapi *pol);
   - NDI_UNOCCUPIED - port is unoccupied or no information is available
 
   <p>The returned string will not be null-terminated by default.  You
-  must set information[30] to 0 in order to terminate the string.
+  must set information[31] to 0 in order to terminate the string.
   If the port is unoccupied then the contents of the \em information
   string are undefined.
   
   The information is updated only when a PHINF command is sent with
   the NDI_BASIC (0x0001) bit set in the reply mode.
 */
-int ndiGetPHINFToolInfo(ndicapi *pol, char information[30]);
+int ndiGetPHINFToolInfo(ndicapi *pol, char information[31]);
 
 /*! \ingroup GetMethods
   Return the results of a current test on the IREDS on an active 

@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/03 20:42:52 $
-  Version:   $Revision: 1.6 $
+  Date:      $Date: 2004/02/12 21:26:57 $
+  Version:   $Revision: 1.7 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai Inc.
@@ -133,7 +133,7 @@ struct ndicapi {
   /* PHINF command reply data */
 
   int phinf_unoccupied;
-  char phinf_basic[32];
+  char phinf_basic[34];
   char phinf_testing[8];
   char phinf_part_number[20];
   char phinf_accessories[2];
@@ -1035,20 +1035,20 @@ int ndiGetPHINFPortStatus(ndicapi *pol)
 {
   char *dp;
 
-  dp = &pol->phinf_basic[30];
+  dp = &pol->phinf_basic[31];
 
   return (int)ndiHexToUnsignedLong(dp, 2);  
 }
 
 /*---------------------------------------------------------------------*/
-int ndiGetPHINFToolInfo(ndicapi *pol, char information[30])
+int ndiGetPHINFToolInfo(ndicapi *pol, char information[31])
 {
   char *dp;
   int i;
   
   dp = pol->phinf_basic;
 
-  for (i = 0; i < 30; i++) {
+  for (i = 0; i < 31; i++) {
     information[i] = *dp++;
   }
 
@@ -1883,14 +1883,14 @@ static void ndi_PHINF_helper(ndicapi *pol, const char *cp, const char *crp)
   if (mode & NDI_BASIC) {
     dp = pol->phinf_basic;
     if (!unoccupied) {
-      for (j = 0; j < 32 && *crp >= ' '; j++) {
+      for (j = 0; j < 33 && *crp >= ' '; j++) {
         /* fprintf(stderr,"%c",*crp); */
         *dp++ = *crp++;
       }
       /* fprintf(stderr,"\n"); */
     }
-    else {  /* default "0000000            0000000000000" */
-      for (j = 0; j < 7; j++) {
+    else {  /* default "00000000            0000000000000" */
+      for (j = 0; j < 8; j++) {
         *dp++ = '0';
       }
       for (j = 0; j < 12; j++) {
