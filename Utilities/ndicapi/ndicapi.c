@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/13 19:41:10 $
-  Version:   $Revision: 1.8 $
+  Date:      $Date: 2004/02/17 20:36:54 $
+  Version:   $Revision: 1.9 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai Inc.
@@ -125,6 +125,10 @@ struct ndicapi {
 
   int irchk_detected;                     /* irchk detected infrared */
   char irchk_sources[128];                /* coordinates of sources */
+
+  /* PHRQ comand reply data */
+
+  char phrq_reply[2];
 
   /* PHSR comand reply data */
 
@@ -765,6 +769,7 @@ static void ndi_INIT_helper(ndicapi *pol, const char *cp, const char *crp);
 static void ndi_IRCHK_helper(ndicapi *pol, const char *cp, const char *crp);
 static void ndi_PSTAT_helper(ndicapi *pol, const char *cp, const char *crp);
 static void ndi_SSTAT_helper(ndicapi *pol, const char *cp, const char *crp);
+static void ndi_PHRQ_helper(ndicapi *pol, const char *cp, const char *crp);
 
 /*---------------------------------------------------------------------*/
 char *ndiCommand(ndicapi *pol, const char *format, ...)
@@ -856,13 +861,17 @@ char *ndiCommandVA(ndicapi *pol, const char *format, va_list ap)
     i += 4;
   }
 
+  cp[i] = '\0';
+
   cp[i++] = '\r';                             /* tack on carriage return */
   cp[i] = '\0';                               /* terminate for good luck */
 
   /* if the command is GX and thread_mode is on, we copy the reply from
      the thread rather than getting it directly from the Measurement System */
   if (pol->thread_mode && pol->tracking && 
-      cp[0] == 'G' && cp[1] == 'X' && nc == 2) {
+      nc == 2 && (cp[0] == 'G' && cp[1] == 'X' ||
+		  cp[0] == 'T' && cp[1] == 'X' ||
+		  cp[0] == 'B' && cp[1] == 'X')) {
     int errcode = 0;
 
     /* check that the thread is sending the GX command that we want */
@@ -1016,6 +1025,9 @@ char *ndiCommandVA(ndicapi *pol, const char *format, va_list ap)
   else if (cp[0] == 'P' && nc == 5 && strncmp(cp, "PHINF", nc) == 0) {
     ndi_PHINF_helper(pol, cp, crp);
   }
+  else if (cp[0] == 'P' && nc == 4 && strncmp(cp, "PHRQ", nc) == 0) {
+    ndi_PHRQ_helper(pol, cp, crp);
+  }
   else if (cp[0] == 'P' && nc == 4 && strncmp(cp, "PHSR", nc) == 0) {
     ndi_PHSR_helper(pol, cp, crp);
   }
@@ -1123,6 +1135,16 @@ int ndiGetPHINFGPIOStatus(ndicapi *pol)
   dp = pol->phinf_gpio_status;
 
   return (int)ndiHexToUnsignedLong(dp, 2);  
+}
+
+/*---------------------------------------------------------------------*/
+int ndiGetPHRQHandle(ndicapi *pol)
+{
+  char *dp;
+  int n;
+
+  dp = pol->phrq_reply;
+  return (int)ndiHexToUnsignedLong(dp, 2);
 }
 
 /*---------------------------------------------------------------------*/
@@ -1988,6 +2010,26 @@ static void ndi_PHINF_helper(ndicapi *pol, const char *cp, const char *crp)
 }
 
 /*---------------------------------------------------------------------
+  Copy all the PHRQ reply information into the ndicapi structure.
+
+  This function is called every time a PHRQ command is sent to the
+  Measurement System.
+
+  This information can be later extracted through one of the ndiGetPHRQHandle()
+  functions.
+*/
+static void ndi_PHRQ_helper(ndicapi *pol, const char *cp, const char *crp)
+{
+  char *dp;
+  int j;
+
+  dp = pol->phrq_reply;
+  for (j = 0; j < 2; j++) {
+    *dp++ = *crp++;
+  }
+}
+
+/*---------------------------------------------------------------------
   Copy all the PHSR reply information into the ndicapi structure.
 
   This function is called every time a PHSR command is sent to the
@@ -2007,6 +2049,7 @@ static void ndi_PHSR_helper(ndicapi *pol, const char *cp, const char *crp)
   }
   *dp++ = '\0';
 }
+
 /*---------------------------------------------------------------------
   Copy all the TX reply information into the ndicapi structure, according
   to the TX reply mode that was requested.

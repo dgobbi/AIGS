@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/12 21:26:57 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2004/02/17 20:36:54 $
+  Version:   $Revision: 1.4 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai, Inc.
@@ -408,13 +408,17 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 #define ndiPHINF(p,ph,format) ndiCommand((p),"PHINF:%02X%04X",(ph),(format))
 
 /*!
-  Initialize the tool on the specified port handle.
+  Requeset a port handle given specific tool criteria.
 
   \param  num    8-digit device number or wildcard "********"
   \param  sys    system type TIU "0" or AURORA SCU "1" or wildcard "*"
   \param  tool   wired "0" or wireless "1" or wildcard "*" 
   \param  port   wired "01" to "10", wireless "0A" to "0I" or wildcard "**"
   \param  chan   AURORA tool channel "00" or "01" or wildcard "**"
+
+  <p>The use of the PHRQ command updates the information returned by the
+  following commands:
+  - int \ref ndiGetPHRQHandle(ndicapi *pol)
 */
 #define ndiPHRQ(p,num,sys,tool,port,chan) ndiCommand((p),"PHRQ:%-8.8s%1.1s%1.1s%2.2s%2.2s",(num),(sys),(tool),(port),(chan))
 
@@ -709,6 +713,17 @@ NDIErrorCallback ndiGetErrorCallback(ndicapi *pol);
   Get the current error callback data, or NULL if there is none.
 */
 void *ndiGetErrorCallbackData(ndicapi *pol);
+
+/*! \ingroup GetMethods
+  Get the port handle returned by a PHRQ command.
+
+  \param pol       valid NDI Measurement System handle
+
+  \return  a port handle between 0x01 and 0xFF
+
+  <p>An SROM can be written to the port handle wit the PVWR command.
+*/
+int ndiGetPHRQHandle(ndicapi *pol);
 
 /*! \ingroup GetMethods
   Get the number of port handles as returned by a PHSR command.
@@ -1052,6 +1067,11 @@ int ndiGetTXPassiveStray(ndicapi *pol, int i, double coord[3]);
   - NDI_COMM_SYNC_ERROR            0x0001
   - NDI_TOO_MUCH_EXTERNAL_INFRARED 0x0002
   - NDI_COMM_CRC_ERROR             0x0004
+  - NDI_COMM_RECOVERABLE           0x0008
+  - NDI_HARDWARE_FAILURE           0x0010
+  - NDI_HARDWARE_CHANGE            0x0020
+  - NDI_PORT_OCCUPIED              0x0040
+  - NDI_PORT_UNOCCUPIED            0x0080
 
   <p>The system stutus information is updated whenever the TX command is
   called with the NDI_XFORMS_AND_STATUS (0x0001) bit set in the reply mode.
@@ -1644,7 +1664,7 @@ void *ndiHexDecode(void *data, const char *cp, int n);
 #define NDI_UNOCCUPIED      3
 /*\}*/
 
-/* ndiGetGXPortStatus() and ndiGetPSTATPortStatus() return value bits */
+/* ndiGetTXPortStatus() and ndiGetPSTATPortStatus() return value bits */
 /*\{*/
 #define  NDI_TOOL_IN_PORT        0x01
 #define  NDI_SWITCH_1_ON         0x02
@@ -1657,11 +1677,16 @@ void *ndiHexDecode(void *data, const char *cp, int n);
 #define  NDI_CURRENT_DETECT      0x80 /* only for ndiGetPSTATPortStatus() */
 /*\}*/
 
-/* ndiGetGXSystemStatus() return value bits */
+/* ndiGetTXSystemStatus() return value bits */
 /*\{*/
-#define  NDI_COMM_SYNC_ERROR            0x01
-#define  NDI_TOO_MUCH_EXTERNAL_INFRARED 0x02
-#define  NDI_COMM_CRC_ERROR             0x04
+#define  NDI_COMM_SYNC_ERROR            0x0001
+#define  NDI_TOO_MUCH_EXTERNAL_INFRARED 0x0002
+#define  NDI_COMM_CRC_ERROR             0x0004
+#define  NDI_COMM_RECOVERABLE           0x0008
+#define  NDI_HARDWARE_FAILURE           0x0010
+#define  NDI_HARDWARE_CHANGE            0x0020
+#define  NDI_PORT_OCCUPIED              0x0040
+#define  NDI_PORT_UNOCCUPIED            0x0080
 /*\}*/
 
 /* ndiGetGXToolInfo() return value bits */
@@ -1671,7 +1696,7 @@ void *ndiHexDecode(void *data, const char *cp, int n);
 #define  NDI_TOOL_FACE_USED      0x70
 /*\}*/
 
-/* ndiGetGXMarkerInfo() return value bits */
+/* ndiGetTXMarkerInfo() return value bits */
 /*\{*/
 #define  NDI_MARKER_MISSING             0
 #define  NDI_MARKER_EXCEEDED_MAX_ANGLE  1
