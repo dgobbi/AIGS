@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/01/11 18:12:43 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2005/01/11 20:36:58 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 
@@ -64,6 +64,7 @@ vtkNDITracker::vtkNDITracker()
   this->SendMatrix = vtkMatrix4x4::New();
   this->IsDeviceTracking = 0;
   this->SerialPort = -1; // default is to probe
+  this->SerialDevice = 0;
   this->BaudRate = 9600;
   this->SetNumberOfTools(VTK_NDI_NTOOLS);
 
@@ -117,6 +118,7 @@ void vtkNDITracker::PrintSelf(ostream& os, vtkIndent indent)
 int vtkNDITracker::Probe()
 {
   int errnum = NDI_OPEN_ERROR;;
+  char *devicename = this->SerialDevice;
 
   if (this->IsDeviceTracking)
     {
@@ -124,7 +126,8 @@ int vtkNDITracker::Probe()
     }
 
   // if SerialPort is set to -1, then probe all serial ports
-  if (this->SerialPort < 0)
+  if (this->SerialDevice == 0 || this->SerialDevice[0] == '\0' ||
+      this->SerialPort < 0)
     {
     for (int i = 0; i < 4; i++)
       {
@@ -142,7 +145,10 @@ int vtkNDITracker::Probe()
     }
   else // otherwise probe the specified serial port only
     {
-    char *devicename = ndiDeviceName(this->SerialPort-1);
+    if (devicename == 0 ||  devicename[0] == '\0')
+      {
+      devicename = ndiDeviceName(this->SerialPort-1);
+      }
     if (devicename)
       {
       errnum = ndiProbe(devicename);
@@ -152,7 +158,7 @@ int vtkNDITracker::Probe()
   // if probe was okay, then send VER:0 to identify device
   if (errnum == NDI_OKAY)
     {
-    this->Device = ndiOpen(ndiDeviceName(this->SerialPort-1));
+    this->Device = ndiOpen(devicename);
     if (this->Device)
       {
       this->SetVersion(ndiVER(this->Device,0));
@@ -189,7 +195,12 @@ char *vtkNDITracker::Command(const char *command)
     }
   else
     {
-    this->Device = ndiOpen(ndiDeviceName(this->SerialPort-1));
+    char *devicename = this->SerialDevice;
+    if (devicename == 0 || devicename[0] == '\0')
+      {
+      devicename = ndiDeviceName(this->SerialPort-1);
+      }
+    this->Device = ndiOpen(devicename);
     if (this->Device == 0) 
       {
       vtkErrorMacro(<< ndiErrorString(NDI_OPEN_ERROR));
@@ -231,7 +242,12 @@ int vtkNDITracker::InternalStartTracking()
       return 0;
     }
 
-  this->Device = ndiOpen(ndiDeviceName(this->SerialPort-1));
+  char *devicename = this->SerialDevice;
+  if (devicename == 0 || devicename[0] == '\0')
+    {
+    devicename = ndiDeviceName(this->SerialPort-1);
+    }
+  this->Device = ndiOpen(devicename);
   if (this->Device == 0) 
     {
     vtkErrorMacro(<< ndiErrorString(NDI_OPEN_ERROR));

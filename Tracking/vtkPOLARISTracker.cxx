@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/01/11 18:12:43 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2005/01/11 20:36:58 $
+  Version:   $Revision: 1.4 $
 
 ==========================================================================
 
@@ -64,6 +64,7 @@ vtkPOLARISTracker::vtkPOLARISTracker()
   this->SendMatrix = vtkMatrix4x4::New();
   this->IsPOLARISTracking = 0;
   this->SerialPort = -1; // default is to probe
+  this->SerialDevice = 0;
   this->BaudRate = 115200;
   this->SetNumberOfTools(VTK_POLARIS_NTOOLS);
 
@@ -97,6 +98,10 @@ vtkPOLARISTracker::~vtkPOLARISTracker()
     {
     delete [] this->Version;
     }
+  if (this->SerialDevice)
+    {
+    delete [] this->SerialDevice;
+    }
   if (this->Timer)
     {
     this->Timer->Delete();
@@ -116,6 +121,7 @@ void vtkPOLARISTracker::PrintSelf(ostream& os, vtkIndent indent)
 int vtkPOLARISTracker::Probe()
 {
   int errnum = PL_OPEN_ERROR;;
+  char *devicename = this->SerialDevice;
 
   if (this->IsPOLARISTracking)
     {
@@ -123,11 +129,12 @@ int vtkPOLARISTracker::Probe()
     }
 
   // if SerialPort is set to -1, then probe all serial ports
-  if (this->SerialPort < 0)
+  if (this->SerialDevice == 0 || this->SerialDevice[0] == '\0' ||
+      this->SerialPort < 0)
     {
     for (int i = 0; i < 4; i++)
       {
-      char *devicename = plDeviceName(i);
+      devicename = plDeviceName(i);
       if (devicename)
         {
         errnum = plProbe(devicename);
@@ -141,7 +148,10 @@ int vtkPOLARISTracker::Probe()
     }
   else // otherwise probe the specified serial port only
     {
-    char *devicename = plDeviceName(this->SerialPort-1);
+    if (devicename == 0 ||  devicename[0] == '\0')
+      {
+      devicename = plDeviceName(this->SerialPort-1);
+      }
     if (devicename)
       {
       errnum = plProbe(devicename);
@@ -151,7 +161,7 @@ int vtkPOLARISTracker::Probe()
   // if probe was okay, then send VER:0 to identify device
   if (errnum == PL_OKAY)
     {
-    this->Polaris = plOpen(plDeviceName(this->SerialPort-1));
+    this->Polaris = plOpen(devicename);
     if (this->Polaris)
       {
       this->SetVersion(plVER(this->Polaris,0));
@@ -188,7 +198,12 @@ char *vtkPOLARISTracker::Command(const char *command)
     }
   else
     {
-    this->Polaris = plOpen(plDeviceName(this->SerialPort-1));
+    char *devicename = this->SerialDevice;
+    if (devicename == 0 || devicename[0] == '\0')
+      {
+      devicename = plDeviceName(this->SerialPort-1);
+      }
+    this->Polaris = plOpen(devicename);
     if (this->Polaris == 0) 
       {
       vtkErrorMacro(<< plErrorString(PL_OPEN_ERROR));
@@ -209,6 +224,7 @@ char *vtkPOLARISTracker::Command(const char *command)
 //----------------------------------------------------------------------------
 int vtkPOLARISTracker::InternalStartTracking()
 {
+  char *devicename;
   int errnum, tool;
   int baud;
 
@@ -230,7 +246,13 @@ int vtkPOLARISTracker::InternalStartTracking()
       return 0;
     }
 
-  this->Polaris = plOpen(plDeviceName(this->SerialPort-1));
+  devicename = this->SerialDevice;
+  if (devicename == 0 || devicename[0] == '\0')
+    {
+    devicename = plDeviceName(this->SerialPort-1);
+    }
+  this->Polaris = plOpen(devicename);
+
   if (this->Polaris == 0) 
     {
     vtkErrorMacro(<< plErrorString(PL_OPEN_ERROR));

@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/17 20:37:35 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2005/01/11 20:36:58 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 
@@ -82,6 +82,12 @@ public:
   vtkGetMacro(SerialPort, int);
 
   // Description:
+  // Set which serial device to use.  If present, this overrides
+  // the SerialPort number.
+  vtkSetStringMacro(SerialDevice);
+  vtkGetStringMacro(SerialDevice);
+
+  // Description:
   // Set the desired baud rate.  Default: 9600.  
   vtkSetMacro(BaudRate, int);
   vtkGetMacro(BaudRate, int);
@@ -151,6 +157,7 @@ protected:
 
   ndicapi *Device;
   char *Version;
+  char *SerialDevice;
 
   vtkMatrix4x4 *SendMatrix;
   int SerialPort; 
