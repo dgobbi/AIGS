@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/12 21:26:57 $
-  Version:   $Revision: 1.7 $
+  Date:      $Date: 2004/02/13 19:41:10 $
+  Version:   $Revision: 1.8 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai Inc.
@@ -1227,7 +1227,7 @@ int ndiGetTXPortStatus(ndicapi *pol, int ph)
 
   dp = pol->tx_status[i];
 
-  return (int)ndiHexToUnsignedLong(dp, 4);
+  return (int)ndiHexToUnsignedLong(dp, 8);
 }
 
 /*---------------------------------------------------------------------*/
@@ -2083,7 +2083,7 @@ static void ndi_TX_helper(ndicapi *pol, const char *cp, const char *crp)
 
       /* get the status */
       dp = pol->tx_status[i];
-      for (j = 0; j < 4 && *crp >= ' '; j++) {
+      for (j = 0; j < 8 && *crp >= ' '; j++) {
         *dp++ = *crp++;
       }
 
