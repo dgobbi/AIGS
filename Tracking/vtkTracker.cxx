@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/18 20:13:41 $
-  Version:   $Revision: 1.4 $
+  Date:      $Date: 2005/01/11 18:12:43 $
+  Version:   $Revision: 1.5 $
 
 ==========================================================================
 
@@ -85,6 +85,7 @@ vtkTracker::vtkTracker()
   this->Threader = vtkMultiThreader::New();
   this->ThreadId = -1;
   this->UpdateMutex = vtkCriticalSection::New();
+  this->RequestUpdateMutex = vtkCriticalSection::New();
 }
 
 //----------------------------------------------------------------------------
@@ -168,6 +169,7 @@ static void *vtkTrackerThread(vtkMultiThreader::ThreadInfo *data)
 
   double currtime[10];
 
+  // loop until cancelled
   for (int i = 0;; i++)
     {
     // get current tracking rate over last 10 updates
@@ -184,6 +186,10 @@ static void *vtkTrackerThread(vtkMultiThreader::ThreadInfo *data)
     self->InternalUpdate();
     self->UpdateTime.Modified();
     self->UpdateMutex->Unlock();
+
+    // check to see if main thread wants to lock the UpdateMutex
+    self->RequestUpdateMutex->Lock();
+    self->RequestUpdateMutex->Unlock();
     
     // check to see if we are being told to quit 
     data->ActiveFlagLock->Lock();
@@ -225,22 +231,45 @@ int vtkTracker::Probe()
 //----------------------------------------------------------------------------
 void vtkTracker::StartTracking()
 {
-
   int tracking = this->Tracking;
-
-  this->LastUpdateTime = 0;
 
   this->Tracking = this->InternalStartTracking();
 
-  this->UpdateMutex->Lock();
-
-  if (this->Tracking && !tracking && this->ThreadId == -1)
+  // start the tracking thread
+  if (!(this->Tracking && !tracking && this->ThreadId == -1))
     {
-    this->ThreadId = this->Threader->SpawnThread((vtkThreadFunctionType)\
-						 &vtkTrackerThread,this);
+    return;
     }
 
+  // this will block the tracking thread until we're ready
+  this->UpdateMutex->Lock();
+
+  // start the tracking thread
+  this->ThreadId = this->Threader->SpawnThread((vtkThreadFunctionType)\
+                                               &vtkTrackerThread,this);
+  this->LastUpdateTime = this->UpdateTime.GetMTime();
+
+  // allow the tracking thread to proceed
   this->UpdateMutex->Unlock();
+
+  // wait until the first update has occurred before returning
+  int timechanged = 0;
+  while (!timechanged)
+    {
+    this->RequestUpdateMutex->Lock();
+    this->UpdateMutex->Lock();
+    this->RequestUpdateMutex->Unlock();
+    timechanged = (this->LastUpdateTime != this->UpdateTime.GetMTime());
+    this->UpdateMutex->Unlock();
+#ifdef _WIN32
+    Sleep((int)(100));
+#elif defined(__FreeBSD__) || defined(__linux__) || defined(sgi) || defined(__APPLE__)
+    struct timespec sleep_time, dummy;
+    sleep_time.tv_sec = 0;
+    sleep_time.tv_nsec = 100000000;
+    nanosleep(&sleep_time,&dummy);
+#endif
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -263,38 +292,6 @@ void vtkTracker::Update()
     { 
     return; 
     }
-  /* old code to wait for new transform
-  if (this->LastUpdateTime == 0 ||
-      this->LastUpdateTime == this->UpdateTime.GetMTime())
-    {
-    // wait at most 0.1s for the next transform to arrive,
-    // which is marked by a change in the UpdateTime
-    double waittime = vtkTimerLog::GetCurrentTime() + 0.1;
-    if (this->LastUpdateTime == 0)
-      {  // if this is the first transform, wait up to 5 seconds
-      waittime += 5.0;
-      }
-    while (this->LastUpdateTime == this->UpdateTime.GetMTime() &&
-	   vtkTimerLog::GetCurrentTime() < waittime) 
-      {
-#ifdef _WIN32
-      Sleep(10);
-#else
-#ifdef unix
-#ifdef linux
-      usleep(10*1000);
-#endif
-#ifdef sgi
-      struct timespec sleep_time, remaining_time;
-      sleep_time.tv_sec = 10 / 1000;
-      sleep_time.tv_nsec = 1000000*(10 % 1000);
-      nanosleep(&sleep_time,&remaining_time);
-#endif
-#endif
-#endif
-      }
-    }
-  */
 
   for (int tool = 0; tool < this->NumberOfTools; tool++)
     {
@@ -356,15 +353,19 @@ void vtkTracker::ToolUpdate(int tool, vtkMatrix4x4 *matrix, long flags,
 //----------------------------------------------------------------------------
 void vtkTracker::Beep(int n)
 {
+  this->RequestUpdateMutex->Lock();
   this->UpdateMutex->Lock();
+  this->RequestUpdateMutex->Unlock();
   this->InternalBeep(n);
   this->UpdateMutex->Unlock();
 }
 
 //----------------------------------------------------------------------------
-void vtkTracker::SetToolLED(int tool,  int led, int state)
+void vtkTracker::SetToolLED(int tool, int led, int state)
 {
+  this->RequestUpdateMutex->Lock();
   this->UpdateMutex->Lock();
+  this->RequestUpdateMutex->Unlock();
   this->InternalSetToolLED(tool, led, state);
   this->UpdateMutex->Unlock();
 }

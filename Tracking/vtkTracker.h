@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/18 20:13:41 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2005/01/11 18:12:43 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 
@@ -193,6 +193,7 @@ public:
   // instead of protected.  Do not use them anywhere except inside
   // vtkTracker.cxx.
   vtkCriticalSection *UpdateMutex;
+  vtkCriticalSection *RequestUpdateMutex;
   vtkTimeStamp UpdateTime;
   double InternalUpdateRate;  
 //ETX

@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/17 20:37:35 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2005/01/11 18:12:43 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 
@@ -179,7 +179,9 @@ char *vtkNDITracker::Command(const char *command)
 
   if (this->Device)
     {
+    this->RequestUpdateMutex->Lock();
     this->UpdateMutex->Lock();
+    this->RequestUpdateMutex->Unlock();
     strncpy(this->CommandReply, ndiCommand(this->Device, command), 
             VTK_NDI_REPLY_LEN-1);
     this->CommandReply[VTK_NDI_REPLY_LEN-1] = '\0';
@@ -538,7 +540,9 @@ void vtkNDITracker::LoadVirtualSROM(int tool, const char *filename)
 
   if (this->Tracking)
     {
+    this->RequestUpdateMutex->Lock();
     this->UpdateMutex->Lock();
+    this->RequestUpdateMutex->Unlock();
     if (this->IsDeviceTracking)
       {
       ndiCommand(this->Device,"TSTOP:");
@@ -564,7 +568,9 @@ void vtkNDITracker::ClearVirtualSROM(int tool)
 
   if (this->Tracking)
     {
+    this->RequestUpdateMutex->Lock();
     this->UpdateMutex->Lock();
+    this->RequestUpdateMutex->Unlock();
     if (this->IsDeviceTracking)
       {
       ndiCommand(this->Device,"TSTOP:");

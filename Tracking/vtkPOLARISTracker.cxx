@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2003/01/24 20:07:40 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2005/01/11 18:12:43 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 
@@ -178,7 +178,9 @@ char *vtkPOLARISTracker::Command(const char *command)
 
   if (this->Polaris)
     {
+    this->RequestUpdateMutex->Lock();
     this->UpdateMutex->Lock();
+    this->RequestUpdateMutex->Unlock();
     strncpy(this->CommandReply, plCommand(this->Polaris, command), 
             VTK_POLARIS_REPLY_LEN-1);
     this->CommandReply[VTK_POLARIS_REPLY_LEN-1] = '\0';
@@ -492,6 +494,30 @@ void vtkPOLARISTracker::InternalUpdate()
   if (need_enable)
     { // re-configure, a new tool has been plugged in
     this->EnableToolPorts();
+    // prime the system by sending an initial GX command
+    plGX(this->Polaris,PL_XFORMS_AND_STATUS|PL_FRAME_NUMBER|passive);
+    errnum = plGetError(this->Polaris);
+
+    if (errnum)
+      {
+      if (errnum == PL_BAD_CRC)  // CRC errors are common 
+        {
+        vtkWarningMacro(<< plErrorString(errnum));
+        }
+      else
+        {
+        vtkErrorMacro(<< plErrorString(errnum));
+        }
+      return;
+      }
+
+    for (tool = 0; tool < VTK_POLARIS_NTOOLS; tool++)
+      {
+      int port = ((tool < 3) ? ('1' + tool) : ('A' + tool - 3)); 
+      absent[tool] = plGetGXTransform(this->Polaris, port, transform[tool]);
+      status[tool] = plGetGXPortStatus(this->Polaris, port);
+      frame[tool] = plGetGXFrame(this->Polaris, port);
+      }
     }
   else
     {
@@ -579,7 +605,9 @@ void vtkPOLARISTracker::LoadVirtualSROM(int tool, const char *filename)
 
   if (this->Tracking)
     {
+    this->RequestUpdateMutex->Lock();
     this->UpdateMutex->Lock();
+    this->RequestUpdateMutex->Unlock();
     if (this->IsPOLARISTracking)
       {
       plTSTOP(this->Polaris);
@@ -605,7 +633,9 @@ void vtkPOLARISTracker::ClearVirtualSROM(int tool)
 
   if (this->Tracking)
     {
+    this->RequestUpdateMutex->Lock();
     this->UpdateMutex->Lock();
+    this->RequestUpdateMutex->Unlock();
     if (this->IsPOLARISTracking)
       {
       plTSTOP(this->Polaris);
@@ -754,20 +784,33 @@ void vtkPOLARISTracker::EnableToolPorts()
     status = plGetPSTATPortStatus(this->Polaris,port);
     this->PortEnabled[tool] = ((status & PL_ENABLED) != 0);
 
-    // decompose identity string from end to front
-    plGetPSTATToolInfo(this->Polaris, port, identity);
-    identity[30] = '\0';
-    this->Tools[tool]->SetToolSerialNumber(vtkStripWhitespace(&identity[22]));
-    identity[22] = '\0';
-    this->Tools[tool]->SetToolRevision(vtkStripWhitespace(&identity[19]));
-    identity[19] = '\0';
-    this->Tools[tool]->SetToolManufacturer(vtkStripWhitespace(&identity[7]));
-    identity[7] = '\0';
-    this->Tools[tool]->SetToolType(vtkStripWhitespace(&identity[0]));
+    if (status & PL_TOOL_IN_PORT)
+      {
+      // decompose identity string from end to front
+      plGetPSTATToolInfo(this->Polaris, port, identity);
+      identity[30] = '\0';
+      this->Tools[tool]->SetToolSerialNumber(
+                                    vtkStripWhitespace(&identity[22]));
+      identity[22] = '\0';
+      this->Tools[tool]->SetToolRevision(vtkStripWhitespace(&identity[19]));
+      identity[19] = '\0';
+      this->Tools[tool]->SetToolManufacturer(vtkStripWhitespace(&identity[7]));
+      identity[7] = '\0';
+      this->Tools[tool]->SetToolType(vtkStripWhitespace(&identity[0]));
 
-    plGetPSTATPartNumber(this->Polaris, port, partNumber);
-    partNumber[20] = '\0';
-    this->Tools[tool]->SetToolPartNumber(vtkStripWhitespace(partNumber));
+      plGetPSTATPartNumber(this->Polaris, port, partNumber);
+      partNumber[20] = '\0';
+      this->Tools[tool]->SetToolPartNumber(vtkStripWhitespace(partNumber));
+      }
+    else
+      {
+      this->Tools[tool]->SetToolSerialNumber("");
+      this->Tools[tool]->SetToolRevision("");
+      this->Tools[tool]->SetToolManufacturer("");
+      this->Tools[tool]->SetToolType("");
+      this->Tools[tool]->SetToolPartNumber("");
+      }
+
     }
 
   // re-start the tracking
@@ -779,8 +822,6 @@ void vtkPOLARISTracker::EnableToolPorts()
       { 
       vtkErrorMacro(<< plErrorString(errnum));
       }
-    // prime the system by sending an initial GX command
-    plGX(this->Polaris,PL_XFORMS_AND_STATUS|PL_FRAME_NUMBER|passive);
     }
 }
 
