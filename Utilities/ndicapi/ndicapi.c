@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:39 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2003/01/24 20:14:53 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai Inc.
@@ -922,7 +922,9 @@ char *ndiCommandVA(ndicapi *pol, const char *format, va_list ap)
 
     if (thread_mode & pol->tracking) {
       /* unblock the tracking thread */
+      fprintf(stderr,"unlock\n");
       ndiMutexUnlock(pol->thread_mutex);
+      fprintf(stderr,"unlocked\n");
     }
 
     if (errcode != 0) {

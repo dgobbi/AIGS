@@ -3,10 +3,10 @@
   Program:   NDI Combined API C Interface Library
   Module:    $RCSfile: README.TXT,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
-  Language:  C++
+  Language:  Text
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/07 04:00:57 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2003/01/24 20:14:53 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 
