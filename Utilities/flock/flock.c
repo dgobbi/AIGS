@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2003/06/05 15:14:52 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2004/02/03 22:21:48 $
+  Version:   $Revision: 1.4 $
 
 ==========================================================================
 Copyright 2000 Atamai, Inc.
@@ -44,13 +44,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FLOCK_USE_THREADS 1
 #endif /* _MT */
 
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <fcntl.h>
+#if defined(__APPLE__)
+#include <termios.h>
+#include <dirent.h>
+#else 
 #include <termio.h>
+#endif
 #include <errno.h>
 #ifdef _POSIX_THREADS
 #include <pthread.h>
@@ -95,7 +100,7 @@ struct fbird {
   /* architecture dependent stuff */
 #if defined(_WIN32) || defined(WIN32)
   HANDLE file;           /* windows file handle */
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   int file;              /* unix file handle */
 #endif
 
@@ -107,7 +112,7 @@ struct fbird {
   HANDLE data_mutex;        /* lock on data_buffer */
   HANDLE stream_thread;  /* tracking thread for asynchronous mode */
   HANDLE stream_mutex;   /* use to pause tracking thread */
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
 #ifdef _POSIX_THREADS
   pthread_mutex_t file_mutex;      /* mutex lock on file handle */
   pthread_cond_t  fresh_data_cond; /* condition to wait on for new data */
@@ -167,7 +172,7 @@ static void set_timestamp(long *sec, long *msec);
 #ifdef FLOCK_USE_THREADS
 #if defined(_WIN32) || defined(WIN32)
 static void stream_thread(void *user_data);
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
 static void *stream_thread(void *user_data);
 #endif
 static int start_stream_thread(fbird *fb);
@@ -203,10 +208,12 @@ char *fbDeviceName(int i)
 {
 #if defined(_WIN32) || defined(WIN32)
   static char *dev_names[] = { "COM1:", "COM2:", "COM3:", "COM4:", NULL };
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
 #if defined(linux)
   static char *dev_names[] = { "/dev/ttyS0", "/dev/ttyS1",
                                "/dev/ttyUSB0", "/dev/ttyUSB1", NULL }; 
+#elif defined(__APPLE__)
+   static char *dev_names[] = { NULL, NULL, NULL, NULL, NULL };
 #elif defined(sgi)
   static char *dev_names[] = { "/dev/ttyd1", "/dev/ttyd2",
                                "/dev/ttyd3", "/dev/ttyd4", NULL }; 
@@ -216,6 +223,37 @@ char *fbDeviceName(int i)
 #endif /* unix */
 
   int j;
+
+#if defined(__APPLE__)
+  static char devicenames[4][255+6];
+  DIR *dirp;
+  struct dirent *ep;
+  
+  dirp = opendir("/dev/");
+  if (dirp == NULL) {
+    return NULL;
+  }
+
+  j = 0;
+  while ((ep = readdir(dirp)) != NULL && j < 4) {
+    if (ep->d_name[0] == 'c' && ep->d_name[1] == 'u' &&
+        ep->d_name[2] == '.')
+    {
+      strncpy(devicenames[j],"/dev/",5);
+      strncpy(devicenames[j]+5,ep->d_name,255);
+      devicenames[j][255+5] == '\0';
+      dev_names[j] = devicenames[j];
+      j++;
+    }
+  }
+
+  while (j < 4) {
+    dev_names[j] = NULL;
+    j++;
+  }
+
+  closedir(dirp);
+#endif /* __APPLE__ */
 
   /* guard against negative values */
   if (i < 0) {
@@ -252,7 +290,7 @@ fbird *fbNew()
   fb->max_parameter = 32;
 #if defined(_WIN32) || defined(WIN32)
   fb->file = INVALID_HANDLE_VALUE;
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   fb->file = -1;
 #endif
   fb->error = 0;
@@ -295,7 +333,7 @@ void fbDelete(fbird *fb)
   if (fb->file != INVALID_HANDLE_VALUE) {
     fbClose(fb);
   }
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   if (fb->file != -1) {
     fbClose(fb);
   }
@@ -323,7 +361,7 @@ static int convert_baud_rate(int rate)
                          CBR_38400,
                          CBR_57600,
                          CBR_115200 };
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
 #if defined(sgi) && defined(__NEW_MAX_BAUD)
   static int equiv[] = { 2400,
                          4800,
@@ -530,7 +568,7 @@ int fbOpen(fbird *fb, const char *device, int baud, int mode)
     return set_error(fb,FB_COM_ERROR,"couldn't set serial port parameters");
   }
 
-#elif defined(__unix__) || defined(unix) /* start of UNIX portion of code -------------------*/
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__) /* start of UNIX portion of code -------------------*/
 
   static struct flock fl = { F_WRLCK, 0, 0, 0 }; /* for file locking */
   static struct flock fu = { F_UNLCK, 0, 0, 0 }; /* for file unlocking */
@@ -564,15 +602,19 @@ int fbOpen(fbird *fb, const char *device, int baud, int mode)
 
   /* get exclusive lock on the serial port */
   /* (on many unices, this has no effect for a device file but try anyway) */
+#ifndef __APPLE__
   if (fcntl(fb->file, F_SETLK, &fl) == -1) {
     char text[80];
     sprintf(text,"serial port %s is in use",fb->device_name);
     close(fb->file);
     return set_error(fb,FB_OPEN_ERROR,text);
   }
+#endif /* __APPLE__ */
 
   if (tcgetattr(fb->file,&t) == -1) { /* get I/O information */
+#ifndef __APPLE__
     fcntl(fb->file, F_SETLK, &fu);
+#endif /* __APPLE__ */
     close(fb->file);
     return set_error(fb,FB_COM_ERROR,"couldn't get serial port parameters");
   }
@@ -581,6 +623,10 @@ int fbOpen(fbird *fb, const char *device, int baud, int mode)
 #if defined(sgi) && defined (__NEW_MAX_BAUD)
   t.c_cflag = CS8 | CREAD | CLOCAL;
   t.c_ospeed = baud;
+#elif defined(__APPLE__)
+  t.c_cflag = CS8 | CREAD | CLOCAL;
+  cfsetispeed(&t, baud);
+  cfsetospeed(&t, baud);
 #else
   t.c_cflag = baud | CS8 | CREAD | CLOCAL;
 #endif
@@ -594,7 +640,9 @@ int fbOpen(fbird *fb, const char *device, int baud, int mode)
   t.c_cc[VTIME] = TIMEOUT_PERIOD/100;  /* wait for 1 secs max */
 
   if (tcsetattr(fb->file,TCSANOW,&t) == -1) { /* set I/O information */
+#ifndef __APPLE__
     fcntl(fb->file, F_SETLK, &fu);
+#endif /* __APPLE__ */
     close(fb->file);
     return set_error(fb,FB_COM_ERROR,"couldn't set serial port parameters");
   }
@@ -668,7 +716,7 @@ void fbClose(fbird *fb)
 {
 #if defined(_WIN32) || defined(WIN32)
   DCB comm_settings;
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   static struct flock fu = { F_UNLCK, 0, 0, 0 }; /* for file unlocking */
   int term_bits;
 #endif
@@ -691,14 +739,16 @@ void fbClose(fbird *fb)
   CloseHandle(fb->file);
   fb->file = INVALID_HANDLE_VALUE;
 
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   /* turn off the Flock by setting the RTS line */
   ioctl(fb->file, TIOCMGET, &term_bits);
   term_bits |= TIOCM_RTS;
   ioctl(fb->file, TIOCMSET, &term_bits);
 
   /* release our lock on the serial port */
+#ifndef __APPLE__
   fcntl(fb->file, F_SETLK, &fu);
+#endif /* __APPLE__ */
   close(fb->file);
   fb->file = -1;
 #endif
@@ -720,7 +770,7 @@ void fbReset(fbird *fb)
 #if defined(_WIN32) || defined(WIN32)
   DCB comm_settings;
   DWORD comm_bits;
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   int term_bits;
 #endif
 
@@ -738,7 +788,7 @@ void fbReset(fbird *fb)
   SetCommState(fb->file,&comm_settings);        
   Sleep(2000);                                     /* wait for bird to wake */
 
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   /* set the RTS line low: allows use of a normal serial cable */
   ioctl(fb->file, TIOCMGET, &term_bits);
   term_bits |= TIOCM_RTS;
@@ -782,7 +832,7 @@ void fbReset(fbird *fb)
   PurgeComm(fb->file,PURGE_TXCLEAR);
   PurgeComm(fb->file,PURGE_RXCLEAR);
 
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   ioctl(fb->file, TIOCMGET, &term_bits);
   if ((term_bits & TIOCM_CAR) == 0) { /* check for carrier signal */
     set_error(fb,FB_COM_ERROR,"no carrier");
@@ -820,7 +870,7 @@ void fbFBBReset(fbird *fb)
 
 #if defined(_WIN32) || defined(WIN32)
   Sleep(600);
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   usleep(600000);
 #endif
 }
@@ -846,7 +896,7 @@ void fbFBBAutoConfig(fbird *fb, int num)
   char text[3];
 #if defined(_WIN32) || defined(WIN32)
   Sleep(600);
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   usleep(600000);
 #endif
   fb->num_birds = num;
@@ -861,7 +911,7 @@ void fbFBBAutoConfig(fbird *fb, int num)
   fbSendRaw(fb,text,3);
 #if defined(_WIN32) || defined(WIN32)
   Sleep(600);
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   usleep(600000);
 #endif
 }  
@@ -1046,7 +1096,7 @@ void fbStream(fbird *fb)
 #ifdef _MT
     ReleaseMutex(fb->stream_mutex);
 #endif
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
 #ifdef _POSIX_THREADS
     pthread_mutex_unlock(&fb->stream_mutex);
 #endif
@@ -1079,7 +1129,7 @@ void fbEndStream(fbird *fb)
 #ifdef _MT
     WaitForSingleObject(fb->stream_mutex,INFINITE);
 #endif
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
 #ifdef _POSIX_THREADS
     pthread_mutex_lock(&fb->stream_mutex);
 #endif
@@ -1089,7 +1139,7 @@ void fbEndStream(fbird *fb)
 
 #if defined(_WIN32) || defined(WIN32)
   PurgeComm(fb->file,PURGE_RXCLEAR);
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   tcflush(fb->file,TCIFLUSH);
 #endif
 }
@@ -1248,7 +1298,7 @@ int fbUpdate(fbird *fb)
     ReleaseMutex(fb->data_mutex);
 
 #endif /* _MT */
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
 #ifdef _POSIX_THREADS
 
     /* wait until a new data record arrives */
@@ -2221,7 +2271,7 @@ void fbSendRaw(fbird *fb, const char *text, int len)
   }
 #endif /* _MT */
 
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   int i,n;
   struct timeval start_time,tv;
 
@@ -2263,7 +2313,7 @@ void fbSendRaw(fbird *fb, const char *text, int len)
   }
 #endif
 
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   gettimeofday(&start_time,0);
   while ((i = write(fb->file,text,n)) != n) { 
     if (i == -1 && errno != EAGAIN) {
@@ -2330,7 +2380,7 @@ void fbReceiveRaw(fbird *fb, char *reply, int len, int thread)
 #endif
 
   /* unix code ------------------------*/
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   int m,n,i;
 
 #ifdef _POSIX_THREADS
@@ -2380,7 +2430,7 @@ void fbReceiveRaw(fbird *fb, char *reply, int len, int thread)
 #endif
 
   /* unix code ------------------------*/
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   while (!error && (m = read(fb->file,&reply[i],n)) != n) {
     /* fprintf(stderr,"m = %d, n = %d, i = %d\n",m,n,i); */
     if (m == -1 && errno != EAGAIN) {    /* if problem is not 'temporary,' */ 
@@ -2600,7 +2650,7 @@ static void set_timestamp(long *sec, long *msec)
     *sec = curr_time.time;
     *msec = curr_time.millitm;
   }
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
   struct timeval curr_time;
   gettimeofday(&curr_time, 0);
   *sec = curr_time.tv_sec;
@@ -2753,7 +2803,7 @@ static void end_stream_thread(fbird *fb)
 
 #endif /* _MT */
 
-#elif defined(__unix__) || defined(unix)
+#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
 #ifdef _POSIX_THREADS
 
 static void *stream_thread(void *user_data)

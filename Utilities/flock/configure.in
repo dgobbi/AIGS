@@ -19,16 +19,25 @@ fi
 case $system in
     IRIX-5.* | IRIX-6* | IRIX64-6* | IRIX-64-6*)
         SHLIB_CFLAGS="-shared -rdata_shared"
+        SHLIB_LD="ld"
         SHLIB_LD_LIBS=""
         SHLIB_SUFFIX=".so"
         ;;
     Linux*)
         SHLIB_CFLAGS="-fPIC -shared"
+        SHLIB_LD="${CC}"
         SHLIB_LD_LIBS=""
         SHLIB_SUFFIX=".so"
         ;;
+    Darwin*)
+        SHLIB_CFLAGS="-fno-common"
+        SHLIB_LD="${CC} -bundle -undefined suppress -flat_namespace"
+        SHLIB_LD_LIBS=""
+        SHLIB_SUFFIX=".dylib"
+        ;;
 esac
 AC_SUBST(SHLIB_CFLAGS)
+AC_SUBST(SHLIB_LD)
 AC_SUBST(SHLIB_SUFFIX)
 AC_SUBST(SHLIB_LD_LIBS)
 
