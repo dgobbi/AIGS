@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/03 06:19:49 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2005/01/11 20:52:31 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai, Inc.
@@ -369,12 +369,12 @@ int ndiSerialCheckDSR(int serial_port)
 #if defined(linux) || defined(__linux__)
   int bits;
   /* get the bits to see if DSR is set (i.e. if device is connected) */
-  ioctl(serial_port, TIOCMGET, &bits);
-  return ((bits & TIOCM_DSR) != 0);
-#else
-  /* haven't tested other unices yet */
-  return 1;
+  if (ioctl(serial_port, TIOCMGET, &bits) >= 0) {
+    return ((bits & TIOCM_DSR) != 0);
+  }
 #endif
+  /* if called failed for any reason, return success for robustness */
+  return 1;
 }
 
 #elif defined(macintosh)
