@@ -1,0 +1,33 @@
+/*! \mainpage
+
+These two header files provide backwards-compatibility for support
+of the POLARIS optical tracking device from Northern Digital Inc.
+through the ndicapi library supplied by Atamai Inc.
+
+This C API is based very closely on the serial communications API
+published by Northern Digital Inc.  Its primary purpose is to provide
+a straightforward C-language programming interface that is portable
+across all common computing platforms.
+
+==========================================================================
+
+Copyright 2000,2001 Atamai Inc.
+
+Redistribution of this source code and/or any binary applications created
+using this source code is prohibited without the expressed, written
+permission of the copyright holders.  
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+=======================================================================
+
+*/
