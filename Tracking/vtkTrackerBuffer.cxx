@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:39 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2003/01/24 20:09:00 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 
@@ -48,6 +48,9 @@ POSSIBILITY OF SUCH DAMAGES.
 #include "vtkIntArray.h"
 #include "vtkCriticalSection.h"
 #include "vtkObjectFactory.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 //----------------------------------------------------------------------------
 vtkTrackerBuffer* vtkTrackerBuffer::New()
@@ -160,6 +163,7 @@ void vtkTrackerBuffer::SetBufferSize(int n)
   // right now, there is no effort made to save the previous contents
   this->NumberOfItems = 0;
   this->CurrentIndex = 0;
+  this->CurrentTimeStamp = 0.0;
  
   this->BufferSize = n;
   this->MatrixArray->SetNumberOfTuples(this->BufferSize);
@@ -507,5 +511,298 @@ long vtkTrackerBuffer::GetFlagsAndMatrixFromTime(vtkMatrix4x4 *matrix,
 
   return (flags0 | flags1);
 }
+
+//----------------------------------------------------------------------------
+void vtkTrackerBufferWriteMatrix(FILE *file, const double *matrix)
+{
+  for (int i = 0; i < 4; i++)
+    {
+    fprintf(file,"%15.12f %15.12f %15.12f %15.9f",
+            matrix[4*i],matrix[4*i+1],matrix[4*i+2],matrix[4*i+3]);
+    if (i < 3)
+      {
+      fprintf(file,"\n");
+      }
+    else
+      {
+      fprintf(file,";\n\n");
+      }
+    }
+}
+
+//----------------------------------------------------------------------------
+void vtkTrackerBufferWriteRecord(FILE *file, double timestamp, long flags,
+                                 const double *matrix)
+{
+  fprintf(file,"%14.3f ",timestamp);
+  fprintf(file,"%04.4x ",flags);
+  fprintf(file,"%8.2f %8.2f %8.2f ",
+          matrix[4*0+3],matrix[4*1+3],matrix[4*2+3]);
+  
+  for (int i = 0; i < 3; i++)
+    {
+    fprintf(file,"%15.13f %15.13f %15.13f",
+            matrix[4*i],matrix[4*i+1],matrix[4*i+2]);
+    if (i < 2)
+      {
+      fprintf(file," ");
+      }
+    else
+      {
+      fprintf(file,";\n");
+      }
+    }
+}
+
+//----------------------------------------------------------------------------
+// Write the tracking information to a file
+void vtkTrackerBuffer::WriteToFile(const char *filename)
+{
+  double *elements;
+  int n;
+  long flags;
+  double timestamp;
+  vtkMatrix4x4 *matrix = vtkMatrix4x4::New();
+  FILE *file;
+
+  file = fopen(filename,"w");
+  
+  if (file == 0)
+    {
+    vtkErrorMacro( << "can't open file " << filename);
+    return;
+    }
+
+  fprintf(file,"# vtkTrackerBuffer output\n\n");
+
+  fprintf(file,"ToolCalibrationMatrix = \n");
+  elements = *this->GetToolCalibrationMatrix()->Element;
+  vtkTrackerBufferWriteMatrix(file, elements);
+
+  fprintf(file,"WorldCalibrationMatrix = \n");
+  elements = *this->GetWorldCalibrationMatrix()->Element;
+  vtkTrackerBufferWriteMatrix(file, elements);
+
+  n = this->GetNumberOfItems();
+  while (--n >= 0)
+    {
+    timestamp = this->GetTimeStamp(n);
+    flags = this->GetFlags(n);
+    this->GetUncalibratedMatrix(matrix,n);
+    elements = *(matrix->Element);
+    vtkTrackerBufferWriteRecord(file, timestamp, flags, elements);
+    }
+
+  fclose(file);
+
+  matrix->Delete();
+}
+
+//----------------------------------------------------------------------------
+char *vtkTrackerBufferEatWhitespace(char *text)
+{
+  int i = 0;
+
+  for (i = 0; i < 128; i++)
+    {
+    switch (*text)
+      {
+      case ' ':
+      case '\t':
+      case '\r':
+      case '\n':
+        text++;
+        break;
+      default:
+        return text;
+        break;
+      }
+    }
+
+  return 0;
+}
+
+//----------------------------------------------------------------------------
+// Read the tracking information from a file
+void vtkTrackerBuffer::ReadFromFile(const char *filename)
+{
+  char text[128];
+  char *cp;
+  double elements[16];
+  int state = 0;
+  int i = 0;
+  int line;
+  long flags;
+  double timestamp;
+  int timestamp_warning = 0;
+  vtkMatrix4x4 *matrix = vtkMatrix4x4::New();
+  FILE *file;
+
+  this->NumberOfItems = 0;
+  this->CurrentIndex = 0;
+  this->CurrentTimeStamp = 0.0;
+
+  file = fopen(filename,"r");
+  
+  if (file == 0)
+    {
+    vtkErrorMacro( << "can't open file " << filename);
+    return;
+    }
+
+  for (line = 1;; line++)
+    {
+    if (fgets(text, 128, file) == 0)
+      { // error or end of file
+      if (i != 0)
+        {
+        vtkErrorMacro( << "bad data: " << filename << " line " << line);
+        }
+      break;
+      }
+    // eat leading whitespace
+    cp = vtkTrackerBufferEatWhitespace(text);
+    // skip over empty lines or comments
+    if (cp == 0 || *cp == '\0' || *cp == '#')
+      {
+      continue;
+      }
+
+    if (strncmp(cp,"ToolCalibrationMatrix =",
+                strlen("ToolCalibrationMatrix =")) == 0)
+      {
+      cp += strlen("ToolCalibrationMatrix =");
+      state = 1;
+      if (i != 0)
+        {
+        vtkErrorMacro( << "bad data: " << filename << " line " << line);
+        break;
+        }
+      }
+
+    if (strncmp(cp,"WorldCalibrationMatrix =",
+                strlen("WorldCalibrationMatrix =")) == 0)
+      {
+      cp += strlen("WorldCalibrationMatrix =");
+      state = 2;
+      if (i != 0)
+        {
+        vtkErrorMacro( << "bad data: " << filename << " line " << line);
+        break;
+        }
+      }
+
+    for (;;i++)
+      {
+      cp = vtkTrackerBufferEatWhitespace(cp);
+      if (cp == 0 || *cp == '\0' || *cp == '#')
+        {
+        break;
+        }
+
+      if (state == 0)
+        {
+        if (i == 0)
+          {
+          timestamp = strtod(cp, &cp);
+          }
+        else if (i == 1)
+          {
+          flags = strtoul(cp, &cp, 16);
+          }
+        else if (i < 5)
+          {
+          elements[(i-2)*4 + 3] = strtod(cp, &cp);
+          }
+        else if (i < 8)
+          {
+          elements[0 + (i-5)] = strtod(cp, &cp);
+          }
+        else if (i < 11)
+          {
+          elements[4 + (i-8)] = strtod(cp, &cp);
+          }           
+        else if (i < 14)
+          {
+          elements[8 + (i-11)] = strtod(cp, &cp);
+          }
+        else
+          {
+          if (i > 14 || *cp != ';')
+            {
+            vtkErrorMacro( << "bad data: " << filename << " line " << line);
+            fclose(file);
+            return;
+            }
+          elements[12] = elements[13] = elements[14] = 0.0;
+          elements[15] = 1.0;
+          matrix->DeepCopy(elements);
+          if (timestamp <= this->CurrentTimeStamp && !timestamp_warning)
+            {
+            vtkWarningMacro( << filename << " line " << line << ": timestamps are not monotonically increasing, some data was ignored.");
+            timestamp_warning = 1;
+            }
+          this->AddItem(matrix, flags, timestamp);
+          i = 0;
+          state = 0;
+          break;
+          }
+        }
+      else if (state == 1)
+        {
+        if (i < 16)
+          {
+          elements[i] = strtod(cp, &cp);
+          }
+        else
+          {
+          if (i > 16 || *cp != ';')
+            {
+            vtkErrorMacro( << "bad data: " << filename << " line " << line);
+            fclose(file);
+            return;
+            }
+          vtkMatrix4x4 *calmatrix = vtkMatrix4x4::New();
+          calmatrix->DeepCopy(elements);
+          this->SetToolCalibrationMatrix(calmatrix);
+          calmatrix->Delete();
+          i = 0;
+          state = 0;
+          break;
+          }
+        }
+      else if (state == 2)
+        {
+        if (i < 16)
+          {
+          elements[i] = strtod(cp, &cp);
+          }
+        else
+          {
+          if (i > 16 || *cp != ';')
+            {
+            vtkErrorMacro( << "bad data: " << filename << " line " << line);
+            fclose(file);
+            return;
+            }
+          vtkMatrix4x4 *calmatrix = vtkMatrix4x4::New();
+          calmatrix->DeepCopy(elements);
+          this->SetWorldCalibrationMatrix(calmatrix);
+          calmatrix->Delete();
+          i = 0;
+          state = 0;
+          break;
+          }
+        }
+      }
+    }
+
+  fclose(file);
+
+  matrix->Delete();
+}
+
+
+
 
 

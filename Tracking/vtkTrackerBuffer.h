@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:39 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2003/01/24 20:09:00 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 
@@ -142,6 +142,14 @@ public:
   // Make this buffer into a copy of another buffer.  You should
   // Lock both of the buffers before doing this.
   void DeepCopy(vtkTrackerBuffer *buffer);
+
+  // Description:
+  // Write all stored tracking information out to a file.
+  void WriteToFile(const char *filename);
+
+  // Description:
+  // Read tracking information from a file.
+  void ReadFromFile(const char *filename);
 
 protected:
   vtkTrackerBuffer();
