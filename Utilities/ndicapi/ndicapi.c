@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/03 20:27:03 $
-  Version:   $Revision: 1.5 $
+  Date:      $Date: 2004/02/03 20:42:52 $
+  Version:   $Revision: 1.6 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai Inc.
@@ -33,6 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#if defined(__APPLE__)
+#include <dirent.h>
+#endif /* __APPLE__ */
 
 /*---------------------------------------------------------------------
   Structure for holding ndicapi data.
@@ -439,9 +443,6 @@ char *ndiErrorString(int errnum)
 
   return "Unrecognized error code";
 }
-#if defined(__APPLE__)
-#include <dirent.h>
-#endif /* __APPLE__ */
 
 /*---------------------------------------------------------------------*/
 char *ndiDeviceName(int i)
