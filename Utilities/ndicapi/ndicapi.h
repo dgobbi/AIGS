@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:39 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2002/11/08 02:36:47 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai, Inc.
@@ -163,6 +163,12 @@ void ndiSetThreadMode(ndicapi *pol, int mode);
            adjusted to match the Measurement System.
   - "INIT:" - After the INIT is sent, communication will be paused
            for 100ms.
+  - "PHSR:" - The information returned by the PHSR command is stored and can
+           be retrieved though the ndiGetPHSR() functions.
+  - "PHINF:" - The information returned by the PHINF command is stored and can
+           be retrieved though the ndiGetPHINF() functions.
+  - "TX:"   - The information returned by the GX command is stored and can
+           be retrieved though the ndiGetTX() functions.
   - "GX:"   - The information returned by the GX command is stored and can
            be retrieved though the ndiGetGX() functions.
   - "PSTAT:" - The information returned by the PSTAT command is stored and
