@@ -20,12 +20,13 @@ RANLIB=@RANLIB@
 NDICAPIOBJS = ndicapi.o ndicapi_math.o ndicapi_serial.o ndicapi_thread.o 
 NDICAPILIB = libndicapi.a
 NDICAPISHLIB = libndicapi${SHLIB_SUFFIX}
-NDICAPIHEADERS = ndicapi.h ndicapi_math.h ndicapi_serial.h ndicapi_thread.h polaris.h polaris_math.h
+NDICAPIHEADERS = ndicapi.h ndicapi_math.h ndicapi_serial.h ndicapi_thread.h
+POLARISHEADERS = polaris.h polaris_math.h
 LIBS = @THREAD_LIBS@ -lm
 
 OBJS = ${NDICAPIOBJS}
 
-all: ${NDICAPILIB} ${NDICAPISHLIB}
+all: ${NDICAPILIB}
 
 ${NDICAPILIB}: ${NDICAPIOBJS} ${HEADERS}
 	ar r ${NDICAPILIB} ${NDICAPIOBJS}
@@ -36,6 +37,7 @@ ${NDICAPISHLIB}: ${NDICAPIOBJS} ${HEADERS}
 
 install:
 	${INSTALLCMD} -m 644 ${NDICAPIHEADERS} ${includedir}
+	${INSTALLCMD} -m 644 ${POLARISHEADERS} ${includedir}
 	${INSTALLCMD} -m 755 ${NDICAPILIB} ${libdir}
 	${INSTALLCMD} -m 755 ${NDICAPISHLIB} ${libdir}
 
