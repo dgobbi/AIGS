@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:39 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2002/11/26 15:08:42 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 
@@ -185,9 +185,9 @@ static void *vtkTrackerThread(vtkMultiThreader::ThreadInfo *data)
     self->UpdateMutex->Unlock();
     
     // check to see if we are being told to quit 
-    //data->ActiveFlagLock->Lock();
+    data->ActiveFlagLock->Lock();
     int activeFlag = *(data->ActiveFlag);
-    //data->ActiveFlagLock->Unlock();
+    data->ActiveFlagLock->Unlock();
 
     if (activeFlag == 0)
       {
@@ -224,13 +224,14 @@ int vtkTracker::Probe()
 //----------------------------------------------------------------------------
 void vtkTracker::StartTracking()
 {
-  this->UpdateMutex->Lock();
 
   int tracking = this->Tracking;
 
   this->LastUpdateTime = 0;
 
   this->Tracking = this->InternalStartTracking();
+
+  this->UpdateMutex->Lock();
 
   if (this->Tracking && !tracking && this->ThreadId == -1)
     {
@@ -244,18 +245,14 @@ void vtkTracker::StartTracking()
 //----------------------------------------------------------------------------
 void vtkTracker::StopTracking()
 {
-  this->UpdateMutex->Lock();
   if (this->Tracking && this->ThreadId != -1)
     {
-    this->UpdateMutex->Unlock();
     this->Threader->TerminateThread(this->ThreadId);
     this->ThreadId = -1;
-    this->UpdateMutex->Lock();
     }
 
   this->InternalStopTracking();
   this->Tracking = 0;
-  this->UpdateMutex->Unlock();
 }
 
 //----------------------------------------------------------------------------
