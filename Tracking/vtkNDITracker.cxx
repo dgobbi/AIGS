@@ -1,0 +1,979 @@
+/*=========================================================================
+
+  Program:   AtamaiTracking for VTK
+  Module:    $RCSfile: vtkNDITracker.cxx,v $
+  Creator:   David Gobbi <dgobbi@atamai.com>
+  Language:  C++
+  Author:    $Author: dgobbi $
+  Date:      $Date: 2004/02/17 20:37:35 $
+  Version:   $Revision: 1.1 $
+
+==========================================================================
+
+Copyright (c) 2000-2004 Atamai, Inc.
+All rights reserved.
+
+THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE SOFTWARE "AS IS"
+WITHOUT EXPRESSED OR IMPLIED WARRANTY INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE.  IN NO EVENT SHALL ANY COPYRIGHT HOLDER OR OTHER PARTY WHO MAY
+MODIFY AND/OR REDISTRIBUTE THE SOFTWARE UNDER THE TERMS OF THIS LICENSE
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, LOSS OF DATA OR DATA BECOMING INACCURATE
+OR LOSS OF PROFIT OR BUSINESS INTERRUPTION) ARISING IN ANY WAY OUT OF
+THE USE OR INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES.
+
+=========================================================================*/
+
+#include <limits.h>
+#include <float.h>
+#include <math.h>
+#include <ctype.h>
+#include "ndicapi.h"
+#include "ndicapi_math.h"
+#include "vtkMath.h"
+#include "vtkTimerLog.h"
+#include "vtkMatrix4x4.h"
+#include "vtkTransform.h"
+#include "vtkCriticalSection.h"
+#include "vtkNDITracker.h"
+#include "vtkTrackerTool.h"
+#include "vtkFrameToTimeConverter.h"
+#include "vtkObjectFactory.h"
+
+//----------------------------------------------------------------------------
+vtkNDITracker* vtkNDITracker::New()
+{
+  // First try to create the object from the vtkObjectFactory
+  vtkObject* ret = vtkObjectFactory::CreateInstance("vtkNDITracker");
+  if(ret)
+    {
+    return (vtkNDITracker*)ret;
+    }
+  // If the factory was unable to create the object, then create it here.
+  return new vtkNDITracker;
+}
+
+//----------------------------------------------------------------------------
+vtkNDITracker::vtkNDITracker()
+{
+  this->Device = 0;
+  this->Version = NULL;
+  this->CommandReply[0] = '\0';
+  this->SendMatrix = vtkMatrix4x4::New();
+  this->IsDeviceTracking = 0;
+  this->SerialPort = -1; // default is to probe
+  this->BaudRate = 9600;
+  this->SetNumberOfTools(VTK_NDI_NTOOLS);
+
+  for (int i = 0; i < VTK_NDI_NTOOLS; i++)
+    {
+    this->PortHandle[i] = 0;
+    this->PortEnabled[i] = 0;
+    this->VirtualSROM[i] = 0;
+    }
+
+  // for accurate timing
+  this->Timer = vtkFrameToTimeConverter::New();
+  this->Timer->SetNominalFrequency(60.0);
+}
+
+//----------------------------------------------------------------------------
+vtkNDITracker::~vtkNDITracker() 
+{
+  if (this->Tracking)
+    {
+    this->StopTracking();
+    }
+  this->SendMatrix->Delete();
+  for (int i = 0; i < VTK_NDI_NTOOLS; i++)
+    {
+    if (this->VirtualSROM[i] != 0)
+      {
+      delete [] this->VirtualSROM[i];
+      }
+    }
+  if (this->Version)
+    {
+    delete [] this->Version;
+    }
+  if (this->Timer)
+    {
+    this->Timer->Delete();
+    }
+}
+  
+//----------------------------------------------------------------------------
+void vtkNDITracker::PrintSelf(ostream& os, vtkIndent indent)
+{
+  vtkTracker::PrintSelf(os,indent);
+
+  os << indent << "SendMatrix: " << this->SendMatrix << "\n";
+  this->SendMatrix->PrintSelf(os,indent.GetNextIndent());
+}
+  
+//----------------------------------------------------------------------------
+int vtkNDITracker::Probe()
+{
+  int errnum = NDI_OPEN_ERROR;;
+
+  if (this->IsDeviceTracking)
+    {
+    return 1;
+    }
+
+  // if SerialPort is set to -1, then probe all serial ports
+  if (this->SerialPort < 0)
+    {
+    for (int i = 0; i < 4; i++)
+      {
+      char *devicename = ndiDeviceName(i);
+      if (devicename)
+        {
+        errnum = ndiProbe(devicename);
+        if (errnum == NDI_OKAY)
+          {
+          this->SerialPort = i+1;
+          break;
+          }
+        }
+      }
+    }
+  else // otherwise probe the specified serial port only
+    {
+    char *devicename = ndiDeviceName(this->SerialPort-1);
+    if (devicename)
+      {
+      errnum = ndiProbe(devicename);
+      }
+    }
+
+  // if probe was okay, then send VER:0 to identify device
+  if (errnum == NDI_OKAY)
+    {
+    this->Device = ndiOpen(ndiDeviceName(this->SerialPort-1));
+    if (this->Device)
+      {
+      this->SetVersion(ndiVER(this->Device,0));
+      ndiClose(this->Device);
+      this->Device = 0;
+      }
+
+    return 1;
+    }
+
+  return 0;
+} 
+
+//----------------------------------------------------------------------------
+// Send a raw command to the tracking unit.
+// If communication has already been opened with the NDI,
+// then lock the mutex to get exclusive access and then
+// send the command.
+// Otherwise, open communication with the unit, send the command,
+// and close communication.
+char *vtkNDITracker::Command(const char *command)
+{
+  this->CommandReply[0] = '\0';
+
+  if (this->Device)
+    {
+    this->UpdateMutex->Lock();
+    strncpy(this->CommandReply, ndiCommand(this->Device, command), 
+            VTK_NDI_REPLY_LEN-1);
+    this->CommandReply[VTK_NDI_REPLY_LEN-1] = '\0';
+    this->UpdateMutex->Unlock();
+    }
+  else
+    {
+    this->Device = ndiOpen(ndiDeviceName(this->SerialPort-1));
+    if (this->Device == 0) 
+      {
+      vtkErrorMacro(<< ndiErrorString(NDI_OPEN_ERROR));
+      }
+    else
+      {
+      strncpy(this->CommandReply, ndiCommand(this->Device, command), 
+              VTK_NDI_REPLY_LEN-1);
+      this->CommandReply[VTK_NDI_REPLY_LEN-1] = '\0';
+      ndiClose(this->Device);
+      }
+    this->Device = 0;
+    }
+
+  return this->CommandReply;
+}
+
+//----------------------------------------------------------------------------
+int vtkNDITracker::InternalStartTracking()
+{
+  int errnum, tool;
+  int baud;
+
+  if (this->IsDeviceTracking)
+    {
+    return 1;
+    }
+
+  switch (this->BaudRate)
+    {
+    case 9600: baud = NDI_9600; break; 
+    case 14400: baud = NDI_14400; break; 
+    case 19200: baud = NDI_19200; break; 
+    case 38400: baud = NDI_38400; break; 
+    case 57600: baud = NDI_57600; break; 
+    case 115200: baud = NDI_115200; break;
+    default:
+      vtkErrorMacro(<< "Illegal baud rate");
+      return 0;
+    }
+
+  this->Device = ndiOpen(ndiDeviceName(this->SerialPort-1));
+  if (this->Device == 0) 
+    {
+    vtkErrorMacro(<< ndiErrorString(NDI_OPEN_ERROR));
+    return 0;
+    }
+  // initialize Device
+  ndiCommand(this->Device,"INIT:");
+  if (ndiGetError(this->Device))
+    {
+    ndiRESET(this->Device);
+    errnum = ndiGetError(this->Device);
+    if (errnum) 
+      {
+      vtkErrorMacro(<< ndiErrorString(errnum));
+      ndiClose(this->Device);
+      this->Device = 0;
+      return 0;
+      }
+    ndiCommand(this->Device,"INIT:");
+    if (errnum) 
+      {
+      vtkErrorMacro(<< ndiErrorString(errnum));
+      ndiClose(this->Device);
+      this->Device = 0;
+      return 0;
+      }
+    }
+
+  // set the baud rate
+  // also: NOHANDSHAKE cuts down on CRC errs and timeouts
+  ndiCommand(this->Device,"COMM:%d%03d%d",baud,NDI_8N1,NDI_NOHANDSHAKE);
+  errnum = ndiGetError(this->Device);
+  if (errnum) 
+    {
+    vtkErrorMacro(<< ndiErrorString(errnum));
+    ndiClose(this->Device);
+    this->Device = 0;
+    return 0;
+    }
+
+  // get information about the divice
+  this->SetVersion(ndiVER(this->Device,0));
+
+  for (tool = 0; tool < VTK_NDI_NTOOLS; tool++)
+    {
+    if (VirtualSROM[tool])
+      {
+      this->InternalLoadVirtualSROM(tool,VirtualSROM[tool]);
+      }
+    }
+
+  this->EnableToolPorts();
+
+  ndiCommand(this->Device,"TSTART:");
+
+  errnum = ndiGetError(this->Device);
+  if (errnum) 
+    {
+    vtkErrorMacro(<< ndiErrorString(errnum));
+    ndiClose(this->Device);
+    this->Device = 0;
+    return 0;
+    }
+
+  // for accurate timing
+  this->Timer->Initialize();
+
+  this->IsDeviceTracking = 1;
+
+  return 1;
+}
+
+//----------------------------------------------------------------------------
+int vtkNDITracker::InternalStopTracking()
+{
+  if (this->Device == 0)
+    {
+    return 0;
+    }
+
+  int errnum, tool;
+
+  ndiCommand(this->Device,"TSTOP:");
+  errnum = ndiGetError(this->Device);
+  if (errnum) 
+    {
+    vtkErrorMacro(<< ndiErrorString(errnum));
+    }
+  this->IsDeviceTracking = 0;
+
+  for (tool = 0; tool < VTK_NDI_NTOOLS; tool++)
+    {
+    if (VirtualSROM[tool])
+      {
+      this->ClearVirtualSROM(tool);
+      }
+    }
+
+  this->DisableToolPorts();
+
+  // return to default comm settings
+  ndiCommand(this->Device,"COMM:00000");
+  errnum = ndiGetError(this->Device);
+  if (errnum) 
+    {
+    vtkErrorMacro(<< ndiErrorString(errnum));
+    }
+  ndiClose(this->Device);
+  this->Device = 0;
+
+  return 1;
+}
+
+//----------------------------------------------------------------------------
+// Important notes on the data collection rate of the NDI:
+//
+// The camera frame rate is 60Hz, and therefore the maximum data
+// collection rate is also 60Hz.  The maximum data transfer rate
+// to the computer is also 60Hz.
+//
+// Depending on the number of enabled tools, the data collection
+// rate might be reduced.  Each of the active tools requires one
+// camera frame, and all the passive tools (if any are enabled)
+// collectively require one camera frame.
+//
+// Therefore if there are two enabled active tools, the data rate
+// is reduced to 30Hz.  Ditto for an active tool and a passive tool.
+// If all tools are passive, the data rate is 60Hz.  With 3 active
+// tools and one or more passive tools, the data rate is 15Hz.
+// With 3 active tools, or 2 active and one or more passive tools,
+// the data rate is 20Hz.
+//
+// The data transfer rate to the computer is independent of the data
+// collection rate, and there might be duplicated records.  The
+// data tranfer rate is limited by the speed of the serial port
+// and by the number of characters sent per data record.  If tools
+// are marked as 'missing' then the number of characters that
+// are sent will be reduced.
+
+void vtkNDITracker::InternalUpdate()
+{
+  int errnum, tool, ph;
+  int status[VTK_NDI_NTOOLS];
+  int absent[VTK_NDI_NTOOLS];
+  unsigned long frame[VTK_NDI_NTOOLS];
+  double transform[VTK_NDI_NTOOLS][8];
+  double *referenceTransform = 0;
+  long flags;
+  const unsigned long mflags = NDI_TOOL_IN_PORT | NDI_INITIALIZED | NDI_ENABLED;
+
+  if (!this->IsDeviceTracking)
+    {
+    vtkWarningMacro( << "called Update() when NDI was not tracking");
+    return;
+    }
+
+  // initialize transformations to identity
+  for (tool = 0; tool < VTK_NDI_NTOOLS; tool++)
+    {
+    transform[tool][0] = 1.0;
+    transform[tool][1] = transform[tool][2] = transform[tool][3] = 0.0;
+    transform[tool][4] = transform[tool][5] = transform[tool][6] = 0.0;
+    transform[tool][7] = 0.0;
+    }
+
+  // get the transforms for all tools from the NDI
+  ndiCommand(this->Device,"TX:0001");
+  //fprintf(stderr,"TX:0001 %s\n",ndiCommand(this->Device,"TX:0001"));
+  errnum = ndiGetError(this->Device);
+
+  if (errnum)
+    {
+    if (errnum == NDI_BAD_CRC || errnum == NDI_TIMEOUT) // common errors
+      {
+      vtkWarningMacro(<< ndiErrorString(errnum));
+      }
+    else
+      {
+      vtkErrorMacro(<< ndiErrorString(errnum));
+      }
+    return;
+    }
+
+  // default to incrementing frame count by one (in case there are
+  // no transforms for any tools)
+  unsigned long nextcount = 0;
+
+  for (tool = 0; tool < VTK_NDI_NTOOLS; tool++)
+    {
+    ph = this->PortHandle[tool];
+    if (ph == 0)
+      {
+      continue;
+      }
+
+    absent[tool] = ndiGetTXTransform(this->Device, ph, transform[tool]);
+    status[tool] = ndiGetTXPortStatus(this->Device, ph);
+    frame[tool] = ndiGetTXFrame(this->Device, ph);
+    if (!absent[tool] && frame[tool] > nextcount)
+      { // 'nextcount' is max frame number returned
+      nextcount = frame[tool];
+      }
+    }
+
+  // if no transforms were returned, advance frame count by 1
+  // (assume the NDI will be returning the empty records at
+  // its maximum reporting rate of 60Hz)
+  if (nextcount == 0)
+    {
+    nextcount = this->Timer->GetLastFrame() + 1;
+    }
+
+  // the timestamp is always created using the frame number of
+  // the most recent transformation
+  this->Timer->SetLastFrame(nextcount);
+  double timestamp = this->Timer->GetTimeStampForFrame(nextcount);
+
+  // check to see if any tools have been plugged in
+  if (ndiGetTXSystemStatus(this->Device) & NDI_PORT_OCCUPIED)
+    { // re-configure, a new tool has been plugged in
+    this->EnableToolPorts();
+    }
+  else
+    {
+    for (tool = 0; tool < VTK_NDI_NTOOLS; tool++)
+      {
+      this->PortEnabled[tool] = ((status[tool] & mflags) == mflags);
+      }
+    }
+
+  if (this->ReferenceTool >= 0)
+    { // copy reference tool transform
+    referenceTransform = transform[this->ReferenceTool];
+    }
+
+  for (tool = 0; tool < VTK_NDI_NTOOLS; tool++) 
+    {
+    // convert status flags from NDI to vtkTracker format
+    int port_status = status[tool];
+    flags = 0;
+    if ((port_status & mflags) != mflags) 
+      {
+      flags |= TR_MISSING;
+      }
+    else
+      {
+      if (absent[tool]) { flags |= TR_OUT_OF_VIEW;  }
+      if (port_status & NDI_OUT_OF_VOLUME){ flags |= TR_OUT_OF_VOLUME; }
+      if (port_status & NDI_SWITCH_1_ON)  { flags |= TR_SWITCH1_IS_ON; }
+      if (port_status & NDI_SWITCH_2_ON)  { flags |= TR_SWITCH2_IS_ON; }
+      if (port_status & NDI_SWITCH_3_ON)  { flags |= TR_SWITCH3_IS_ON; }
+      }
+
+    // if tracking relative to another tool
+    if (this->ReferenceTool >= 0 && tool != this->ReferenceTool)
+      {
+      if (!absent[tool])
+	{
+	if (absent[this->ReferenceTool])
+	  {
+	  flags |= TR_OUT_OF_VIEW;
+	  }
+	if (status[this->ReferenceTool] & NDI_OUT_OF_VOLUME)
+	  {
+	  flags |= TR_OUT_OF_VOLUME;
+	  }
+	}
+      // pre-multiply transform by inverse of relative tool transform
+      ndiRelativeTransform(transform[tool],referenceTransform,transform[tool]);
+      }
+    ndiTransformToMatrixd(transform[tool],*this->SendMatrix->Element);
+    this->SendMatrix->Transpose();
+
+    // by default (if there is no camera frame number associated with
+    // the tool transformation) the most recent timestamp is used.
+    double tooltimestamp = timestamp;
+    if (!absent[tool] && frame[tool])
+      {
+      // this will create a timestamp from the frame number      
+      tooltimestamp = this->Timer->GetTimeStampForFrame(frame[tool]);
+      }
+    // send the matrix and flags to the tool
+    this->ToolUpdate(tool,this->SendMatrix,flags,tooltimestamp);
+    }
+}
+
+//----------------------------------------------------------------------------
+void vtkNDITracker::LoadVirtualSROM(int tool, const char *filename)
+{
+  FILE *file = fopen(filename,"rb");
+  if (file == NULL)
+    {
+    vtkErrorMacro("couldn't find srom file " << filename);
+    return;
+    }
+
+  if (this->VirtualSROM[tool] == 0)
+    {
+    this->VirtualSROM[tool] = new unsigned char[1024];
+    }
+
+  memset(this->VirtualSROM[tool],0,1024);
+  fread(this->VirtualSROM[tool],1,1024,file);
+
+  fclose(file);
+
+  if (this->Tracking)
+    {
+    this->UpdateMutex->Lock();
+    if (this->IsDeviceTracking)
+      {
+      ndiCommand(this->Device,"TSTOP:");
+      }
+    this->InternalLoadVirtualSROM(tool,this->VirtualSROM[tool]);
+    if (this->IsDeviceTracking)
+      {
+      ndiCommand(this->Device,"TSTART:");
+      }
+    this->UpdateMutex->Unlock();
+    }
+}
+
+//----------------------------------------------------------------------------
+void vtkNDITracker::ClearVirtualSROM(int tool)
+{
+  if (this->VirtualSROM[tool] != 0)
+    {
+    delete [] this->VirtualSROM[tool];
+    }
+  
+  this->VirtualSROM[tool] = 0;
+
+  if (this->Tracking)
+    {
+    this->UpdateMutex->Lock();
+    if (this->IsDeviceTracking)
+      {
+      ndiCommand(this->Device,"TSTOP:");
+      }
+    this->InternalClearVirtualSROM(tool);
+    if (this->IsDeviceTracking)
+      {
+      ndiCommand(this->Device,"TSTART:");
+      }
+    this->UpdateMutex->Unlock();
+    }
+}  
+
+//----------------------------------------------------------------------------
+// Protected Methods
+
+// helper method to strip whitespace
+static char *vtkStripWhitespace(char *text)
+{
+  int n = strlen(text);
+  // strip from right
+  while (--n >= 0) {
+    if (isspace(text[n])) {
+      text[n] = '\0';
+    }
+    else {
+      break;
+    }
+  }
+  // strip from left
+  while (isspace(*text)) {
+    text++;
+  }
+  return text;
+}
+
+//----------------------------------------------------------------------------
+// Enable all tool ports that have tools plugged into them.
+// The reference port is enabled with NDI_STATIC.
+void vtkNDITracker::EnableToolPorts()
+{
+  int errnum = 0;
+  int tool;
+  int ph;
+  int port;
+  int info;
+  int mode;
+  int ntools;
+  int status;
+  char identity[34];
+  char location[14];
+  char partNumber[24];
+
+  // reset our information about the tool ports
+  for (tool = 0; tool < VTK_NDI_NTOOLS; tool++)
+    {
+    this->PortHandle[tool] = 0;
+    this->PortEnabled[tool] = 0;
+    }
+
+  // stop tracking
+  if (this->IsDeviceTracking)
+    {
+    ndiCommand(this->Device,"TSTOP:");
+    errnum = ndiGetError(this->Device);
+    if (errnum)
+      { 
+      vtkErrorMacro(<< ndiErrorString(errnum));
+      }    
+    }
+
+  // free ports that are waiting to be freed
+  ndiCommand(this->Device,"PHSR:01");
+  ntools = ndiGetPHSRNumberOfHandles(this->Device);
+  for (tool = 0; tool < ntools; tool++)
+    {
+    ph = ndiGetPHSRHandle(this->Device,tool);
+    port = this->GetToolFromHandle(ph);
+    ndiCommand(this->Device,"PHF:%02X",ph);
+    //fprintf(stderr,"PHF:%02X\n",ph);
+    errnum = ndiGetError(this->Device);
+    if (errnum)
+      { 
+      vtkErrorMacro(<< ndiErrorString(errnum));
+      }
+    }
+
+  // initialize ports waiting to be initialized
+  do // repeat as necessary (in case multi-channel tools are used) 
+    {
+    ndiCommand(this->Device,"PHSR:02");
+    ntools = ndiGetPHSRNumberOfHandles(this->Device);
+    for (tool = 0; tool < ntools; tool++)
+      {
+      ph = ndiGetPHSRHandle(this->Device,tool);
+      ndiCommand(this->Device,"PINIT:%02X",ph);
+      //fprintf(stderr,"PINIT:%02X\n",ph);
+      errnum = ndiGetError(this->Device);
+      if (errnum)
+	{ 
+	vtkErrorMacro(<< ndiErrorString(errnum));
+	}
+      }
+    }
+  while (ntools > 0 && errnum == 0);
+
+  // enable initialized tools
+  ndiCommand(this->Device,"PHSR:03");
+  ntools = ndiGetPHSRNumberOfHandles(this->Device);
+  for (tool = 0; tool < ntools; tool++)
+    {
+    ph = ndiGetPHSRHandle(this->Device,tool);
+    ndiCommand(this->Device,"PHINF:%02X0001",ph);
+    ndiGetPHINFToolInfo(this->Device,identity);
+    if (identity[1] == 0x03) // button-box
+      {
+      mode = 'B';
+      }
+    else if (identity[1] == 0x01) // reference
+      {
+      mode = 'S';
+      }
+    else // anything else
+      {
+      mode = 'D';
+      }
+
+    // enable the tool
+    ndiCommand(this->Device,"PENA:%02X%c",ph,mode);
+    //fprintf(stderr,"PENA:%02X%c\n",ph,mode);
+    errnum = ndiGetError(this->Device);
+    if (errnum)
+      {
+      vtkErrorMacro(<< ndiErrorString(errnum));
+      }
+    }
+
+  // get information for all tools
+  ndiCommand(this->Device,"PHSR:00");
+  ntools = ndiGetPHSRNumberOfHandles(this->Device);
+  for (tool = 0; tool < ntools; tool++)
+    {
+    ph = ndiGetPHSRHandle(this->Device,tool);
+    ndiCommand(this->Device,"PHINF:%02X0025",ph);
+    errnum = ndiGetError(this->Device);
+    if (errnum)
+      { 
+      vtkErrorMacro(<< ndiErrorString(errnum));
+      continue;
+      }    
+    // get the physical port identifier
+    ndiGetPHINFPortLocation(this->Device,location);
+    if (location[11] >= 'A')
+      {
+      port = location[11] - 'A' + 3;
+      }
+    else
+      {
+      port = (location[10]-'0')*10 + (location[11]-'0') - 1;
+      }
+    if (port < VTK_NDI_NTOOLS)
+      {
+      this->PortHandle[port] = ph;
+      }
+
+    // decompose identity string from end to front
+    ndiGetPHINFToolInfo(this->Device, identity);
+    identity[31] = '\0';
+    this->Tools[port]->SetToolSerialNumber(vtkStripWhitespace(&identity[23]));
+    identity[23] = '\0';
+    this->Tools[port]->SetToolRevision(vtkStripWhitespace(&identity[20]));
+    identity[20] = '\0';
+    this->Tools[port]->SetToolManufacturer(vtkStripWhitespace(&identity[8]));
+    identity[8] = '\0';
+    this->Tools[port]->SetToolType(vtkStripWhitespace(&identity[0]));
+
+    ndiGetPHINFPartNumber(this->Device, partNumber);
+    partNumber[20] = '\0';
+    this->Tools[port]->SetToolPartNumber(vtkStripWhitespace(partNumber));
+    
+    status = ndiGetPHINFPortStatus(this->Device);
+    this->PortEnabled[port] = ((status & NDI_ENABLED) != 0);
+
+    if (this->Tools[port]->GetLED1())
+      {
+      this->InternalSetToolLED(tool,1,this->Tools[port]->GetLED1());
+      }
+    if (this->Tools[port]->GetLED2())
+      {
+      this->InternalSetToolLED(tool,2,this->Tools[port]->GetLED2());
+      }
+    if (this->Tools[port]->GetLED3())
+      {
+      this->InternalSetToolLED(tool,3,this->Tools[port]->GetLED3());
+      }
+    }
+
+  // re-start the tracking
+  if (this->IsDeviceTracking)
+    {
+    ndiCommand(this->Device,"TSTART:");
+    errnum = ndiGetError(this->Device);
+    if (errnum)
+      { 
+      vtkErrorMacro(<< ndiErrorString(errnum));
+      }
+    }
+}
+
+//----------------------------------------------------------------------------
+// Disable all enabled tool ports.
+void vtkNDITracker::DisableToolPorts()
+{
+  int errnum = 0;
+  int ph;
+  int tool;
+  int ntools;
+  int status;
+
+  // stop tracking
+  if (this->IsDeviceTracking)
+    {
+    ndiCommand(this->Device,"TSTOP:");
+    errnum = ndiGetError(this->Device);
+    if (errnum)
+      { 
+      vtkErrorMacro(<< ndiErrorString(errnum));
+      }    
+    }
+
+  // disable all enabled tools
+  ndiCommand(this->Device,"PHSR:04");
+  ntools = ndiGetPHSRNumberOfHandles(this->Device);
+  for (tool = 0; tool < ntools; tool++)
+    {
+    ph = ndiGetPHSRHandle(this->Device,tool);
+    ndiCommand(this->Device,"PDIS:%02X",ph);
+    //fprintf(stderr,"PDIS:%02X\n",ph);
+    errnum = ndiGetError(this->Device);
+    if (errnum)
+      { 
+      vtkErrorMacro(<< ndiErrorString(errnum));
+      }    
+    }
+
+  // disable the enabled ports
+  for (tool = 0; tool < VTK_NDI_NTOOLS; tool++)
+    {
+    this->PortEnabled[tool] = 0;
+    }
+
+  // re-start the tracking
+  if (this->IsDeviceTracking)
+    {
+    ndiCommand(this->Device,"TSTART:");
+    errnum = ndiGetError(this->Device);
+    if (errnum)
+      { 
+      vtkErrorMacro(<< ndiErrorString(errnum));
+      }
+    }
+}
+
+//----------------------------------------------------------------------------
+int vtkNDITracker::GetToolFromHandle(int handle)
+{
+  int tool;
+
+  for (tool = 0; tool < VTK_NDI_NTOOLS; tool++)
+    {
+    if (this->PortHandle[tool] == handle)
+      {
+      return tool;
+      }
+    }
+
+  return -1;
+}
+
+//----------------------------------------------------------------------------
+// cause the NDI system to beep
+int vtkNDITracker::InternalBeep(int n)
+{
+  int errnum; 
+
+  if (n > 9)
+    {
+    n = 9;
+    }
+  if (n < 0)
+    {
+    n = 0;
+    }
+
+  if (this->Tracking)
+    {
+    ndiCommand(this->Device,"BEEP:%i",n);
+    errnum = ndiGetError(this->Device);
+    /*
+    if (errnum && errnum != NDI_NO_TOOL)
+      {
+      vtkErrorMacro(<< ndiErrorString(errnum));
+      return 0;
+      }
+    */
+    }
+
+  return 1;
+}
+
+//----------------------------------------------------------------------------
+// change the state of an LED on the tool
+int vtkNDITracker::InternalSetToolLED(int tool, int led, int state)
+{
+  int plstate = NDI_BLANK;
+  int errnum; 
+
+  switch (state)
+    {
+    case 0: plstate = NDI_BLANK; break;
+    case 1: plstate = NDI_SOLID; break;
+    case 2: plstate = NDI_FLASH; break;
+    }
+
+  if (this->Tracking && tool >= 0 && tool < 3 && led > 0 && led < 3)
+    {
+    int ph = this->PortHandle[tool];
+    if (ph == 0)
+      {
+      return 0;
+      }
+
+    ndiCommand(this->Device, "LED:%02X%d%c", ph, led+1, plstate);
+    errnum = ndiGetError(this->Device);
+    /*
+    if (errnum && errnum != NDI_NO_TOOL)
+      {
+      vtkErrorMacro(<< ndiErrorString(errnum));
+      return 0;
+      }
+    */
+    }
+
+  return 1;
+}
+
+//----------------------------------------------------------------------------
+void vtkNDITracker::InternalLoadVirtualSROM(int tool,
+					    const unsigned char data[1024])
+{
+  if (data == NULL)
+    {
+    return;
+    }
+
+  int errnum;
+  int ph;
+  int n, i;
+  char hexbuffer[128];
+  char location[14];
+
+  if (tool < 3) // wired tools
+    {
+    ndiCommand(this->Device, "PHSR:00");
+    n = ndiGetPHSRNumberOfHandles(this->Device);
+    for (i = 0; i < n; i++)
+      {
+      if (ndiGetPHSRInformation(this->Device,i) & NDI_TOOL_IN_PORT)
+	{
+	ph = ndiGetPHSRHandle(this->Device,i);
+	ndiCommand(this->Device,"PHINF:%02X0021",ph);
+	ndiGetPHINFPortLocation(this->Device,location);
+	if (tool == (location[10]-'0')*10 + (location[11]-'0') - 1)
+	  {
+	  break;
+	  }
+	}
+      }
+    if (i == n)
+      {
+      vtkErrorMacro(<< "can't load SROM: no tool found in port " << tool);
+      return;
+      }
+    }
+  else // wireless tools
+    {
+    ndiCommand(this->Device, "PHRQ:**********0%c**", tool-3+'A');
+    ph = ndiGetPHRQHandle(this->Device);
+    }
+  errnum = ndiGetError(this->Device);
+  if (errnum)
+    {
+    vtkErrorMacro(<< ndiErrorString(errnum));
+    return;
+    }
+
+  for (int i = 0; i < 1024; i += 64)
+    {
+    ndiCommand(this->Device, "PVWR:%02X%04X%.128s",
+	       ph, i, ndiHexEncode(hexbuffer, &data[i], 64));
+    }  
+}
+
+//----------------------------------------------------------------------------
+void vtkNDITracker::InternalClearVirtualSROM(int tool)
+{
+  int ph = this->PortHandle[tool];
+  ndiCommand(this->Device, "PHF:%02X", ph);
+  this->PortEnabled[tool] = 0;
+  this->PortHandle[tool] = 0;
+}
+
