@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:39 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2003/01/24 20:07:40 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 
@@ -386,6 +386,15 @@ void vtkPOLARISTracker::InternalUpdate()
     {
     vtkWarningMacro( << "called Update() when POLARIS was not tracking");
     return;
+    }
+
+  // initialize transformations to identity
+  for (tool = 0; tool < VTK_POLARIS_NTOOLS; tool++)
+    {
+    transform[tool][0] = 1.0;
+    transform[tool][1] = transform[tool][2] = transform[tool][3] = 0.0;
+    transform[tool][4] = transform[tool][5] = transform[tool][6] = 0.0;
+    transform[tool][7] = 0.0;
     }
 
   // check to see if passive ports are being used
