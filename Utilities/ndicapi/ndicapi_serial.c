@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:39 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2004/02/03 06:19:49 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai, Inc.
@@ -48,13 +48,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/timeb.h>
 
 /* =========== unix includes */
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <fcntl.h>
+#if defined(__APPLE__)
+#include <termios.h>
+#else
 #include <termio.h>
+#endif
 
 /* =========== mac includes */
 #elif defined(macintosh)
@@ -85,7 +89,7 @@ static HANDLE ndi_open_handles[4] = { INVALID_HANDLE_VALUE,
 static COMMTIMEOUTS ndi_save_timeouts[4];
 static DCB ndi_save_dcb[4];
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 #define NDI_MAX_SAVE_STATE 4
 static int ndi_open_handles[4] = { -1, -1, -1, -1 };
@@ -179,7 +183,7 @@ HANDLE ndiSerialOpen(const char *device)
   return serial_port;
 }
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 int ndiSerialOpen(const char *device)
 {
@@ -191,7 +195,7 @@ int ndiSerialOpen(const char *device)
 
   /* port is readable/writable and is (for now) non-blocking */
   serial_port = open(device,O_RDWR|O_NOCTTY|O_NDELAY);
-                     
+
   if (serial_port == -1) {
     return -1;             /* bail out on error */
   }
@@ -200,12 +204,14 @@ int ndiSerialOpen(const char *device)
   /* the port to block while we were trying to open it) */
   fcntl(serial_port, F_SETFL, 0);
 
+#ifndef __APPLE__
   /* get exclusive lock on the serial port */
   /* on many unices, this has no effect for device files */
   if (fcntl(serial_port, F_SETLK, &fl)) {
     close(serial_port);
     return -1;
   }
+#endif /* __APPLE__ */
 
   /* get I/O information */
   if (tcgetattr(serial_port,&t) == -1) {
@@ -303,7 +309,7 @@ void ndiSerialClose(HANDLE serial_port)
   CloseHandle(serial_port);
 }
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 void ndiSerialClose(int serial_port)
 {
@@ -356,7 +362,7 @@ int ndiSerialCheckDSR(HANDLE serial_port)
   return ((bits & MS_DSR_ON) != 0);
 }
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 int ndiSerialCheckDSR(int serial_port)
 {
@@ -398,7 +404,7 @@ int ndiSerialBreak(HANDLE serial_port)
   return 0;
 }
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 int ndiSerialBreak(int serial_port)
 {
@@ -447,7 +453,7 @@ int ndiSerialFlush(HANDLE serial_port, int buffers)
   return 0;
 }
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 int ndiSerialFlush(int serial_port, int buffers)
 {
@@ -547,7 +553,7 @@ int ndiSerialComm(HANDLE serial_port, int baud, const char *mode,
   return 0;
 }
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 int ndiSerialComm(int serial_port, int baud, const char mode[4], int handshake)
 {
@@ -564,6 +570,17 @@ int ndiSerialComm(int serial_port, int baud, const char mode[4], int handshake)
     case 57600:  newbaud = B57600;  break;
     case 115200: newbaud = B115200; break;
     default:     return -1;
+    }
+#elif defined(__APPLE__)
+  switch (baud)
+    {
+    case 9600:    newbaud = B9600;   break;
+    case 14400:   return -1;
+    case 19200:   newbaud = B19200;  break;
+    case 38400:   newbaud = B38400;  break;
+    case 57600:   newbaud = B57600;  break;
+    case 115200:  newbaud = B115200; break;
+    default:      return -1;
     }
 #elif defined(sgi) && defined(__NEW_MAX_BAUD)
   switch (baud)
@@ -592,7 +609,13 @@ int ndiSerialComm(int serial_port, int baud, const char mode[4], int handshake)
   tcgetattr(serial_port,&t);          /* get I/O information */
   t.c_cflag &= ~CSIZE;                /* clear flags */
 
-#if defined(sgi) && defined(__NEW_MAX_BAUD)
+#if defined(linux) || defined(__linux__)
+  t.c_cflag &= ~CBAUD;
+  t.c_cflag |= newbaud;                /* set baud rate */
+#elif defined(__APPLE__)
+  cfsetispeed(&t, newbaud);
+  cfsetospeed(&t, newbaud);
+#elif defined(sgi) && defined(__NEW_MAX_BAUD)
   t.c_ospeed = newbaud;
 #else
   t.c_cflag &= ~CBAUD;
@@ -750,7 +773,7 @@ int ndiSerialTimeout(HANDLE serial_port, int milliseconds)
   return 0;
 }
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 int ndiSerialTimeout(int serial_port, int milliseconds)
 {
@@ -808,7 +831,7 @@ int ndiSerialWrite(HANDLE serial_port, const char *text, int n)
   return i;  /* return the number of characters written */
 }
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 int ndiSerialWrite(int serial_port, const char *text, int n)
 {
@@ -875,7 +898,7 @@ int ndiSerialRead(HANDLE serial_port, char *reply, int n)
   return i;
 }
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 int ndiSerialRead(int serial_port, char *reply, int n)
 {
@@ -951,7 +974,7 @@ int ndiSerialSleep(HANDLE serial_port, int milliseconds)
   return 0;
 }
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 int ndiSerialSleep(int serial_port, int milliseconds)
 {

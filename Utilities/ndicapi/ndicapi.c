@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2003/01/24 20:14:53 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2004/02/03 06:19:49 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai Inc.
@@ -439,10 +439,43 @@ char *ndiErrorString(int errnum)
 
   return "Unrecognized error code";
 }
+#if defined(__APPLE__)
+#include <sys/types.h>
+#include <dirent.h>
+#endif /* __APPLE__ */
 
 /*---------------------------------------------------------------------*/
 char *ndiDeviceName(int i)
 {
+#if defined(__APPLE__)
+  static char devicenames[4][255+6];
+  DIR *dirp;
+  struct dirent *ep;
+  int j = 0;
+  
+  dirp = opendir("/dev/");
+  if (dirp == NULL) {
+    return NULL;
+  }
+
+  while ((ep = readdir(dirp)) != NULL && j < 4) {
+    if (ep->d_name[0] == 'c' && ep->d_name[1] == 'u' &&
+        ep->d_name[2] == '.')
+    {
+      if (j == i) {
+        strncpy(devicenames[j],"/dev/",5);
+        strncpy(devicenames[j]+5,ep->d_name,255);
+        devicenames[j][255+5] == '\0';
+        closedir(dirp);
+        return devicenames[j];
+      }
+      j++;
+    }
+  }
+  closedir(dirp);
+  return NULL;  
+#endif /* __APPLE__ */
+
 #ifdef NDI_DEVICE0
   if (i == 0) { return NDI_DEVICE0; }
 #endif

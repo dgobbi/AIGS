@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:39 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2004/02/03 06:19:49 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai, Inc.
@@ -57,7 +57,7 @@ void ndiMutexUnlock(HANDLE mutex)
   ReleaseMutex(mutex);
 }
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 pthread_mutex_t *ndiMutexCreate()
 {
@@ -115,7 +115,7 @@ int ndiEventWait(HANDLE event, int milliseconds)
   return 0;
 }
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 /* There is no equivalent of an 'event' in POSIX threads, so we define
    our own event type consisting of a boolean variable (to say whether
@@ -227,7 +227,7 @@ void ndiThreadJoin(HANDLE thread)
   WaitForSingleObject(thread, INFINITE);
 }
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 pthread_t ndiThreadSplit(void *thread_func(void *userdata), void *userdata)
 {

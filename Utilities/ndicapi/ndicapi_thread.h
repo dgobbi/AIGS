@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:39 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2004/02/03 06:19:49 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai, Inc.
@@ -56,7 +56,7 @@ typedef HANDLE NDIThread;
 typedef HANDLE NDIMutex;
 typedef HANDLE NDIEvent;
 
-#elif defined(unix) || defined(__unix__)
+#elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
 #include <unistd.h>
 #include <sys/types.h>
