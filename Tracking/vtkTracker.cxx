@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2003/01/03 05:58:59 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2004/02/18 20:13:41 $
+  Version:   $Revision: 1.4 $
 
 ==========================================================================
 
@@ -263,7 +263,7 @@ void vtkTracker::Update()
     { 
     return; 
     }
-
+  /* old code to wait for new transform
   if (this->LastUpdateTime == 0 ||
       this->LastUpdateTime == this->UpdateTime.GetMTime())
     {
@@ -294,6 +294,7 @@ void vtkTracker::Update()
 #endif
       }
     }
+  */
 
   for (int tool = 0; tool < this->NumberOfTools; tool++)
     {

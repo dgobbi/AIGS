@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:39 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2004/02/18 20:13:41 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 
@@ -115,9 +115,7 @@ public:
   virtual int IsTracking() { return this->Tracking; };
 
   // Description:
-  // This method will sleep until the next transformation is sent
-  // by the tracking system (up to a maximum sleep of 0.1 seconds)
-  // and then it calls Update() on each of the tools.  Note that
+  // This method will call Update() on each of the tools.  Note that
   // this method does not call the InternalUpdate() method, which
   // is called by a separate thread.
   virtual void Update();
