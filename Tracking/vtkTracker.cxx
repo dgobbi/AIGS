@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/26 15:08:42 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2003/01/03 05:58:59 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 
@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGES.
 #include "vtkTrackerTool.h"
 #include "vtkTrackerBuffer.h"
 #include "vtkMultiThreader.h"
+#include "vtkMutexLock.h"
 #include "vtkCriticalSection.h"
 #include "vtkObjectFactory.h"
 
