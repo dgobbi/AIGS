@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:39 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2003/06/05 15:16:15 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai, Inc.
@@ -72,8 +72,8 @@ typedef int NDIFileHandle;
 #define NDI_NUMBER_OF_DEVICES 4
 #define NDI_DEVICE0    "/dev/ttyS0"
 #define NDI_DEVICE1    "/dev/ttyS1"
-#define NDI_DEVICE2    "/dev/ttyS2"
-#define NDI_DEVICE3    "/dev/ttyS3"
+#define NDI_DEVICE2    "/dev/ttyUSB0"
+#define NDI_DEVICE3    "/dev/ttyUSB1"
 #elif defined(sgi)
 #define NDI_NUMBER_OF_DEVICES 4
 #define NDI_DEVICE0    "/dev/ttyd1"
