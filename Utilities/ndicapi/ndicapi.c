@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/03 20:25:39 $
-  Version:   $Revision: 1.4 $
+  Date:      $Date: 2004/02/03 20:27:03 $
+  Version:   $Revision: 1.5 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai Inc.
@@ -440,7 +440,6 @@ char *ndiErrorString(int errnum)
   return "Unrecognized error code";
 }
 #if defined(__APPLE__)
-#include <sys/types.h>
 #include <dirent.h>
 #endif /* __APPLE__ */
 
