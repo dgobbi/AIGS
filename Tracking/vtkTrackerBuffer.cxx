@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2003/01/24 20:09:00 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2003/01/25 00:02:47 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 
@@ -626,7 +626,7 @@ char *vtkTrackerBufferEatWhitespace(char *text)
 // Read the tracking information from a file
 void vtkTrackerBuffer::ReadFromFile(const char *filename)
 {
-  char text[128];
+  char text[256];
   char *cp;
   double elements[16];
   int state = 0;
@@ -652,7 +652,7 @@ void vtkTrackerBuffer::ReadFromFile(const char *filename)
 
   for (line = 1;; line++)
     {
-    if (fgets(text, 128, file) == 0)
+    if (fgets(text, 256, file) == 0)
       { // error or end of file
       if (i != 0)
         {
