@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  Text
   Author:    $Author: dgobbi $
-  Date:      $Date: 2003/01/24 20:14:53 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2004/02/03 20:48:47 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 
@@ -16,12 +16,18 @@ This library is provided by Atamai Inc., and is not supported by Northern
 Digital Inc.
 
 The contents of this package have been built successfully under
-Linux-gcc, IRIX-cc, and Windows-MSVC.  A configure script is
-supplied for use with Linux and IRIX.  It is used as follows:
+Linux-gcc, Mac-OSX10.3-gcc, IRIX-cc, and Windows-MSVC.  A configure
+script is supplied for use with Linux, OSX, and IRIX.  It is used
+as follows:
 
   ./configure --prefix=/usr/local  (or another appropriate directory)
   make
   make install 
+
+To build a Python (http://www.python.org) version of this library, do
+  python setup.py build
+  python setup.py install
+  >>> import polaris
 
 -----
 The main contents of this package are as follows:
@@ -41,8 +47,9 @@ The main contents of this package are as follows:
    The vtkPOLARISTracker class supports the use of the POLARIS
    and AURORA systems within VTK.
 
-A python interface to the ndicapi library is also available from
-Atamai Inc., email dgobbi@atamai.com if you are interested. 
+4) A python interface to the ndicapi library.  However, only the original
+   POLARIS API is supported through python.  The full ndicapi interface is
+   not yet supported.
 
 ---
 END OF FILE
