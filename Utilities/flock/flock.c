@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:40 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2003/01/24 20:16:34 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 Copyright 2000 Atamai, Inc.
@@ -162,7 +162,7 @@ static int format_len_table[8] = { 3, 3, 9, 6, 12, 0, 4, 7 };
 static int set_error(fbird *fb, int error_code, const char *text);
 static int convert_baud_rate(int baud);
 static int max_parameter(int revision);
-static void set_timestamp(fbird *fb);
+static void set_timestamp(long *sec, long *msec);
 
 #ifdef FLOCK_USE_THREADS
 #if defined(_WIN32) || defined(WIN32)
@@ -1333,7 +1333,7 @@ int fbUpdate(fbird *fb)
   len = 2*data_len(fb->format[fb->bird]) \
     + fb->button_mode[fb->bird] + fb->group_mode;
   fbReceiveRaw(fb,fb->data_buffer,len,0);
-  set_timestamp(fb);
+  set_timestamp(&fb->timestamp_secs,&fb->timestamp_msecs);
 
   if (fbGetBird(fb) != fb->bird) {
     if (fbGetBird(fb)) {
@@ -2549,18 +2549,62 @@ static int set_error(fbird *fb, int error_code, const char *text)
   return error_code;
 }
 
-static void set_timestamp(fbird *fb)
+static void set_timestamp(long *sec, long *msec)
 {
 #if defined(_WIN32) || defined(WIN32)
+  /* The ftime() system time isn't precise enough, but the 
+     QueryPerformanceCounter() function doesn't give the
+     absolute time value that is desired.
+     So we read them both once to get an offset to add to
+     the QueryPerformanceCounter() value.
+     (This is a quick-and-dirty type fix, it really should
+     average the system time and it should correct for drift
+     in the performance time) */
+  static int perf_initialized = 0;
+  static CRITICAL_SECTION perf_lock;
+  static LARGE_INTEGER perf_freq;
+  static LARGE_INTEGER perf_offset;
+  static int has_perf = -1;
+  LARGE_INTEGER perf_time;
   struct timeb curr_time;
-  ftime( &curr_time );
-  fb->timestamp_secs = curr_time.time;
-  fb->timestamp_msecs = curr_time.millitm;
+
+  /* do this once only */
+  if (!perf_initialized) {
+    InitializeCriticalSection(&perf_lock);
+    EnterCriticalSection(&perf_lock);
+    /* re-check just in case another thread has already done it */
+    if (!perf_initialized) {
+      has_perf = QueryPerformanceFrequency(&perf_freq);
+      if (has_perf) {
+	QueryPerformanceCounter(&perf_offset);
+	ftime(&curr_time);
+	perf_offset.QuadPart = ((curr_time.time*perf_freq.QuadPart
+				 + curr_time.millitm*perf_freq.QuadPart/1000) 
+				- perf_offset.QuadPart);
+      }
+      perf_initialized = 1;
+    }
+    LeaveCriticalSection(&perf_lock);
+  }
+  if (has_perf) {
+    QueryPerformanceCounter(&perf_time);
+    perf_time.QuadPart = perf_time.QuadPart + perf_offset.QuadPart;
+      *sec = (time_t)(perf_time.QuadPart
+		      /perf_freq.QuadPart);
+      *msec = (unsigned short)((perf_time.QuadPart
+				%perf_freq.QuadPart)*1000
+			       /perf_freq.QuadPart);
+  }
+  else {
+    ftime(&curr_time);
+    *sec = curr_time.time;
+    *msec = curr_time.millitm;
+  }
 #elif defined(__unix__) || defined(unix)
   struct timeval curr_time;
   gettimeofday(&curr_time, 0);
-  fb->timestamp_secs = curr_time.tv_sec;
-  fb->timestamp_msecs = curr_time.tv_usec/1000;
+  *sec = curr_time.tv_sec;
+  *msec = curr_time.tv_usec/1000;
 #endif /* unix */
 }  
 
@@ -2611,13 +2655,14 @@ the thread has stopped, frees up all of the data locking stuctures.
 
 static void stream_thread(void *user_data)
 {
-  struct timeb curr_time,old_time;
+  long curr_time_sec, curr_time_msec;
+  long old_time_sec, old_time_msec;
   int count,oldcount,len,check_bird;
   char buffer[256];
   fbird *fb;
   fb = (fbird *)user_data;
   
-  old_time.time = 0;
+  old_time_sec = 0;
   fb->async_bird = 0;
 
   /* the stream-recieve loop */
@@ -2635,7 +2680,7 @@ static void stream_thread(void *user_data)
     len = 2*data_len(fb->format[fb->async_bird]) \
       + fb->button_mode[fb->async_bird] + fb->group_mode;
     fbReceiveRaw(fb,buffer,len,1);
-    ftime(&curr_time);
+    set_timestamp(&curr_time_sec,&curr_time_msec);
 
     /* make sure we are receiving data from the bird we think we are */
     if (fb->group_mode) {
@@ -2651,19 +2696,19 @@ static void stream_thread(void *user_data)
     WaitForSingleObject(fb->data_mutex,INFINITE);    
     memcpy(fb->async_buffer[fb->async_bird],buffer,len);
     fb->fresh_data = 1;
-    fb->timestamp_secs = curr_time.time;
-    fb->timestamp_msecs = curr_time.millitm;    
+    fb->async_timestamp_secs = curr_time_sec;
+    fb->async_timestamp_msecs = curr_time_msec;
     ReleaseMutex(fb->data_mutex);
     SetEvent(fb->data_event);
 
     /* calculate the refresh rate every second */
-    if (curr_time.time > old_time.time 
-        && curr_time.millitm > old_time.millitm) { 
-      if (old_time.time != 0) { /* calc hertz */
+    if (curr_time_sec > old_time_sec 
+        && curr_time_msec > old_time_msec) { 
+      if (old_time_sec != 0) { /* calc hertz */
         fb->async_data_rate = count - oldcount;
       }
-      old_time.time = curr_time.time;
-      old_time.millitm = curr_time.millitm;
+      old_time_sec = curr_time_sec;
+      old_time_msec = curr_time_msec;
       oldcount = count;
     }
   }
