@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/03 06:19:49 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2004/02/03 20:25:39 $
+  Version:   $Revision: 1.4 $
 
 ==========================================================================
 Copyright 2000,2001 Atamai Inc.
@@ -955,9 +955,9 @@ char *ndiCommandVA(ndicapi *pol, const char *format, va_list ap)
 
     if (thread_mode & pol->tracking) {
       /* unblock the tracking thread */
-      fprintf(stderr,"unlock\n");
+      /* fprintf(stderr,"unlock\n"); */
       ndiMutexUnlock(pol->thread_mutex);
-      fprintf(stderr,"unlocked\n");
+      /* fprintf(stderr,"unlocked\n"); */
     }
 
     if (errcode != 0) {
@@ -1878,16 +1878,16 @@ static void ndi_PHINF_helper(ndicapi *pol, const char *cp, const char *crp)
   }
   pol->phinf_unoccupied = unoccupied;
 
-  fprintf(stderr, "mode = %04lx\n", mode);
+  /* fprintf(stderr, "mode = %04lx\n", mode); */
 
   if (mode & NDI_BASIC) {
     dp = pol->phinf_basic;
     if (!unoccupied) {
       for (j = 0; j < 32 && *crp >= ' '; j++) {
-        fprintf(stderr,"%c",*crp);
+        /* fprintf(stderr,"%c",*crp); */
         *dp++ = *crp++;
       }
-      fprintf(stderr,"\n");
+      /* fprintf(stderr,"\n"); */
     }
     else {  /* default "0000000            0000000000000" */
       for (j = 0; j < 7; j++) {
