@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2003/01/24 20:16:34 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2003/06/05 15:14:52 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 Copyright 2000 Atamai, Inc.
@@ -206,7 +206,7 @@ char *fbDeviceName(int i)
 #elif defined(__unix__) || defined(unix)
 #if defined(linux)
   static char *dev_names[] = { "/dev/ttyS0", "/dev/ttyS1",
-                               "/dev/ttyS2", "/dev/ttyS3", NULL }; 
+                               "/dev/ttyUSB0", "/dev/ttyUSB1", NULL }; 
 #elif defined(sgi)
   static char *dev_names[] = { "/dev/ttyd1", "/dev/ttyd2",
                                "/dev/ttyd3", "/dev/ttyd4", NULL }; 
