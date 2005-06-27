@@ -1,0 +1,13 @@
+/*! \mainpage
+
+Copyright 2005 Atamai Inc. 
+
+http://www.atamai.com
+
+This library provides a set of C functions for communicating with the
+Polhemus FasTrak six degree of freedom tracking device.
+The code has been tested on Windows NT, Windows 2000, Linux and
+SGI IRIX.  It should work on any POSIX conformant operating system
+or any operating system that conforms to the Microsoft Windows 32-bit API.
+*/
+

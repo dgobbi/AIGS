@@ -1,0 +1,52 @@
+srcdir=@srcdir@
+VPATH=@srcdir@
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+libdir=@libdir@
+includedir = @includedir@
+mandir=@mandir@
+INSTALLCMD=@INSTALL@
+
+CC=@CC@
+CFLAGS=@CFLAGS@ -I.
+SHLIB_CFLAGS=@SHLIB_CFLAGS@
+SHLIB_LD=@SHLIB_LD@
+SHLIB_SUFFIX=@SHLIB_SUFFIX@
+SHLIB_LD_LIBS=@SHLIB_LD_LIBS@
+
+RANLIB=@RANLIB@
+
+POLHEMUSOBJS = polhemus.o 
+POLHEMUSLIB = libpolhemus.a
+POLHEMUSSHLIB = libpolhemus${SHLIB_SUFFIX}
+POLHEMUSHEADERS = polhemus.h
+LIBS = @THREAD_LIBS@ -lm
+
+OBJS = ${POLHEMUSOBJS} polhemustest.o
+
+all: polhemustest ${POLHEMUSLIB} ${POLHEMUSSHLIB}
+
+${POLHEMUSLIB}: ${POLHEMUSOBJS} ${HEADERS}
+	ar r ${POLHEMUSLIB} ${POLHEMUSOBJS}
+	${RANLIB} ${POLHEMUSLIB}
+
+${POLHEMUSSHLIB}: ${POLHEMUSOBJS} ${HEADERS}
+	${SHLIB_LD} ${SHLIB_CFLAGS} ${SHLIB_LD_LIBS} -o $@ ${POLHEMUSOBJS} ${LIBS}
+
+polhemustest: polhemustest.o ${POLHEMUSLIB} ${HEADERS}
+	${CC} ${CFLAGS} -o $@ polhemustest.o ${POLHEMUSLIB} ${LIBS}
+
+install:
+	${INSTALLCMD} -m 644 ${POLHEMUSHEADERS} ${includedir}
+	${INSTALLCMD} -m 755 ${POLHEMUSLIB} ${libdir}
+	${INSTALLCMD} -m 755 ${POLHEMUSSHLIB} ${libdir}
+	${INSTALLCMD} -m 755 polhemustest ${bindir}
+
+clean:
+	/bin/rm -f ${OBJS} ${POLHEMUSLIB} ${POLHEMUSSHLIB} *~ polhemustest
+
+distclean: clean
+	/bin/rm -f Makefile config.cache config.h config.sub config.log build-stamp config.status
+
