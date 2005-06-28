@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/06/27 13:47:41 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2005/06/28 21:21:59 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 Copyright 2005 Atamai, Inc.
@@ -815,7 +815,6 @@ int phOpen(polhemus *ph, const char *device)
   }
 #endif /* __APPLE__ */
 
-  fprintf(stderr, "set_comm_parameters\n");
   if (set_comm_parameters(ph) < 0) {
 #ifndef __APPLE__
     fcntl(ph->file, F_SETLK, &fu);
@@ -823,7 +822,6 @@ int phOpen(polhemus *ph, const char *device)
     close(ph->file);
     return set_error(ph,PH_COM_ERROR,"couldn't set serial port parameters");
     }
-  fprintf(stderr, "set_comm_parameters successful\n");
 
 #endif /* unix */
 
@@ -833,7 +831,6 @@ int phOpen(polhemus *ph, const char *device)
   GetCommModemStatus(ph->file,&comm_bits);
   if ((comm_bits & MS_RLSD_ON) == 0) {  /* check for carrier signal */
     /* set_error(ph,PH_COM_ERROR,"no carrier"); */
-    fprintf(stderr, "no carrier %x\n", term_bits);
   }
 
   PurgeComm(ph->file,PURGE_TXCLEAR);
@@ -843,7 +840,7 @@ int phOpen(polhemus *ph, const char *device)
   ioctl(ph->file, TIOCMGET, &term_bits);
   if ((term_bits & TIOCM_CAR) == 0) { /* check for carrier signal */
     /* set_error(ph,PH_COM_ERROR,"no carrier"); */
-    fprintf(stderr, "no carrier %x\n", term_bits);
+    /* fprintf(stderr, "no carrier %x\n", term_bits); */
   }
 
   tcflush(ph->file,TCIOFLUSH);
@@ -1167,7 +1164,6 @@ void phSetReplyFormat(polhemus *ph, int station, int format)
   phAddCommandChar(&cp, '\r');
   phAddCommandChar(&cp, '\n');
 
-  fprintf(stderr, "setting format: %s\n", command);
   phSendCommand(ph, command);
 }
 
@@ -2211,7 +2207,9 @@ void phSendRaw(polhemus *ph, const char *text, int len)
   n = len;
   error = 0;
   
-  /* fprintf(stderr,"SEND: \'%.*s\'\n",len,text); /* debug line - print output */ 
+  if (text[0] != 'P') { 
+    fprintf(stderr,"SEND: \'%.*s\'\n",len,text); /* debug line, print output */
+  }
 
 #if defined(_WIN32) || defined(WIN32)
   while (WriteFile(ph->file,text,n,&m,NULL) == FALSE) {
@@ -2417,8 +2415,9 @@ void phReceiveRaw(polhemus *ph, char *reply, int len, int thread)
     reply[i] = '\0';
   }
 
-  /* fprintf(stderr,"READ: \'%.*s\'\n",len,reply); /* debug line - print output */
-
+  if (reply[0] != '0') {
+    fprintf(stderr,"READ: \'%.*s\'\n",len,reply); /* debug line */
+  }
   /* check for phase errors caused by noise in the serial cable */
   if ((ph->stream || ph->point) && !error) {
     /* look for reply formats corresponding to 16-bit binary */
@@ -2920,8 +2919,6 @@ static void read_format_list(const char *cp, char *dlist, int *len)
   int val;
   int i;
 
-  fprintf(stderr, "read_format_list\n");
-
   for (i = 0; i < 256; i++) {
     val = 0;
     while (*cp >= '0' && *cp <= '9') {
@@ -2934,7 +2931,6 @@ static void read_format_list(const char *cp, char *dlist, int *len)
       break;
     }
   }
-  fprintf(stderr, "done read_format_list\n");
 }
 
 /*-------------------------------------------

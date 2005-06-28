@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/06/27 13:52:47 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2005/06/28 21:21:59 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 
@@ -62,7 +62,7 @@ vtkPolhemusTracker::vtkPolhemusTracker()
   this->BaudRate = 9600;
   this->Mode = PH_NOTHREAD;
   this->Polhemus = phNew();
-  this->SetNumberOfTools(4);
+  this->SetNumberOfTools(1);
 }
 
 //----------------------------------------------------------------------------
@@ -90,8 +90,9 @@ void vtkPolhemusTracker::PrintSelf(ostream& os, vtkIndent indent)
 //----------------------------------------------------------------------------
 int vtkPolhemusTracker::Probe()
 {
-  static int baudrates[2] = { PH_9600,
-                              PH_38400 };
+  static int baudrates[2] = { PH_38400, 
+                              PH_9600,
+  };
   int nbaud, baud, devicenum;
   int errnum;
   char *devicename;
@@ -162,7 +163,6 @@ int vtkPolhemusTracker::Probe()
 
   if (!errnum)
     {
-    phReset(ph);
     phClose(ph);
     this->SerialPort = ((devicenum + this->SerialPort - 1) % 4) + 1;
     this->BaudRate = baud * 100;
@@ -214,8 +214,8 @@ int vtkPolhemusTracker::InternalStartTracking()
     
     for (i = 0; i < this->NumberOfTools; i++)
       {
-      phSetHemisphere(this->Polhemus, i+1, 0, 0, 1);
-      phSetReplyFormat(this->Polhemus, i+1, PH_POSITION | PH_ANGLES);
+      phSetReplyFormat(this->Polhemus, i+1, PH_POSITION | PH_ANGLES | PH_EXTENDED);
+      phSetHemisphere(this->Polhemus, i+1, 0, 0, 0);
       char tool_type[8];
       sprintf(tool_type, "0000%03d", i+1);
       this->Tools[i]->SetToolType(tool_type);
