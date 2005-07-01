@@ -5,12 +5,12 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2003/01/25 00:02:47 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2005/07/01 22:52:05 $
+  Version:   $Revision: 1.4 $
 
 ==========================================================================
 
-Copyright (c) 2000-2002 Atamai, Inc.
+Copyright (c) 2000-2005 Atamai, Inc.
 
 Use, modification and redistribution of the software, in source or
 binary forms, are permitted provided that the following terms and
@@ -216,15 +216,15 @@ void vtkTrackerBuffer::GetMatrix(vtkMatrix4x4 *matrix, int i)
   if (this->ToolCalibrationMatrix)
     {
     vtkMatrix4x4::Multiply4x4(matrix,
-			      this->ToolCalibrationMatrix,
-			      matrix);
+                              this->ToolCalibrationMatrix,
+                              matrix);
     }
 
   if (this->WorldCalibrationMatrix)
     {
     vtkMatrix4x4::Multiply4x4(this->WorldCalibrationMatrix,
-			      matrix,
-			      matrix);
+                              matrix,
+                              matrix);
     }
 }
 
@@ -293,13 +293,13 @@ int vtkTrackerBuffer::GetIndexFromTime(double time)
     if (lo-hi == 1)
       {
       if (time - tlo > thi - time)
-	{
-	return hi;
-	}
+  {
+  return hi;
+  }
       else
-	{
-	return lo;
-	}
+  {
+  return lo;
+  }
       }
 
     int mid = (lo+hi)/2;

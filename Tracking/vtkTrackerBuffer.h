@@ -5,12 +5,12 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2003/01/24 20:09:00 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2005/07/01 22:52:05 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 
-Copyright (c) 2000-2002 Atamai, Inc.
+Copyright (c) 2000-2005 Atamai, Inc.
 
 Use, modification and redistribution of the software, in source or
 binary forms, are permitted provided that the following terms and

@@ -5,26 +5,41 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/01/11 20:52:31 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2005/07/01 22:52:05 $
+  Version:   $Revision: 1.4 $
 
 ==========================================================================
-Copyright 2000,2001 Atamai, Inc.
 
-Redistribution of this source code and/or any binary applications created
-using this source code is prohibited without the expressed, written
-permission of the copyright holders.  
+Copyright (c) 2000-2005 Atamai, Inc.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+Use, modification and redistribution of the software, in source or
+binary forms, are permitted provided that the following terms and
+conditions are met:
+
+1) Redistribution of the source code, in verbatim or modified
+   form, must retain the above copyright notice, this license,
+   the following disclaimer, and any notices that refer to this
+   license and/or the following disclaimer.  
+
+2) Redistribution in binary form must include the above copyright
+   notice, a copy of this license and the following disclaimer
+   in the documentation or with other materials provided with the
+   distribution.
+
+3) Modified copies of the source code must be clearly marked as such,
+   and must not be misrepresented as verbatim copies of the source code.
+
+THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE SOFTWARE "AS IS"
+WITHOUT EXPRESSED OR IMPLIED WARRANTY INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE.  IN NO EVENT SHALL ANY COPYRIGHT HOLDER OR OTHER PARTY WHO MAY
+MODIFY AND/OR REDISTRIBUTE THE SOFTWARE UNDER THE TERMS OF THIS LICENSE
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, LOSS OF DATA OR DATA BECOMING INACCURATE
+OR LOSS OF PROFIT OR BUSINESS INTERRUPTION) ARISING IN ANY WAY OUT OF
+THE USE OR INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES.
+
 =======================================================================*/
 
 /*---------------------------------------------------------------------
@@ -82,9 +97,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define NDI_MAX_SAVE_STATE 4
 static HANDLE ndi_open_handles[4] = { INVALID_HANDLE_VALUE,
-				     INVALID_HANDLE_VALUE,
-				     INVALID_HANDLE_VALUE,
-				     INVALID_HANDLE_VALUE };
+             INVALID_HANDLE_VALUE,
+             INVALID_HANDLE_VALUE,
+             INVALID_HANDLE_VALUE };
 
 static COMMTIMEOUTS ndi_save_timeouts[4];
 static DCB ndi_save_dcb[4];
@@ -109,9 +124,9 @@ static long ndi_open_handles[4] = { -1, -1, -1, -1 };
 HANDLE ndiSerialOpen(const char *device)
 {
   static COMMTIMEOUTS default_ctmo = { MAXDWORD, MAXDWORD,
-				       TIMEOUT_PERIOD, 
-				       2, 
-				       TIMEOUT_PERIOD };
+               TIMEOUT_PERIOD, 
+               2, 
+               TIMEOUT_PERIOD };
   HANDLE serial_port;
   DCB comm_settings;
   int i;
@@ -132,7 +147,7 @@ HANDLE ndiSerialOpen(const char *device)
      the serial port is closed in ndiSerialClose() */
   for (i = 0; i < NDI_MAX_SAVE_STATE; i++) {
     if (ndi_open_handles[i] == serial_port ||
-	ndi_open_handles[i] == INVALID_HANDLE_VALUE) {
+  ndi_open_handles[i] == INVALID_HANDLE_VALUE) {
       ndi_open_handles[i] = serial_port;
       GetCommTimeouts(serial_port,&ndi_save_timeouts[i]);
       GetCommState(serial_port,&ndi_save_dcb[i]);
@@ -298,7 +313,7 @@ void ndiSerialClose(HANDLE serial_port)
   /* restore the comm port state to from before it was opened */
   for (i = 0; i < NDI_MAX_SAVE_STATE; i++) {
     if (ndi_open_handles[i] == serial_port && 
-	ndi_open_handles[i] != INVALID_HANDLE_VALUE) {
+  ndi_open_handles[i] != INVALID_HANDLE_VALUE) {
       SetCommTimeouts(serial_port,&ndi_save_timeouts[i]);
       SetCommState(serial_port,&ndi_save_dcb[i]);
       ndi_open_handles[i] = INVALID_HANDLE_VALUE;      
@@ -814,10 +829,10 @@ int ndiSerialWrite(HANDLE serial_port, const char *text, int n)
   while (n > 0) {
     if (WriteFile(serial_port,&text[i],n,&m,NULL) == FALSE) {
       if (GetLastError() == ERROR_OPERATION_ABORTED) {/* system cancelled us */
-	ClearCommError(serial_port,&dumb,NULL); /* so clear error and retry */
+  ClearCommError(serial_port,&dumb,NULL); /* so clear error and retry */
       }
       else {
-	return -1;  /* IO error occurred */
+  return -1;  /* IO error occurred */
       }
     }
     else if (m == 0) { /* no characters written, must have timed out */
@@ -841,10 +856,10 @@ int ndiSerialWrite(int serial_port, const char *text, int n)
   while (n > 0) { 
     if ((m = write(serial_port,&text[i],n)) == -1) {
       if (errno == EAGAIN) { /* system cancelled us, retry */
-	m = 0;
+  m = 0;
       }
       else {
-	return -1;  /* IO error occurred */
+  return -1;  /* IO error occurred */
       }
     }
 
@@ -882,7 +897,7 @@ int ndiSerialRead(HANDLE serial_port, char *reply, int n)
         ClearCommError(serial_port,&dumb,NULL); /* so clear error and retry */
       }
       else {
-	return -1;  /* IO error occurred */
+  return -1;  /* IO error occurred */
       }
     }
     else if (m == 0) { /* no characters read, must have timed out */
@@ -908,10 +923,10 @@ int ndiSerialRead(int serial_port, char *reply, int n)
   while (n > 0) {                        /* read reply until <CR> */
     if ((m = read(serial_port,&reply[i],n)) == -1) {
       if (errno == EAGAIN) {      /* cancelled, so retry */
-	m = 0;
+  m = 0;
       }
       else {
-	return -1;  /* IO error occurred */
+  return -1;  /* IO error occurred */
       }
     }
     else if (m == 0) { /* no characters read, must have timed out */
@@ -954,7 +969,7 @@ int ndiSerialRead(long serial_port, char *reply, int n)
       n -= m;  /* n is number of chars left to read */
       i += m;  /* i is the number of chars read */
       if (reply[i-1] == '\r') {  /* done when carriage return received */
-	break;
+  break;
       }
     }
   }

@@ -5,12 +5,12 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/01/11 18:12:43 $
-  Version:   $Revision: 1.5 $
+  Date:      $Date: 2005/07/01 22:52:05 $
+  Version:   $Revision: 1.6 $
 
 ==========================================================================
 
-Copyright (c) 2000-2002 Atamai, Inc.
+Copyright (c) 2000-2005 Atamai, Inc.
 
 Use, modification and redistribution of the software, in source or
 binary forms, are permitted provided that the following terms and
@@ -315,10 +315,10 @@ void vtkTracker::SetWorldCalibrationMatrix(vtkMatrix4x4 *vmat)
     for (j = 0; j < 4; j++)
       {
       if (this->WorldCalibrationMatrix->GetElement(i,j) 
-	  != vmat->GetElement(i,j))
-	{
-	break;
-	}
+          != vmat->GetElement(i,j))
+        {
+        break;
+        }
       }
     if (j < 4)
       { 
@@ -341,7 +341,7 @@ vtkMatrix4x4 *vtkTracker::GetWorldCalibrationMatrix()
 
 //----------------------------------------------------------------------------
 void vtkTracker::ToolUpdate(int tool, vtkMatrix4x4 *matrix, long flags,
-			    double timestamp) 
+                            double timestamp) 
 {
   vtkTrackerBuffer *buffer = this->Tools[tool]->GetBuffer();
 

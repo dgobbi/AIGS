@@ -5,26 +5,41 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/17 20:36:54 $
-  Version:   $Revision: 1.4 $
+  Date:      $Date: 2005/07/01 22:52:05 $
+  Version:   $Revision: 1.5 $
 
 ==========================================================================
-Copyright 2000,2001 Atamai, Inc.
 
-Redistribution of this source code and/or any binary applications created
-using this source code is prohibited without the expressed, written
-permission of the copyright holders.  
+Copyright (c) 2000-2005 Atamai, Inc.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+Use, modification and redistribution of the software, in source or
+binary forms, are permitted provided that the following terms and
+conditions are met:
+
+1) Redistribution of the source code, in verbatim or modified
+   form, must retain the above copyright notice, this license,
+   the following disclaimer, and any notices that refer to this
+   license and/or the following disclaimer.  
+
+2) Redistribution in binary form must include the above copyright
+   notice, a copy of this license and the following disclaimer
+   in the documentation or with other materials provided with the
+   distribution.
+
+3) Modified copies of the source code must be clearly marked as such,
+   and must not be misrepresented as verbatim copies of the source code.
+
+THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE SOFTWARE "AS IS"
+WITHOUT EXPRESSED OR IMPLIED WARRANTY INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE.  IN NO EVENT SHALL ANY COPYRIGHT HOLDER OR OTHER PARTY WHO MAY
+MODIFY AND/OR REDISTRIBUTE THE SOFTWARE UNDER THE TERMS OF THIS LICENSE
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, LOSS OF DATA OR DATA BECOMING INACCURATE
+OR LOSS OF PROFIT OR BUSINESS INTERRUPTION) ARISING IN ANY WAY OUT OF
+THE USE OR INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES.
+
 =======================================================================*/
 
 /*! \file ndicapi.h
@@ -36,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NDICAPI_H 1
 
 #define NDICAPI_MAJOR_VERSION 3
-#define NDICAPI_MINOR_VERSION 0
+#define NDICAPI_MINOR_VERSION 1
 
 #include "ndicapi_serial.h"
 
@@ -71,7 +86,7 @@ typedef struct ndicapi ndicapi;
 char *ndiDeviceName(int i);
 
 /*! \ingroup NDIMethods
-  Probe for an NDI Measurement System on the specified serial port device.
+  Probe for an NDI device on the specified serial port device.
   This will perform the following steps:
   -# save the status of the device (baud rate etc)
   -# open the device at 9600 baud, 8 data bits, no parity, 1 stop bit
@@ -94,29 +109,32 @@ char *ndiDeviceName(int i);
 int ndiProbe(const char *device);
 
 /*! \ingroup NDIMethods
-  Open communication with the NDI Measurement System on the specified
+  Open communication with the NDI device on the specified
   serial port device.  This also sets the serial port parameters to
   (9600 baud, 8N1, no handshaking).
 
   \param device  name of a valid serial port device
+
+  \return 1 if an NDI device was found on the specified port, 0 otherwise
   
-  \return  a handle for an NDI Measurement System, or zero if device
-         could not be opened
 */
 ndicapi *ndiOpen(const char *device);
 
 /*! \ingroup NDIMethods
-  Close communication with the NDI Measurement System.  You should send
+  Close communication with the NDI device.  You should send
   a "COMM:00000" command before you close communication so that you
   can resume communication on a subsequent call to ndiOpen() without
-  having to reset the NDI Measurement System.
+  having to reset the NDI device.
+
+  \return  a handle for an NDI device, or zero if device
+         could not be opened
 */
 void ndiClose(ndicapi *pol);
 
 /*! \ingroup NDIMethods
   Set up multithreading to increase efficiency.
 
-  \param pol    valid NDI Measurement System handle
+  \param pol    valid NDI device handle
   \param mode   1 to turn on threading, 0 to turn off threading
 
   It can take milliseconds or even tens of milliseconds for the tracking
@@ -124,12 +142,12 @@ void ndiClose(ndicapi *pol);
   this time, the application normally sits idle.
 
   One way to avoid this idle time is to spawn a separate thread to send
-  the GX/TX/BX commands to the Measurement System and wait for the replies.
+  the GX/TX/BX commands to the device and wait for the replies.
   This allows the main application thread to continue to execute while
-  the other thread is waiting for a reply from the Measurement System.
+  the other thread is waiting for a reply from the device.
 
   When the thread mode is set, every time the application sends a GX,
-  TX or BX command to the Measurement System during tracking mode the
+  TX or BX command to the device during tracking mode the
   spawned thread will automatically begin resending the GX/TX/BX
   command as fast as possible.  
   Then when the application sends the next GX/TX/BX command, the
@@ -143,24 +161,24 @@ void ndiClose(ndicapi *pol);
 void ndiSetThreadMode(ndicapi *pol, int mode);
 
 /*! \ingroup NDIMethods
-  Send a command to the Measurement System using a printf-style format string.
+  Send a command to the device using a printf-style format string.
 
-  \param pol    valid NDI Measurement System handle
+  \param pol    valid NDI device handle
   \param format a printf-style format string
   \param ...    format arguments as per the format string
 
-  \return       the text reply from the Measurement System with the 
+  \return       the text reply from the device with the 
                 CRC chopped off
 
   The standard format of an NDI API command is, for example, "INIT:" or
   "PENA:AD".  A CRC value and a carriage return will be appended to the
-  command before it is sent to the Measurement System.
+  command before it is sent to the device.
   
   This function will automatically recogize certain commands and behave
   accordingly:
-  - NULL - A serial break will be sent to the Measurement System. 
+  - NULL - A serial break will be sent to the device. 
   - "COMM:" - After the COMM is sent, the host computer serial port is
-           adjusted to match the Measurement System.
+           adjusted to match the device.
   - "INIT:" - After the INIT is sent, communication will be paused
            for 100ms.
   - "PHSR:" - The information returned by the PHSR command is stored and can
@@ -174,7 +192,7 @@ void ndiSetThreadMode(ndicapi *pol, int mode);
   - "PSTAT:" - The information returned by the PSTAT command is stored and
            can be retrieved through one of the ndiGetPSTAT() functions.
   - "SSTAT:" - The information returned by the SSTAT command is stored and
-           can be retrieved through one of the ndiGetSSTAT() functions.	  
+           can be retrieved through one of the ndiGetSSTAT() functions.    
   - "IRCHK:" - The information returned by the IRCHK command is stored and
            can be retrieved through the ndiGetIRCHK() functions.
 
@@ -183,7 +201,7 @@ void ndiSetThreadMode(ndicapi *pol, int mode);
   a function that will be called whenever an error occurs.
 
   For convenience, there is a set of macros for sending commands to the
-  Measurement Systems.  These are listed in \ref NDIMacros.
+  devices.  These are listed in \ref NDIMacros.
 */
 char *ndiCommand(ndicapi *pol, const char *format, ...);
 
@@ -202,7 +220,7 @@ typedef void (*NDIErrorCallback)(int errnum, char *description, void *userdata);
 /*! \ingroup NDIMethods
   Set a function that will be called each time an error occurs.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param callback  a callback with the following signature:\n
     void callback(int errnum, char *error_description, void *userdata)
   \param userdata  data to send to the callback each time it is called
@@ -214,14 +232,14 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 
 /*=====================================================================*/
 /*! \defgroup NDIMacros Command Macros 
-  These are a set of macros that send commands to the Measurement System via
+  These are a set of macros that send commands to the device via
   ndiCommand().
 
   The ndiGetError() function can be used to determine whether an error
   occurred.
 
   The return value is a terminated string containing the reply from the
-  Measurement System with the CRC and final carriage return chopped off.
+  device with the CRC and final carriage return chopped off.
 */
 
 /*\{*/
@@ -239,11 +257,11 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 #define ndi3D(p,ph,mode) ndiCommand((p),"3D:%02X%d",(ph),(mode))
 
 /*!
-  Cause the Measurement System to beep.
+  Cause the device to beep.
 
   \param n   the number of times to beep, an integer between 1 and 9
 
-  A reply of "0" means that the Measurement System is already beeping
+  A reply of "0" means that the device is already beeping
   and cannot service this beep request.
 
   This command can be used in tracking mode.
@@ -251,10 +269,10 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 #define ndiBEEP(p,n) ndiCommand((p),"BEEP:%i",(n))
 
 /*!
-  Change the Measurement System communication parameters.  The host parameters
+  Change the device communication parameters.  The host parameters
   will automatically be adjusted to match.  If the specified baud rate is
   not supported by the serial port, then the error code will be set to
-  NDI_BAD_COMM and the Measurement System will have to be reset before
+  NDI_BAD_COMM and the device will have to be reset before
   communication can continue.  Most modern UNIX systems accept all baud
   rates except 14400, and Windows systems support all baud rates.
 
@@ -266,12 +284,14 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 #define ndiCOMM(p,baud,dps,h) ndiCommand((p),"COMM:%d%03d%d",(baud),(dps),(h))
 
 /*!
-  Put the Measurement System into diagnostic mode.
+  Put the device into diagnostic mode.  This must be done prior
+  to executing the IRCHK() command.  Diagnostic mode is only useful on
+  the POLARIS
 */
 #define ndiDSTART(p) ndiCommand((p),"DSTART:")
 
 /*!
-  Take the Measurement System out of diagnostic mode.
+  Take the device out of diagnostic mode.
 */
 #define ndiDSTOP(p) ndiCommand((p),"DSTOP:")
 
@@ -304,7 +324,7 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 #define ndiGX(p,mode) ndiCommand((p),"GX:%04X",(mode))
 
 /*!
-  Initialize the Measurement System.  The Measurement System must be
+  Initialize the device.  The device must be
   initialized before any other commands are sent.
 */
 #define ndiINIT(p) ndiCommand((p),"INIT:")
@@ -384,7 +404,7 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 #define ndiPHF(p,ph) ndiCommand((p),"PHF:%02X",(ph))
 
 /*!
-  Ask the Measurement System for information about a tool handle.
+  Ask the device for information about a tool handle.
 
   \param format  a reply format mode composed of the following bits:
   - NDI_BASIC           0x0001 - get port status and basic tool information
@@ -539,13 +559,13 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 #define ndiPVWR(p,ph,a,x) ndiCommand((p),"PVWR:%02X%04X%.128s",(ph),(a),(x))
 
 /*!
-  Send a serial break to reset the Measurement System.  If the reset was not
+  Send a serial break to reset the device.  If the reset was not
   successful, the error code will be set to NDI_RESET_FAIL.
 */
 #define ndiRESET(p) ndiCommand((p),NULL)
 
 /*!
-  Get a feature list for this Measurement System.
+  Get a feature list for this device.
 
   \param mode  the desired reply mode
   - 0x00 - 32-bit feature summary encoded as 8 hexidecimal digits
@@ -563,7 +583,7 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 #define ndiSFLIST(p,mode) ndiCommand((p),"SFLIST:%02X",(mode))
 
 /*!
-  Request status information from the Measurement System.
+  Request status information from the device.
 
   \param format  a reply format mode composed of the following bits:
   - NDI_CONTROL  0x0001 - control processor information
@@ -584,12 +604,12 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 #define ndiTCTST(p,ph) ndiCommand((p),"TCTST:%02X",(ph))
 
 /*!
-  Put the Measurement System into tracking mode.
+  Put the device into tracking mode.
 */
 #define ndiTSTART(p) ndiCommand((p),"TSTART:")
 
 /*!
-  Take the Measurement System out of tracking mode.
+  Take the device out of tracking mode.
 */
 #define ndiTSTOP(p) ndiCommand((p),"TSTOP:")
 
@@ -597,7 +617,7 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 #define ndiTTCFG(p,ph) ndiCommand((p),"TTCFG:%02X",(ph))
 
 /*!
-  Request tracking information from the Measurement System.  This command is
+  Request tracking information from the device.  This command is
   only available in tracking mode.
 
   \param mode a reply mode containing the following bits:
@@ -621,7 +641,7 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 #define ndiTX(p,mode) ndiCommand((p),"TX:%04X",(mode))
 
 /*!
-  Get a string that describes the Measurement System firmware version.
+  Get a string that describes the device firmware version.
 
   \param n   the processor to get the firmware revision of:
   - 0 - control firmware
@@ -634,7 +654,7 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 
 /*!
   Select from the different calibrated operating volumes available to
-  the Measurement System.
+  the device.
 
   \param n  the volume to select, see ndiSFLIST()
 */
@@ -643,7 +663,7 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 /*! 
   Write data from a ROM file into the virtual SROM for the specified port.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param ph        valid port handle in the range 0x01 to 0xFF
   \param filename  file to read the SROM data from
 
@@ -651,7 +671,7 @@ void ndiSetErrorCallback(ndicapi *pol, NDIErrorCallback callback,
 
   If the return value is not NDI_OKAY but ndiGetError() returns NDI_OKAY,
   then the ROM file could not be read and no information was written
-  to the Measurement System.
+  to the device.
 
   This function uses the PVWR command to write the SROM.  The total size
   of the virtual SROM is 1024 bytes.  If the file is shorter than this,
@@ -664,17 +684,17 @@ int ndiPVWRFromFile(ndicapi *pol, int ph, char *filename);
 /*! \defgroup GetMethods Get Methods
   These functions are used to retrieve information that has been stored in
   the ndicapi object.  
-  None of these functions communicate with the Measurement System itself,
+  None of these functions communicate with the device itself,
   and none of them cause the error indicator to be set.
 
   The DeviceName and DeviceHandle are set when the device is
   first opened by ndiOpen().
 
   All other information is set by sending the appropriate command to
-  the Measurement System through ndiCommand() or through one of the command
+  the device through ndiCommand() or through one of the command
   macros. The information persists until the next time the command is sent.
 
-  For example, if the TX command is sent to the Measurement System
+  For example, if the TX command is sent to the device
   then the information returned by the methods that start with
   GetTX will be set and will subsequently remain unchanged until the next
   TX command is sent.
@@ -687,13 +707,13 @@ int ndiPVWRFromFile(ndicapi *pol, int ph, char *filename);
 int ndiGetError(ndicapi *pol);
 
 /*! \ingroup GetMethods
-  Get the name of the serial port device that the Measurement System is
+  Get the name of the serial port device that the device is
   attached to.
 */
 char *ndiGetDeviceName(ndicapi *pol);
 
 /*! \ingroup GetMethods
-  Get the device handle for the serial port that the Measurement System is
+  Get the device handle for the serial port that the device is
   attached to.  This device handle is the value returned by the UNIX open()
   function or the Win32 CreateFile() function.
 */
@@ -717,7 +737,7 @@ void *ndiGetErrorCallbackData(ndicapi *pol);
 /*! \ingroup GetMethods
   Get the port handle returned by a PHRQ command.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
 
   \return  a port handle between 0x01 and 0xFF
 
@@ -728,7 +748,7 @@ int ndiGetPHRQHandle(ndicapi *pol);
 /*! \ingroup GetMethods
   Get the number of port handles as returned by a PHSR command.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
 
   \return  an integer, the maximum possible value is 255
 */
@@ -737,7 +757,7 @@ int ndiGetPHSRNumberOfHandles(ndicapi *pol);
 /*! \ingroup GetMethods
   Get one of the port handles returned by a PHSR command.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param i         a value between 0 and \em n where \n is the
                    value returned by ndiGetPHSRNumberOfHandles().
 
@@ -751,7 +771,7 @@ int ndiGetPHSRHandle(ndicapi *pol, int i);
 /*! \ingroup GetMethods
   Get the information for a port handle returned by a PHSR command.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param i         a value between 0 and \em n where \n is the
                    value returned by ndiGetPHSRNumberOfHandles().
 
@@ -772,7 +792,7 @@ int ndiGetPHSRInformation(ndicapi *pol, int i);
 /*! \ingroup GetMethods
   Get the 8-bit status value for the port handle.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
 
   \return a an integer composed of the following bits:
   - NDI_TOOL_IN_PORT        0x01 - there is a tool in the port
@@ -791,7 +811,7 @@ int ndiGetPHINFPortStatus(ndicapi *pol);
 /*! \ingroup GetMethods
   Get a 31-byte string describing the tool.
 
-  \param piol         valid NDI Measurement System handle
+  \param piol         valid NDI device handle
   \param information array that information is returned in (the
                      resulting string is not null-terminated)
 
@@ -813,7 +833,7 @@ int ndiGetPHINFToolInfo(ndicapi *pol, char information[31]);
   Return the results of a current test on the IREDS on an active 
   POLARIS tool.
 
-  \param  ts          valid NDI Measurement System handle
+  \param  ts          valid NDI device handle
 
   \return 32-bit integer (see NDI documentation)
 
@@ -825,7 +845,7 @@ unsigned long ndiGetPHINFCurrentTest(ndicapi *pol);
 /*! \ingroup GetMethods
   Get a 20-byte string that contains the part number of the tool.
 
-  \param pol         valid NDI Measurement System handle
+  \param pol         valid NDI device handle
   \param part        array that part number is returned in (the
                      resulting string is not null-terminated)
 
@@ -844,7 +864,7 @@ int ndiGetPHINFPartNumber(ndicapi *pol, char part[20]);
 /*! \ingroup GetMethods
   Get the 8-bit value specifying the tool accessories.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
 
   \return a an integer composed of the following bits:
   - NDI_TOOL_IN_PORT_SWITCH   0x01  - tool has tool-in-port switch
@@ -869,7 +889,7 @@ int ndiGetPHINFAccessories(ndicapi *pol);
   The low three bits descibe the wavelength, and the high three
   bits are the marker type code.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
 
   \return  see NDI documentation for more information:
   - low bits:
@@ -891,7 +911,7 @@ int ndiGetPHINFMarkerType(ndicapi *pol);
   Get a 14-byte description of the physical location of the tool
   on the system.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
 
   \return  see NDI documentation for more information:
   - 8 chars: device number
@@ -908,7 +928,7 @@ int ndiGetPHINFPortLocation(ndicapi *pol, char location[14]);
 /*! \ingroup GetMethods
   Get the 8-bit GPIO status for this tool.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
 
   \return  an 8-bit integer, see NDI documentation for more information.
 
@@ -923,7 +943,7 @@ int ndiGetPHINFGPIOStatus(ndicapi *pol);
   the coodinates in millimetres, and the final number
   is a unitless error estimate.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param ph        valid port handle in range 0x01 to 0xFF
   \param transform space for the 8 numbers in the transformation
   
@@ -936,14 +956,14 @@ int ndiGetPHINFGPIOStatus(ndicapi *pol);
   supplied transform array will be left unchanged.
 
   The transformations for each of the port handles remain the same
-  until the next TX command is sent to Measurement System.
+  until the next TX command is sent to device.
 */ 
 int ndiGetTXTransform(ndicapi *pol, int ph, double transform[8]);
 
 /*! \ingroup GetMethods
   Get the 16-bit status value for the specified port handle.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param ph        valid port handle in range 0x01 to 0xFF
 
   \return status bits or zero if there is no information:
@@ -957,27 +977,27 @@ int ndiGetTXTransform(ndicapi *pol, int ph, double transform[8]);
   - NDI_PARTIALLY_IN_VOLUME 0x0080
 
   This information is updated each time that the TX command
-  is sent to the Measurement System.
+  is sent to the device.
 */
 int ndiGetTXPortStatus(ndicapi *pol, int ph);
 
 /*! \ingroup GetMethods
   Get the camera frame number for the latest transform.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param ph        valid port handle in range 0x01 to 0xFF
 
   \return a 32-bit frame number, or zero if no information was available
 
   This information is updated each time that the TX command
-  is sent to the Measurement System.
+  is sent to the device.
 */
 unsigned long ndiGetTXFrame(ndicapi *pol, int ph);
 
 /*! \ingroup GetMethods
   Get additional information about the tool transformation.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param ph        valid port handle in range 0x01 to 0xFF
 
   \return status bits, or zero if there is no information available
@@ -993,7 +1013,7 @@ int ndiGetTXToolInfo(ndicapi *pol, int ph);
 /*! \ingroup GetMethods
   Get additional information about the tool markers.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param ph        valid port handle in range 0x01 to 0xFF
   \param marker    one of 'A' through 'T' for the 20 markers
 
@@ -1013,14 +1033,14 @@ int ndiGetTXMarkerInfo(ndicapi *pol, int ph, int marker);
   This command is only meaningful for tools that have a stray
   marker.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param ph        valid port handle in range 0x01 to 0xFF
   \param coord     array to hold the three coordinates
 
   \return the return value will be one of
   - NDI_OKAY - values returned in coord
   - NDI_DISABLED - port disabled or illegal port specified
-  - NDI_MISSING - stray marker is not visible to the Measurement System
+  - NDI_MISSING - stray marker is not visible to the device
 
   <p>The stray marker position is only updated when the GX command is
   called with the NDI_SINGLE_STRAY (0x0004) bit set.
@@ -1030,7 +1050,7 @@ int ndiGetTXSingleStray(ndicapi *pol, int ph, double coord[3]);
 /*! \ingroup GetMethods
   Get the number of passive stray markers detected.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \return          a number between 0 and 20
   
   The passive stray marker coordinates are updated when a TX command
@@ -1042,7 +1062,7 @@ int ndiGetTXNumberOfPassiveStrays(ndicapi *pol);
   Copy the coordinates of the specified stray marker into the
   supplied array.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param i         a number between 0 and 19
   \param coord     array to hold the coordinates
   \return          one of:
@@ -1061,7 +1081,7 @@ int ndiGetTXPassiveStray(ndicapi *pol, int i, double coord[3]);
 /*! \ingroup GetMethods
   Get an 16-bit status bitfield for the system.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
 
   \return status bits or zero if there is no information:
   - NDI_COMM_SYNC_ERROR            0x0001
@@ -1084,7 +1104,7 @@ int ndiGetTXSystemStatus(ndicapi *pol);
   the coodinates in millimetres, and the final number
   is a unitless error estimate.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param port      one of '1', '2', '3' or 'A' to 'I'
   \param transform space for the 8 numbers in the transformation
   
@@ -1112,7 +1132,7 @@ int ndiGetGXTransform(ndicapi *pol, int port, double transform[8]);
 /*! \ingroup GetMethods
   Get the 8-bit status value for the specified port.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param port      one of '1', '2', '3' or 'A' to 'I'
 
   \return status bits or zero if there is no information:
@@ -1133,7 +1153,7 @@ int ndiGetGXPortStatus(ndicapi *pol, int port);
 /*! \ingroup GetMethods
   Get an 8-bit status bitfield for the system.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
 
   \return status bits or zero if there is no information:
   - NDI_COMM_SYNC_ERROR            0x01
@@ -1148,7 +1168,7 @@ int ndiGetGXSystemStatus(ndicapi *pol);
 /*! \ingroup GetMethods
   Get additional information about the tool transformation.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param port      one of '1', '2', '3' or 'A' to 'I'
 
   \return status bits, or zero if there is no information available
@@ -1165,7 +1185,7 @@ int ndiGetGXToolInfo(ndicapi *pol, int port);
 /*! \ingroup GetMethods
   Get additional information about the tool markers.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param port      one of '1', '2', '3' or 'A' to 'I'
   \param marker    one of 'A' through 'T' for the 20 markers
 
@@ -1187,14 +1207,14 @@ int ndiGetGXMarkerInfo(ndicapi *pol, int port, int marker);
   This command is only meaningful for active tools that have a stray
   marker.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param port      one of '1', '2', '3'
   \param coord     array to hold the three coordinates
 
   \return the return value will be one of
   - NDI_OKAY - values returned in coord
   - NDI_DISABLED - port disabled or illegal port specified
-  - NDI_MISSING - stray marker is not visible to the Measurement System
+  - NDI_MISSING - stray marker is not visible to the device
 
   <p>The stray marker position is only updated when the GX command is
   called with the NDI_SINGLE_STRAY (0x0004) bit set.
@@ -1204,7 +1224,7 @@ int ndiGetGXSingleStray(ndicapi *pol, int port, double coord[3]);
 /*! \ingroup GetMethods
   Get the camera frame number for the latest transform.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param port      one of '1', '2', '3' (active ports only)
 
   \return a 32-bit frame number, or zero if no information was available
@@ -1218,7 +1238,7 @@ unsigned long ndiGetGXFrame(ndicapi *pol, int port);
 /*! \ingroup GetMethods
   Get the number of passive stray markers detected.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \return          a number between 0 and 20
   
   The passive stray information is updated when a GX command is sent
@@ -1234,7 +1254,7 @@ int ndiGetGXNumberOfPassiveStrays(ndicapi *pol);
   Copy the coordinates of the specified stray marker into the
   supplied array.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param i         a number between 0 and 19
   \param coord     array to hold the coordinates
   \return          one of:
@@ -1255,7 +1275,7 @@ int ndiGetGXPassiveStray(ndicapi *pol, int i, double coord[3]);
 /*! \ingroup GetMethods
   Get the 8-bit status value for the specified port.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param port      one of '1', '2', '3' or 'A' to 'I'
 
   \return a an integer composed of the following bits:
@@ -1277,7 +1297,7 @@ int ndiGetPSTATPortStatus(ndicapi *pol, int port);
 /*! \ingroup GetMethods
   Get a 30-byte string describing the tool in the specified port.
 
-  \param pol         valid NDI Measurement System handle
+  \param pol         valid NDI device handle
   \param port        one of '1', '2', '3' or 'A' to 'I'
   \param information array that information is returned in (the
                      resulting string is not null-terminated)
@@ -1300,7 +1320,7 @@ int ndiGetPSTATToolInfo(ndicapi *pol, int port, char information[30]);
   Return the results of a current test on the IREDS on the specified
   tool.  
 
-  \param  ts          valid NDI Measurement System handle
+  \param  ts          valid NDI device handle
   \param  port        one of '1', '2', '3'
 
   \return 32-bit integer (see NDI documentation)
@@ -1313,7 +1333,7 @@ unsigned long ndiGetPSTATCurrentTest(ndicapi *pol, int port);
 /*! \ingroup GetMethods
   Get a 20-byte string that contains the part number of the tool.
 
-  \param pol         valid NDI Measurement System handle
+  \param pol         valid NDI device handle
   \param port        one of '1', '2', '3' or 'A' to 'I'
   \param part        array that part number is returned in (the
                      resulting string is not null-terminated)
@@ -1333,7 +1353,7 @@ int ndiGetPSTATPartNumber(ndicapi *pol, int port, char part[20]);
 /*! \ingroup GetMethods
   Get the 8-bit value specifying the accessories for the specified tool.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param port      one of '1', '2', '3' (active ports only)
 
   \return a an integer composed of the following bits:
@@ -1360,7 +1380,7 @@ int ndiGetPSTATAccessories(ndicapi *pol, int port);
   The low three bits descibe the wavelength, and the high three
   bits are the marker type code.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
   \param port      one of '1', '2', '3' (active ports only)
 
   \return  see NDI documentation for more information:
@@ -1385,7 +1405,7 @@ int ndiGetPSTATMarkerType(ndicapi *pol, int port);
 /*! \ingroup GetMethods
   Get the status of the control processor.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
 
   \return an int with the following bit definitions for errors:
   - NDI_EPROM_CODE_CHECKSUM     0x01
@@ -1399,7 +1419,7 @@ int ndiGetSSTATControl(ndicapi *pol);
 /*! \ingroup GetMethods
   Get the status of the sensor processors.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
 
   \return an int with the following bit definitions for errors:
   - NDI_LEFT_ROM_CHECKSUM   0x01
@@ -1417,7 +1437,7 @@ int ndiGetSSTATSensors(ndicapi *pol);
 /*! \ingroup GetMethods
   Get the status of the sensor processors.
 
-  \param pol       valid NDI Measurement System handle
+  \param pol       valid NDI device handle
 
   \return an int with the following bit definitions for errors:
   - NDI_ROM_CHECKSUM        0x01
@@ -1435,7 +1455,7 @@ int ndiGetSSTATTIU(ndicapi *pol);
 /*! \ingroup GetMethods
   Check to see whether environmental infrared was detected.
  
-  \param pol    valid NDI Measurement System handle
+  \param pol    valid NDI device handle
   
   \return       1 if infrared was detected and 0 otherwise.
 
@@ -1447,7 +1467,7 @@ int ndiGetIRCHKDetected(ndicapi *pol);
 /*! \ingroup GetMethods
   Get the number of infrared sources seen by one of the two sensors.
 
-  \param pol    valid NDI Measurement System handle
+  \param pol    valid NDI device handle
   \param side   one of NDI_LEFT or NDI_RIGHT
 
   return  the number of infrared sources seen by the specified sensor
@@ -1462,7 +1482,7 @@ int ndiGetIRCHKNumberOfSources(ndicapi *pol, int side);
   Get the coordinates of one of the infrared sources seen by one of
   the two sensors. 
 
-  \param pol    valid NDI Measurement System handle
+  \param pol    valid NDI device handle
   \param side   one of NDI_LEFT or NDI_RIGHT
   \param xy     space to store the returned coordinates
 
@@ -1496,7 +1516,7 @@ char *ndiErrorString(int errnum);
   The conversion halts if a non-hexidecimal digit is found.
 
   The primary use of this function is decoding replies from the
-  Measurement System.
+  device.
 */
 unsigned long ndiHexToUnsignedLong(const char *cp, int n);
 
@@ -1506,13 +1526,13 @@ unsigned long ndiHexToUnsignedLong(const char *cp, int n);
   the result will be zero.
 
   The primary use of this function is decoding replies from the
-  Measurement System.
+  device.
 */
 long ndiSignedToLong(const char *cp, int n);
 
 /*! \ingroup ConversionFunctions
   This function is used to convert raw binary data into a stream of
-  hexidecimal digits that can be sent to the Measurement System.
+  hexidecimal digits that can be sent to the device.
   The length of the output string will be twice the number of bytes
   in the input data, since each byte will be represented by two
   hexidecimal digits.
@@ -1526,7 +1546,7 @@ char *ndiHexEncode(char *cp, const void *data, int n);
 
 /*! \ingroup ConversionFunctions
   This function converts a hex-encoded string into binary data.
-  This can be used to decode the SROM data sent from the Measurement System.
+  This can be used to decode the SROM data sent from the device.
   The length of the input string must be twice the expected number
   of bytes in the output data, since each binary byte is ecoded by
   two hexidecimal digits.
@@ -1541,7 +1561,7 @@ void *ndiHexDecode(void *data, const char *cp, int n);
   macros and functions that call ndiCommand().
 
   Error codes that equal to or less than 0xff are error codes reported
-  by the Measurement System itself.  Error codes greater than 0xff are
+  by the device itself.  Error codes greater than 0xff are
   errors that are reported by the host computer.
 
   The error code is returned by ndiGetError() and the corresponding
@@ -1575,7 +1595,7 @@ void *ndiHexDecode(void *data, const char *cp, int n);
 #define NDI_DSTOP_FAIL      0x17  /*!<\brief Failure to stop diagnostic mode */
 #define NDI_IRCHK_FAIL      0x18  /*!<\brief Failure to determine environmental IR */
 #define NDI_FIRMWARE        0x19  /*!<\brief Failure to read firmware version */
-#define NDI_INTERNAL        0x1a  /*!<\brief Internal Measurement System error */
+#define NDI_INTERNAL        0x1a  /*!<\brief Internal device error */
 #define NDI_IRINIT_FAIL     0x1b /*!<\brief Failure to initialize for IR diagnostics*/
 #define NDI_IRED_FAIL       0x1c  /*!<\brief Failure to set marker firing signature */
 #define NDI_SROM_FAIL       0x1d  /*!<\brief Failure to search for SROM IDs */
@@ -1596,14 +1616,14 @@ void *ndiHexDecode(void *data, const char *cp, int n);
 
 /* error codes returned by the C api */
 
-#define NDI_BAD_CRC         0x0100  /*!<\brief Bad CRC received from Measurement System */
+#define NDI_BAD_CRC         0x0100  /*!<\brief Bad CRC received from device */
 #define NDI_OPEN_ERROR      0x0200  /*!<\brief Error opening serial device */
 #define NDI_BAD_COMM        0x0300  /*!<\brief Bad communication parameters for host*/
-#define NDI_TIMEOUT         0x0400  /*!<\brief Measurement System took >5 secs to reply */
+#define NDI_TIMEOUT         0x0400  /*!<\brief Device took >5 secs to reply */
 #define NDI_WRITE_ERROR     0x0500  /*!<\brief Device write error */
 #define NDI_READ_ERROR      0x0600  /*!<\brief Device read error */
-#define NDI_RESET_FAIL      0x0700  /*!<\brief Measurement System failed to reset on break */
-#define NDI_PROBE_FAIL      0x0800  /*!<\brief Measurement System not found on specified port */
+#define NDI_RESET_FAIL      0x0700  /*!<\brief Device failed to reset on break */
+#define NDI_PROBE_FAIL      0x0800  /*!<\brief Device not found on specified port */
 /*\}*/
 
 
@@ -1637,6 +1657,15 @@ void *ndiHexDecode(void *data, const char *cp, int n);
 /*\{*/
 #define  NDI_NOHANDSHAKE  0
 #define  NDI_HANDSHAKE    1
+/*\}*/
+
+/* PHSR() handle types */
+/*\{*/
+#define  NDI_ALL_HANDLES            0x00
+#define  NDI_STALE_HANDLES          0x01
+#define  NDI_UNINITIALIZED_HANDLES  0x02
+#define  NDI_UNENABLED_HANDLES      0x03
+#define  NDI_ENABLED_HANDLES        0x04
 /*\}*/
 
 /* ndiPENA() tracking modes */
@@ -1760,7 +1789,6 @@ void *ndiHexDecode(void *data, const char *cp, int n);
 #define NDI_TYPE_CARM        0x0A
 #define NDI_TYPE_CATHETER    0x0B
 /*\}*/
-
 
 /* ndiSSTAT() reply format bits */
 /*\{*/

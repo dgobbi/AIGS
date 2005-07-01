@@ -5,13 +5,29 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/01/11 20:36:58 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2005/07/01 22:52:05 $
+  Version:   $Revision: 1.4 $
 
 ==========================================================================
 
-Copyright (c) 2000-2004 Atamai, Inc.
-All rights reserved.
+Copyright (c) 2000-2005 Atamai, Inc.
+
+Use, modification and redistribution of the software, in source or
+binary forms, are permitted provided that the following terms and
+conditions are met:
+
+1) Redistribution of the source code, in verbatim or modified
+   form, must retain the above copyright notice, this license,
+   the following disclaimer, and any notices that refer to this
+   license and/or the following disclaimer.  
+
+2) Redistribution in binary form must include the above copyright
+   notice, a copy of this license and the following disclaimer
+   in the documentation or with other materials provided with the
+   distribution.
+
+3) Modified copies of the source code must be clearly marked as such,
+   and must not be misrepresented as verbatim copies of the source code.
 
 THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE SOFTWARE "AS IS"
 WITHOUT EXPRESSED OR IMPLIED WARRANTY INCLUDING, BUT NOT LIMITED TO,
@@ -362,7 +378,7 @@ int vtkNDITracker::InternalStopTracking()
 }
 
 //----------------------------------------------------------------------------
-// Important notes on the data collection rate of the NDI:
+// Important notes on the data collection rate of the Polaris:
 //
 // The camera frame rate is 60Hz, and therefore the maximum data
 // collection rate is also 60Hz.  The maximum data transfer rate
@@ -505,16 +521,16 @@ void vtkNDITracker::InternalUpdate()
     if (this->ReferenceTool >= 0 && tool != this->ReferenceTool)
       {
       if (!absent[tool])
-	{
-	if (absent[this->ReferenceTool])
-	  {
-	  flags |= TR_OUT_OF_VIEW;
-	  }
-	if (status[this->ReferenceTool] & NDI_OUT_OF_VOLUME)
-	  {
-	  flags |= TR_OUT_OF_VOLUME;
-	  }
-	}
+        {
+        if (absent[this->ReferenceTool])
+          {
+          flags |= TR_OUT_OF_VIEW;
+          }
+        if (status[this->ReferenceTool] & NDI_OUT_OF_VOLUME)
+          {
+          flags |= TR_OUT_OF_VOLUME;
+          }
+        }
       // pre-multiply transform by inverse of relative tool transform
       ndiRelativeTransform(transform[tool],referenceTransform,transform[tool]);
       }
@@ -632,7 +648,6 @@ void vtkNDITracker::EnableToolPorts()
   int tool;
   int ph;
   int port;
-  int info;
   int mode;
   int ntools;
   int status;
@@ -686,9 +701,9 @@ void vtkNDITracker::EnableToolPorts()
       //fprintf(stderr,"PINIT:%02X\n",ph);
       errnum = ndiGetError(this->Device);
       if (errnum)
-	{ 
-	vtkErrorMacro(<< ndiErrorString(errnum));
-	}
+        { 
+        vtkErrorMacro(<< ndiErrorString(errnum));
+        }
       }
     }
   while (ntools > 0 && errnum == 0);
@@ -804,7 +819,6 @@ void vtkNDITracker::DisableToolPorts()
   int ph;
   int tool;
   int ntools;
-  int status;
 
   // stop tracking
   if (this->IsDeviceTracking)
@@ -935,7 +949,7 @@ int vtkNDITracker::InternalSetToolLED(int tool, int led, int state)
 
 //----------------------------------------------------------------------------
 void vtkNDITracker::InternalLoadVirtualSROM(int tool,
-					    const unsigned char data[1024])
+              const unsigned char data[1024])
 {
   if (data == NULL)
     {
@@ -955,15 +969,15 @@ void vtkNDITracker::InternalLoadVirtualSROM(int tool,
     for (i = 0; i < n; i++)
       {
       if (ndiGetPHSRInformation(this->Device,i) & NDI_TOOL_IN_PORT)
-	{
-	ph = ndiGetPHSRHandle(this->Device,i);
-	ndiCommand(this->Device,"PHINF:%02X0021",ph);
-	ndiGetPHINFPortLocation(this->Device,location);
-	if (tool == (location[10]-'0')*10 + (location[11]-'0') - 1)
-	  {
-	  break;
-	  }
-	}
+        {
+        ph = ndiGetPHSRHandle(this->Device,i);
+        ndiCommand(this->Device,"PHINF:%02X0021",ph);
+        ndiGetPHINFPortLocation(this->Device,location);
+        if (tool == (location[10]-'0')*10 + (location[11]-'0') - 1)
+          {
+          break;
+          }
+        }
       }
     if (i == n)
       {
@@ -983,10 +997,10 @@ void vtkNDITracker::InternalLoadVirtualSROM(int tool,
     return;
     }
 
-  for (int i = 0; i < 1024; i += 64)
+  for ( i = 0; i < 1024; i += 64)
     {
     ndiCommand(this->Device, "PVWR:%02X%04X%.128s",
-	       ph, i, ndiHexEncode(hexbuffer, &data[i], 64));
+         ph, i, ndiHexEncode(hexbuffer, &data[i], 64));
     }  
 }
 

@@ -107,8 +107,8 @@ int PyPolaris_Check(PyObject *obj)
 */
 
 typedef struct {
-	PyObject_HEAD
-	unsigned long ob_ival;
+  PyObject_HEAD
+  unsigned long ob_ival;
 } PyPLBitfieldObject;
 
 PyObject *
@@ -116,253 +116,253 @@ PyPLBitfield_FromUnsignedLong(unsigned long ival);
 
 static void
 bitfield_dealloc(v)
-	PyIntObject *v;
+  PyIntObject *v;
 {
   PyMem_DEL(v);
 }
 
 static int
 bitfield_print(v, fp, flags)
-	PyIntObject *v;
-	FILE *fp;
-	int flags; /* Not used but required by interface */
+  PyIntObject *v;
+  FILE *fp;
+  int flags; /* Not used but required by interface */
 {
-	fprintf(fp, "0x%lX", v->ob_ival);
-	return 0;
+  fprintf(fp, "0x%lX", v->ob_ival);
+  return 0;
 }
 
 static PyObject *
 bitfield_repr(v)
-	PyIntObject *v;
+  PyIntObject *v;
 {
-	char buf[20];
-	sprintf(buf, "0x%lX", v->ob_ival);
-	return PyString_FromString(buf);
+  char buf[20];
+  sprintf(buf, "0x%lX", v->ob_ival);
+  return PyString_FromString(buf);
 }
 
 static int
 bitfield_compare(v, w)
-	PyIntObject *v, *w;
+  PyIntObject *v, *w;
 {
-	register unsigned long i = v->ob_ival;
-	register unsigned long j = w->ob_ival;
-	return (i < j) ? -1 : (i > j) ? 1 : 0;
+  register unsigned long i = v->ob_ival;
+  register unsigned long j = w->ob_ival;
+  return (i < j) ? -1 : (i > j) ? 1 : 0;
 }
 
 static int
 bitfield_nonzero(v)
-	PyIntObject *v;
+  PyIntObject *v;
 {
-	return v->ob_ival != 0;
+  return v->ob_ival != 0;
 }
 
 static PyObject *
 bitfield_invert(v)
-	PyIntObject *v;
+  PyIntObject *v;
 {
-	return PyPLBitfield_FromUnsignedLong(~v->ob_ival);
+  return PyPLBitfield_FromUnsignedLong(~v->ob_ival);
 }
 
 static PyObject *
 bitfield_lshift(v, w)
-	PyIntObject *v;
-	PyIntObject *w;
+  PyIntObject *v;
+  PyIntObject *w;
 {
-	register unsigned long a, b;
-	a = v->ob_ival;
-	b = w->ob_ival;
-	if (b < 0) {
-		PyErr_SetString(PyExc_ValueError, "negative shift count");
-		return NULL;
-	}
-	if (a == 0 || b == 0) {
-		Py_INCREF(v);
-		return (PyObject *) v;
-	}
-	if (b >= 8*sizeof(long)) {
-		return PyPLBitfield_FromUnsignedLong(0L);
-	}
-	a = (unsigned long)a << b;
-	return PyPLBitfield_FromUnsignedLong(a);
+  register unsigned long a, b;
+  a = v->ob_ival;
+  b = w->ob_ival;
+  if (b < 0) {
+    PyErr_SetString(PyExc_ValueError, "negative shift count");
+    return NULL;
+  }
+  if (a == 0 || b == 0) {
+    Py_INCREF(v);
+    return (PyObject *) v;
+  }
+  if (b >= 8*sizeof(long)) {
+    return PyPLBitfield_FromUnsignedLong(0L);
+  }
+  a = (unsigned long)a << b;
+  return PyPLBitfield_FromUnsignedLong(a);
 }
 
 static PyObject *
 bitfield_rshift(v, w)
-	PyIntObject *v;
-	PyIntObject *w;
+  PyIntObject *v;
+  PyIntObject *w;
 {
-	register unsigned long a, b;
-	a = v->ob_ival;
-	b = w->ob_ival;
-	if (b < 0) {
-		PyErr_SetString(PyExc_ValueError, "negative shift count");
-		return NULL;
-	}
-	if (a == 0 || b == 0) {
-		Py_INCREF(v);
-		return (PyObject *) v;
-	}
-	if (b >= 8*sizeof(long)) {
-		if (a < 0)
-			a = -1;
-		else
-			a = 0;
-	}
-	else {
-		if (a < 0)
-			a = ~( ~(unsigned long)a >> b );
-		else
-			a = (unsigned long)a >> b;
-	}
-	return PyPLBitfield_FromUnsignedLong(a);
+  register unsigned long a, b;
+  a = v->ob_ival;
+  b = w->ob_ival;
+  if (b < 0) {
+    PyErr_SetString(PyExc_ValueError, "negative shift count");
+    return NULL;
+  }
+  if (a == 0 || b == 0) {
+    Py_INCREF(v);
+    return (PyObject *) v;
+  }
+  if (b >= 8*sizeof(long)) {
+    if (a < 0)
+      a = -1;
+    else
+      a = 0;
+  }
+  else {
+    if (a < 0)
+      a = ~( ~(unsigned long)a >> b );
+    else
+      a = (unsigned long)a >> b;
+  }
+  return PyPLBitfield_FromUnsignedLong(a);
 }
 
 static PyObject *
 bitfield_and(v, w)
-	PyIntObject *v;
-	PyIntObject *w;
+  PyIntObject *v;
+  PyIntObject *w;
 {
-	register unsigned long a, b;
-	a = v->ob_ival;
-	b = w->ob_ival;
-	return PyPLBitfield_FromUnsignedLong(a & b);
+  register unsigned long a, b;
+  a = v->ob_ival;
+  b = w->ob_ival;
+  return PyPLBitfield_FromUnsignedLong(a & b);
 }
 
 static PyObject *
 bitfield_xor(v, w)
-	PyIntObject *v;
-	PyIntObject *w;
+  PyIntObject *v;
+  PyIntObject *w;
 {
-	register unsigned long a, b;
-	a = v->ob_ival;
-	b = w->ob_ival;
-	return PyPLBitfield_FromUnsignedLong(a ^ b);
+  register unsigned long a, b;
+  a = v->ob_ival;
+  b = w->ob_ival;
+  return PyPLBitfield_FromUnsignedLong(a ^ b);
 }
 
 static PyObject *
 bitfield_or(v, w)
-	PyIntObject *v;
-	PyIntObject *w;
+  PyIntObject *v;
+  PyIntObject *w;
 {
-	register unsigned long a, b;
-	a = v->ob_ival;
-	b = w->ob_ival;
-	return PyPLBitfield_FromUnsignedLong(a | b);
+  register unsigned long a, b;
+  a = v->ob_ival;
+  b = w->ob_ival;
+  return PyPLBitfield_FromUnsignedLong(a | b);
 }
 
 static int
 bitfield_coerce(pv, pw)
-	PyObject **pv;
-	PyObject **pw;
+  PyObject **pv;
+  PyObject **pw;
 {
-	if (PyInt_Check(*pw)) {
-		*pw = PyPLBitfield_FromUnsignedLong(PyInt_AsLong(*pw));
-		Py_INCREF(*pv);
-		return 0;
-	}
-	else if (PyLong_Check(*pw)) {
-		*pw = PyPLBitfield_FromUnsignedLong(PyLong_AsLong(*pw));
-		Py_INCREF(*pv);
-		return 0;
-	}
-	return 1; /* Can't do it */
+  if (PyInt_Check(*pw)) {
+    *pw = PyPLBitfield_FromUnsignedLong(PyInt_AsLong(*pw));
+    Py_INCREF(*pv);
+    return 0;
+  }
+  else if (PyLong_Check(*pw)) {
+    *pw = PyPLBitfield_FromUnsignedLong(PyLong_AsLong(*pw));
+    Py_INCREF(*pv);
+    return 0;
+  }
+  return 1; /* Can't do it */
 }
 
 static PyObject *
 bitfield_int(v)
-	PyIntObject *v;
+  PyIntObject *v;
 {
-	return PyInt_FromLong((v -> ob_ival));
+  return PyInt_FromLong((v -> ob_ival));
 }
 
 static PyObject *
 bitfield_long(v)
-	PyIntObject *v;
+  PyIntObject *v;
 {
-	return PyLong_FromLong((v -> ob_ival));
+  return PyLong_FromLong((v -> ob_ival));
 }
 
 static PyObject *
 bitfield_float(v)
-	PyIntObject *v;
+  PyIntObject *v;
 {
-	return PyFloat_FromDouble((double)(v -> ob_ival));
+  return PyFloat_FromDouble((double)(v -> ob_ival));
 }
 
 static PyObject *
 bitfield_oct(v)
-	PyIntObject *v;
+  PyIntObject *v;
 {
-	char buf[100];
-	long x = v -> ob_ival;
-	if (x == 0)
-		strcpy(buf, "0");
-	else
-		sprintf(buf, "0%lo", x);
-	return PyString_FromString(buf);
+  char buf[100];
+  long x = v -> ob_ival;
+  if (x == 0)
+    strcpy(buf, "0");
+  else
+    sprintf(buf, "0%lo", x);
+  return PyString_FromString(buf);
 }
 
 static PyObject *
 bitfield_hex(v)
-	PyIntObject *v;
+  PyIntObject *v;
 {
-	char buf[100];
-	long x = v -> ob_ival;
-	sprintf(buf, "0x%lx", x);
-	return PyString_FromString(buf);
+  char buf[100];
+  long x = v -> ob_ival;
+  sprintf(buf, "0x%lx", x);
+  return PyString_FromString(buf);
 }
 
 static PyNumberMethods bitfield_as_number = {
-	(binaryfunc)0, /*nb_add*/
-	(binaryfunc)0, /*nb_subtract*/
-	(binaryfunc)0, /*nb_multiply*/
-	(binaryfunc)0, /*nb_divide*/
-	(binaryfunc)0, /*nb_remainder*/
-	(binaryfunc)0, /*nb_divmod*/
-	(ternaryfunc)0, /*nb_power*/
-	(unaryfunc)0, /*nb_negative*/
-	(unaryfunc)0, /*nb_positive*/
-	(unaryfunc)0, /*nb_absolute*/
-	(inquiry)bitfield_nonzero, /*nb_nonzero*/
-	(unaryfunc)bitfield_invert, /*nb_invert*/
-	(binaryfunc)bitfield_lshift, /*nb_lshift*/
-	(binaryfunc)bitfield_rshift, /*nb_rshift*/
-	(binaryfunc)bitfield_and, /*nb_and*/
-	(binaryfunc)bitfield_xor, /*nb_xor*/
-	(binaryfunc)bitfield_or, /*nb_or*/
-	(coercion)bitfield_coerce, /*nb_coerce*/
-	(unaryfunc)bitfield_int, /*nb_int*/
-	(unaryfunc)bitfield_long, /*nb_long*/
-	(unaryfunc)bitfield_float, /*nb_float*/
-	(unaryfunc)bitfield_oct, /*nb_oct*/
-	(unaryfunc)bitfield_hex, /*nb_hex*/
+  (binaryfunc)0, /*nb_add*/
+  (binaryfunc)0, /*nb_subtract*/
+  (binaryfunc)0, /*nb_multiply*/
+  (binaryfunc)0, /*nb_divide*/
+  (binaryfunc)0, /*nb_remainder*/
+  (binaryfunc)0, /*nb_divmod*/
+  (ternaryfunc)0, /*nb_power*/
+  (unaryfunc)0, /*nb_negative*/
+  (unaryfunc)0, /*nb_positive*/
+  (unaryfunc)0, /*nb_absolute*/
+  (inquiry)bitfield_nonzero, /*nb_nonzero*/
+  (unaryfunc)bitfield_invert, /*nb_invert*/
+  (binaryfunc)bitfield_lshift, /*nb_lshift*/
+  (binaryfunc)bitfield_rshift, /*nb_rshift*/
+  (binaryfunc)bitfield_and, /*nb_and*/
+  (binaryfunc)bitfield_xor, /*nb_xor*/
+  (binaryfunc)bitfield_or, /*nb_or*/
+  (coercion)bitfield_coerce, /*nb_coerce*/
+  (unaryfunc)bitfield_int, /*nb_int*/
+  (unaryfunc)bitfield_long, /*nb_long*/
+  (unaryfunc)bitfield_float, /*nb_float*/
+  (unaryfunc)bitfield_oct, /*nb_oct*/
+  (unaryfunc)bitfield_hex, /*nb_hex*/
 };
 
 PyTypeObject PyPLBitfield_Type = {
-	PyObject_HEAD_INIT(0)  /* (&PyType_Type) */
-	0,
-	"bitfield",
-	sizeof(PyIntObject),
-	0,
-	(destructor)bitfield_dealloc, /*tp_dealloc*/
-	(printfunc)bitfield_print, /*tp_print*/
-	0,		/*tp_getattr*/
-	0,		/*tp_setattr*/
-	(cmpfunc)bitfield_compare, /*tp_compare*/
-	(reprfunc)bitfield_repr, /*tp_repr*/
-	&bitfield_as_number,	/*tp_as_number*/
-	0,		/*tp_as_sequence*/
-	0,		/*tp_as_mapping*/
-	(hashfunc)0, /*tp_hash*/
+  PyObject_HEAD_INIT(0)  /* (&PyType_Type) */
+  0,
+  "bitfield",
+  sizeof(PyIntObject),
+  0,
+  (destructor)bitfield_dealloc, /*tp_dealloc*/
+  (printfunc)bitfield_print, /*tp_print*/
+  0,    /*tp_getattr*/
+  0,    /*tp_setattr*/
+  (cmpfunc)bitfield_compare, /*tp_compare*/
+  (reprfunc)bitfield_repr, /*tp_repr*/
+  &bitfield_as_number,  /*tp_as_number*/
+  0,    /*tp_as_sequence*/
+  0,    /*tp_as_mapping*/
+  (hashfunc)0, /*tp_hash*/
 };
 
 PyObject *PyPLBitfield_FromUnsignedLong(unsigned long ival)
 {
-	PyPLBitfieldObject *v;
-	v = PyObject_NEW(PyPLBitfieldObject, &PyPLBitfield_Type);
-	
-	v->ob_ival = ival;
-	return (PyObject *) v;
+  PyPLBitfieldObject *v;
+  v = PyObject_NEW(PyPLBitfieldObject, &PyPLBitfield_Type);
+  
+  v->ob_ival = ival;
+  return (PyObject *) v;
 }
 
 /*=================================================================
@@ -629,7 +629,7 @@ static PyObject *Py_plCommand(PyObject *module, PyObject *args)
   initial = PySequence_GetSlice(args,0,2); 
 
   if (!PyArg_ParseTuple(initial, "O&z:plCommand",
-			&_plConverter, &pol, &format)) {
+      &_plConverter, &pol, &format)) {
     Py_DECREF(initial);
     Py_DECREF(remainder);
     return NULL;
@@ -757,7 +757,7 @@ static PyObject *Py_plPVWRFromFile(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&cs:plPVWRFromFile", 
-			&_plConverter, &pol, &port, &filename)) {
+      &_plConverter, &pol, &port, &filename)) {
     result = plPVWRFromFile(pol, port, filename);
     return PyPLBitfield_FromUnsignedLong(result);
   }
@@ -773,7 +773,7 @@ static PyObject *Py_plGetGXTransform(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&c:plGetGXTransform", 
-			&_plConverter, &pol, &port)) {
+      &_plConverter, &pol, &port)) {
     result = plGetGXTransform(pol, port, transform);
 
     if (result == PL_MISSING) {
@@ -784,8 +784,8 @@ static PyObject *Py_plGetGXTransform(PyObject *module, PyObject *args)
     }
 
     return Py_BuildValue("(dddddddd)", transform[0], transform[1],
-			 transform[2], transform[3], transform[4],
-			 transform[5], transform[6], transform[7]);
+       transform[2], transform[3], transform[4],
+       transform[5], transform[6], transform[7]);
   }
   
   return NULL;
@@ -798,7 +798,7 @@ static PyObject *Py_plGetGXPortStatus(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&c:plGetGXPortStatus", 
-			&_plConverter, &pol, &port)) {
+      &_plConverter, &pol, &port)) {
     result = plGetGXPortStatus(pol, port);
     return PyPLBitfield_FromUnsignedLong(result);
   }
@@ -812,7 +812,7 @@ static PyObject *Py_plGetGXSystemStatus(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&:plGetGXSystemStatus", 
-			&_plConverter, &pol)) {
+      &_plConverter, &pol)) {
     result = plGetGXSystemStatus(pol);
     return PyPLBitfield_FromUnsignedLong(result);
   }
@@ -827,7 +827,7 @@ static PyObject *Py_plGetGXToolInfo(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&c:plGetGXToolInfo", 
-			&_plConverter, &pol, &port)) {
+      &_plConverter, &pol, &port)) {
     result = plGetGXToolInfo(pol, port);
     return PyPLBitfield_FromUnsignedLong(result);
   }
@@ -843,7 +843,7 @@ static PyObject *Py_plGetGXMarkerInfo(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&ci:plGetGXMarkerInfo", 
-			&_plConverter, &pol, &port, &marker)) {
+      &_plConverter, &pol, &port, &marker)) {
     result = plGetGXMarkerInfo(pol, port, marker);
     return PyPLBitfield_FromUnsignedLong(result);
   }
@@ -859,7 +859,7 @@ static PyObject *Py_plGetGXSingleStray(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&c:plGetGXSingleStray", 
-			&_plConverter, &pol, &port)) {
+      &_plConverter, &pol, &port)) {
     result = plGetGXSingleStray(pol, port, coord);
 
     if (result == PL_MISSING) {
@@ -882,7 +882,7 @@ static PyObject *Py_plGetGXFrame(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&c:plGetGXFrame", 
-			&_plConverter, &pol, &port)) {
+      &_plConverter, &pol, &port)) {
     result = plGetGXFrame(pol, port);
     return PyLong_FromUnsignedLong(result);
   }
@@ -891,13 +891,13 @@ static PyObject *Py_plGetGXFrame(PyObject *module, PyObject *args)
 }
 
 static PyObject *Py_plGetGXNumberOfPassiveStrays(PyObject *module,
-						PyObject *args)
+            PyObject *args)
 {
   int result;
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&:plGetGXNumberOfPassiveStrays", 
-			&_plConverter, &pol)) {
+      &_plConverter, &pol)) {
     result = plGetGXNumberOfPassiveStrays(pol);
     return PyInt_FromLong(result);
   }
@@ -913,7 +913,7 @@ static PyObject *Py_plGetGXPassiveStray(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&i:plGetGXPassiveStray", 
-			&_plConverter, &pol, &i)) {
+      &_plConverter, &pol, &i)) {
     result = plGetGXPassiveStray(pol, i, coord);
 
     if (result == PL_MISSING) {
@@ -936,7 +936,7 @@ static PyObject *Py_plGetPSTATPortStatus(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&c:plGetPSTATPortStatus", 
-			&_plConverter, &pol, &port)) {
+      &_plConverter, &pol, &port)) {
     result = plGetPSTATPortStatus(pol, port);
     return PyPLBitfield_FromUnsignedLong(result);
   }
@@ -951,7 +951,7 @@ static PyObject *Py_plGetPSTATToolInfo(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&c:plGetPSTATToolInfo", 
-			&_plConverter, &pol, &port)) {
+      &_plConverter, &pol, &port)) {
     if (plGetPSTATToolInfo(pol, port, result) != PL_UNOCCUPIED) {
       return PyString_FromStringAndSize(result, 30);
     }
@@ -968,7 +968,7 @@ static PyObject *Py_plGetPSTATCurrentTest(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&c:plGetPSTATCurrentTest", 
-			&_plConverter, &pol, &port)) {
+      &_plConverter, &pol, &port)) {
     result = plGetPSTATCurrentTest(pol, port);
     return PyLong_FromUnsignedLong(result);
   }
@@ -983,7 +983,7 @@ static PyObject *Py_plGetPSTATPartNumber(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&c:plGetPSTATPartNumber", 
-			&_plConverter, &pol, &port)) {
+      &_plConverter, &pol, &port)) {
     if (plGetPSTATPartNumber(pol, port, result) != PL_OKAY) {
       Py_INCREF(Py_None);
       return Py_None;
@@ -1001,7 +1001,7 @@ static PyObject *Py_plGetPSTATAccessories(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&c:plGetPSTATAccessories", 
-			&_plConverter, &pol, &port)) {
+      &_plConverter, &pol, &port)) {
     result = plGetPSTATAccessories(pol, port);
     return PyPLBitfield_FromUnsignedLong(result);
   }
@@ -1016,7 +1016,7 @@ static PyObject *Py_plGetPSTATMarkerType(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&c:plGetPSTATMarkerType", 
-			&_plConverter, &pol, &port)) {
+      &_plConverter, &pol, &port)) {
     result = plGetPSTATMarkerType(pol, port);
     return PyPLBitfield_FromUnsignedLong(result);
   }
@@ -1030,7 +1030,7 @@ static PyObject *Py_plGetSSTATControl(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&:plGetSSTATControl", 
-			&_plConverter, &pol)) {
+      &_plConverter, &pol)) {
     result = plGetSSTATControl(pol);
     return PyPLBitfield_FromUnsignedLong(result);
   }
@@ -1044,7 +1044,7 @@ static PyObject *Py_plGetSSTATSensors(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&:plGetSSTATSensors", 
-			&_plConverter, &pol)) {
+      &_plConverter, &pol)) {
     result = plGetSSTATSensors(pol);
     return PyPLBitfield_FromUnsignedLong(result);
   }
@@ -1058,7 +1058,7 @@ static PyObject *Py_plGetSSTATTIU(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&:plGetSSTATTIU", 
-			&_plConverter, &pol)) {
+      &_plConverter, &pol)) {
     result = plGetSSTATTIU(pol);
     return PyPLBitfield_FromUnsignedLong(result);
   }
@@ -1072,7 +1072,7 @@ static PyObject *Py_plGetIRCHKDetected(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&:plGetIRCHKDetected", 
-			&_plConverter, &pol)) {
+      &_plConverter, &pol)) {
     result = plGetIRCHKDetected(pol);
     return PyPLBitfield_FromUnsignedLong(result);
   }
@@ -1087,7 +1087,7 @@ static PyObject *Py_plGetIRCHKNumberOfSources(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&i:plGetIRCHKNumberOfSources", 
-			&_plConverter, &pol, &side)) {
+      &_plConverter, &pol, &side)) {
     result = plGetIRCHKNumberOfSources(pol, side);
     return PyInt_FromLong(result);
   }
@@ -1104,7 +1104,7 @@ static PyObject *Py_plGetIRCHKSourceXY(PyObject *module, PyObject *args)
   polaris *pol;
 
   if (PyArg_ParseTuple(args, "O&ii:plGetIRCHKSourceXY", 
-			&_plConverter, &pol, &side, &i)) {
+      &_plConverter, &pol, &side, &i)) {
     result = plGetIRCHKSourceXY(pol, side, i, xy);
     if (result != PL_OKAY) {
       Py_INCREF(Py_None);
@@ -1122,10 +1122,10 @@ static PyObject *Py_plRelativeTransform(PyObject *module, PyObject *args)
   double b[8];
 
   if (PyArg_ParseTuple(args, "(dddddddd)(dddddddd):plRelativeTransform", 
-		       &a[0], &a[1], &a[2], &a[3],
-		       &a[4], &a[5], &a[6], &a[7],
-		       &b[0], &b[1], &b[2], &b[3],
-		       &b[4], &b[5], &b[6], &b[7])) {
+           &a[0], &a[1], &a[2], &a[3],
+           &a[4], &a[5], &a[6], &a[7],
+           &b[0], &b[1], &b[2], &b[3],
+           &b[4], &b[5], &b[6], &b[7])) {
     plRelativeTransform(a, b, a);
 
     return Py_BuildValue("(dddddddd)", a[0], a[1], a[2], a[3],
@@ -1141,13 +1141,13 @@ static PyObject *Py_plTransformToMatrixd(PyObject *module, PyObject *args)
   double c[16];
 
   if (PyArg_ParseTuple(args, "(dddddddd):plTransformToMatrixd", 
-		       &a[0], &a[1], &a[2], &a[3],
-		       &a[4], &a[5], &a[6], &a[7])) {
+           &a[0], &a[1], &a[2], &a[3],
+           &a[4], &a[5], &a[6], &a[7])) {
     plTransformToMatrixd(a, c);
 
     return Py_BuildValue("(dddddddddddddddd)",
-			 c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7],
-			 c[8], c[9], c[10], c[11], c[12], c[13], c[14], c[15]);
+       c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7],
+       c[8], c[9], c[10], c[11], c[12], c[13], c[14], c[15]);
   }
   
   return NULL;
@@ -1159,13 +1159,13 @@ static PyObject *Py_plTransformToMatrixf(PyObject *module, PyObject *args)
   float c[16];
 
   if (PyArg_ParseTuple(args, "(dddddddd):plTransformToMatrixf", 
-		       &a[0], &a[1], &a[2], &a[3],
-		       &a[4], &a[5], &a[6], &a[7])) {
+           &a[0], &a[1], &a[2], &a[3],
+           &a[4], &a[5], &a[6], &a[7])) {
     plTransformToMatrixf(a, c);
 
     return Py_BuildValue("(ffffffffffffffff)",
-			 c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7],
-			 c[8], c[9], c[10], c[11], c[12], c[13], c[14], c[15]);
+       c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7],
+       c[8], c[9], c[10], c[11], c[12], c[13], c[14], c[15]);
   }
   
   return NULL;
@@ -1177,10 +1177,10 @@ static PyObject *Py_plAnglesFromMatrixd(PyObject *module, PyObject *args)
   double c[3];
 
   if (PyArg_ParseTuple(args, "(dddddddddddddddd):plAnglesFromMatrixd", 
-		       &a[0], &a[1], &a[2], &a[3],
-		       &a[4], &a[5], &a[6], &a[7],
-		       &a[8], &a[9], &a[10], &a[11],
-		       &a[12], &a[13], &a[14], &a[15])) {
+           &a[0], &a[1], &a[2], &a[3],
+           &a[4], &a[5], &a[6], &a[7],
+           &a[8], &a[9], &a[10], &a[11],
+           &a[12], &a[13], &a[14], &a[15])) {
     plAnglesFromMatrixd(c, a);
 
     return Py_BuildValue("(ddd)", c[0], c[1], c[2]);
@@ -1195,10 +1195,10 @@ static PyObject *Py_plAnglesFromMatrixf(PyObject *module, PyObject *args)
   float c[3];
 
   if (PyArg_ParseTuple(args, "(ffffffffffffffff):plAnglesFromMatrixf", 
-		       &a[0], &a[1], &a[2], &a[3],
-		       &a[4], &a[5], &a[6], &a[7],
-		       &a[8], &a[9], &a[10], &a[11],
-		       &a[12], &a[13], &a[14], &a[15])) {
+           &a[0], &a[1], &a[2], &a[3],
+           &a[4], &a[5], &a[6], &a[7],
+           &a[8], &a[9], &a[10], &a[11],
+           &a[12], &a[13], &a[14], &a[15])) {
     plAnglesFromMatrixf(c, a);
 
     return Py_BuildValue("(fff)", c[0], c[1], c[2]);
@@ -1213,10 +1213,10 @@ static PyObject *Py_plCoordsFromMatrixd(PyObject *module, PyObject *args)
   double c[3];
 
   if (PyArg_ParseTuple(args, "(dddddddddddddddd):plCoordsFromMatrixd", 
-		       &a[0], &a[1], &a[2], &a[3],
-		       &a[4], &a[5], &a[6], &a[7],
-		       &a[8], &a[9], &a[10], &a[11],
-		       &a[12], &a[13], &a[14], &a[15])) {
+           &a[0], &a[1], &a[2], &a[3],
+           &a[4], &a[5], &a[6], &a[7],
+           &a[8], &a[9], &a[10], &a[11],
+           &a[12], &a[13], &a[14], &a[15])) {
     plCoordsFromMatrixd(c, a);
 
     return Py_BuildValue("(ddd)", c[0], c[1], c[2]);
@@ -1231,10 +1231,10 @@ static PyObject *Py_plCoordsFromMatrixf(PyObject *module, PyObject *args)
   float c[3];
 
   if (PyArg_ParseTuple(args, "(ffffffffffffffff):plCoordsFromMatrixf", 
-		       &a[0], &a[1], &a[2], &a[3],
-		       &a[4], &a[5], &a[6], &a[7],
-		       &a[8], &a[9], &a[10], &a[11],
-		       &a[12], &a[13], &a[14], &a[15])) {
+           &a[0], &a[1], &a[2], &a[3],
+           &a[4], &a[5], &a[6], &a[7],
+           &a[8], &a[9], &a[10], &a[11],
+           &a[12], &a[13], &a[14], &a[15])) {
     plCoordsFromMatrixf(c, a);
 
     return Py_BuildValue("(fff)", c[0], c[1], c[2]);

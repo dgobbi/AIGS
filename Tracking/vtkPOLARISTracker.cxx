@@ -5,13 +5,29 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/01/11 20:36:58 $
-  Version:   $Revision: 1.4 $
+  Date:      $Date: 2005/07/01 22:52:05 $
+  Version:   $Revision: 1.5 $
 
 ==========================================================================
 
-Copyright (c) 2000-2002 Atamai, Inc.
-All rights reserved.
+Copyright (c) 2000-2005 Atamai, Inc.
+
+Use, modification and redistribution of the software, in source or
+binary forms, are permitted provided that the following terms and
+conditions are met:
+
+1) Redistribution of the source code, in verbatim or modified
+   form, must retain the above copyright notice, this license,
+   the following disclaimer, and any notices that refer to this
+   license and/or the following disclaimer.  
+
+2) Redistribution in binary form must include the above copyright
+   notice, a copy of this license and the following disclaimer
+   in the documentation or with other materials provided with the
+   distribution.
+
+3) Modified copies of the source code must be clearly marked as such,
+   and must not be misrepresented as verbatim copies of the source code.
 
 THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE SOFTWARE "AS IS"
 WITHOUT EXPRESSED OR IMPLIED WARRANTY INCLUDING, BUT NOT LIMITED TO,
@@ -430,13 +446,13 @@ void vtkPOLARISTracker::InternalUpdate()
       if (this->VirtualSROM[tool])
         {
         if (tool >= 3)
-	  {
-	  passive |= PL_PASSIVE;
-	  }
+          {
+          passive |= PL_PASSIVE;
+          }
         if (tool >= 6)
-	  {
-	  passive |= PL_PASSIVE_EXTRA;
-	  }
+          {
+          passive |= PL_PASSIVE_EXTRA;
+          }
         }
       }
     }
@@ -510,7 +526,7 @@ void vtkPOLARISTracker::InternalUpdate()
   for (tool = 0; tool < VTK_POLARIS_NTOOLS; tool++)
     {
     need_enable |= ((status[tool] & PL_TOOL_IN_PORT) && 
-		    !this->PortEnabled[tool]);
+                    !this->PortEnabled[tool]);
     }
 
   if (need_enable)
@@ -576,16 +592,16 @@ void vtkPOLARISTracker::InternalUpdate()
     if (this->ReferenceTool >= 0 && tool != this->ReferenceTool)
       {
       if (!absent[tool])
-	{
-	if (absent[this->ReferenceTool])
-	  {
-	  flags |= TR_OUT_OF_VIEW;
-	  }
-	if (status[this->ReferenceTool] & PL_OUT_OF_VOLUME)
-	  {
-	  flags |= TR_OUT_OF_VOLUME;
-	  }
-	}
+        {
+        if (absent[this->ReferenceTool])
+          {
+          flags |= TR_OUT_OF_VIEW;
+          }
+        if (status[this->ReferenceTool] & PL_OUT_OF_VOLUME)
+          {
+          flags |= TR_OUT_OF_VOLUME;
+          }
+        }
       // pre-multiply transform by inverse of relative tool transform
       plRelativeTransform(transform[tool],referenceTransform,transform[tool]);
       }
@@ -748,44 +764,44 @@ void vtkPOLARISTracker::EnableToolPorts()
       plPINIT(this->Polaris,port);
       errnum = plGetError(this->Polaris);
       if (errnum)
-	{ 
-	vtkErrorMacro(<< plErrorString(errnum));
-	}
+        { 
+        vtkErrorMacro(<< plErrorString(errnum));
+        }
       plPSTAT(this->Polaris,PL_BASIC|passive);
       errnum = plGetError(this->Polaris);
       if (errnum)
-	{ 
-	vtkErrorMacro(<< plErrorString(errnum));
-	return;
-	}
+        { 
+        vtkErrorMacro(<< plErrorString(errnum));
+        return;
+        }
       plGetPSTATToolInfo(this->Polaris, port, identity);
       // use static tracking for the reference tool
       int mode = ((tool == this->ReferenceTool) ? PL_STATIC : PL_DYNAMIC );
       // check whether tool is of type button-box
       if (identity[0] == '3')
-	{
+        {
         mode = PL_BUTTON_BOX;
-	}
+        }
       plPENA(this->Polaris,port,mode);
       errnum = plGetError(this->Polaris);
       if (errnum)
-	{ 
-	vtkErrorMacro(<< plErrorString(errnum));
-	}
+        { 
+        vtkErrorMacro(<< plErrorString(errnum));
+        }
 
       // turn on all LEDs that the user has requested
       if (this->Tools[tool]->GetLED1())
-	{
+        {
         this->InternalSetToolLED(tool,1,this->Tools[tool]->GetLED1());
-	}
+        }
       if (this->Tools[tool]->GetLED2())
-	{
+        {
         this->InternalSetToolLED(tool,2,this->Tools[tool]->GetLED2());
-	}
+        }
       if (this->Tools[tool]->GetLED3())
-	{
+        {
         this->InternalSetToolLED(tool,3,this->Tools[tool]->GetLED3());
-	}
+        }
       }
     }
 
@@ -891,9 +907,9 @@ void vtkPOLARISTracker::DisableToolPorts()
       plPDIS(this->Polaris, port);
       errnum = plGetError(this->Polaris);
       if (errnum)
-	{ 
-	vtkErrorMacro(<< plErrorString(errnum));
-	}
+        { 
+        vtkErrorMacro(<< plErrorString(errnum));
+        }
       }
 
     this->PortEnabled[tool] = 0;
@@ -976,7 +992,7 @@ int vtkPOLARISTracker::InternalSetToolLED(int tool, int led, int state)
 
 //----------------------------------------------------------------------------
 void vtkPOLARISTracker::InternalLoadVirtualSROM(int tool,
-						const unsigned char data[1024])
+                                                const unsigned char data[1024])
 {
   if (data == NULL)
     {

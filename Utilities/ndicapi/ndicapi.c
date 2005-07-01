@@ -5,26 +5,41 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2004/02/17 20:36:54 $
-  Version:   $Revision: 1.9 $
+  Date:      $Date: 2005/07/01 22:52:05 $
+  Version:   $Revision: 1.10 $
 
 ==========================================================================
-Copyright 2000,2001 Atamai Inc.
 
-Redistribution of this source code and/or any binary applications created
-using this source code is prohibited without the expressed, written
-permission of the copyright holders.  
+Copyright (c) 2000-2005 Atamai, Inc.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+Use, modification and redistribution of the software, in source or
+binary forms, are permitted provided that the following terms and
+conditions are met:
+
+1) Redistribution of the source code, in verbatim or modified
+   form, must retain the above copyright notice, this license,
+   the following disclaimer, and any notices that refer to this
+   license and/or the following disclaimer.  
+
+2) Redistribution in binary form must include the above copyright
+   notice, a copy of this license and the following disclaimer
+   in the documentation or with other materials provided with the
+   distribution.
+
+3) Modified copies of the source code must be clearly marked as such,
+   and must not be misrepresented as verbatim copies of the source code.
+
+THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE SOFTWARE "AS IS"
+WITHOUT EXPRESSED OR IMPLIED WARRANTY INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE.  IN NO EVENT SHALL ANY COPYRIGHT HOLDER OR OTHER PARTY WHO MAY
+MODIFY AND/OR REDISTRIBUTE THE SOFTWARE UNDER THE TERMS OF THIS LICENSE
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, LOSS OF DATA OR DATA BECOMING INACCURATE
+OR LOSS OF PROFIT OR BUSINESS INTERRUPTION) ARISING IN ANY WAY OUT OF
+THE USE OR INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES.
+
 =======================================================================*/
 
 #include "ndicapi.h"
@@ -549,7 +564,7 @@ int ndiProbe(const char *device)
     /* init failed: flush, reset, and try again */
     ndiSerialFlush(serial_port, NDI_IOFLUSH);
     if (ndiSerialFlush(serial_port, NDI_IOFLUSH) < 0 ||
-	ndiSerialBreak(serial_port)) {
+        ndiSerialBreak(serial_port)) {
       ndiSerialClose(serial_port);
       return NDI_BAD_COMM;
     }
@@ -849,8 +864,8 @@ char *ndiCommandVA(ndicapi *pol, const char *format, va_list ap)
       use_crc = 1;                            /*  follows the command  */
     }
     if (in_command &&
-	!((cp[i] >= 'A' && cp[i] <= 'Z') || 
-	  (cp[i] >= '0' && cp[i] <= '9'))) {
+        !((cp[i] >= 'A' && cp[i] <= 'Z') || 
+          (cp[i] >= '0' && cp[i] <= '9'))) {
       in_command = 0;                         /* 'command' part has ended */
       nc = i;                                 /* command length */
     }
@@ -870,8 +885,8 @@ char *ndiCommandVA(ndicapi *pol, const char *format, va_list ap)
      the thread rather than getting it directly from the Measurement System */
   if (pol->thread_mode && pol->tracking && 
       nc == 2 && (cp[0] == 'G' && cp[1] == 'X' ||
-		  cp[0] == 'T' && cp[1] == 'X' ||
-		  cp[0] == 'B' && cp[1] == 'X')) {
+                  cp[0] == 'T' && cp[1] == 'X' ||
+                  cp[0] == 'B' && cp[1] == 'X')) {
     int errcode = 0;
 
     /* check that the thread is sending the GX command that we want */
@@ -1141,7 +1156,6 @@ int ndiGetPHINFGPIOStatus(ndicapi *pol)
 int ndiGetPHRQHandle(ndicapi *pol)
 {
   char *dp;
-  int n;
 
   dp = pol->phrq_reply;
   return (int)ndiHexToUnsignedLong(dp, 2);
@@ -2246,21 +2260,21 @@ static void ndi_GX_helper(ndicapi *pol, const char *cp, const char *crp)
     for (k = 0; k < nactive; k += 3) {
       /* grab the three transforms */
       for (i = 0; i < 3; i++) {
-	dp = pol->gx_transforms[i];
-	for (j = 0; j < 51 && *crp >= ' '; j++) {
-	  *dp++ = *crp++;
-	}
-	*dp = '\0';
-	/* fprintf(stderr, "xf %.51s\n", pol->gx_transforms[i]); */
-	/* eat the trailing newline */
-	if (*crp == '\n') {
-	  crp++;
-	}
+        dp = pol->gx_transforms[i];
+        for (j = 0; j < 51 && *crp >= ' '; j++) {
+          *dp++ = *crp++;
+        }
+        *dp = '\0';
+        /* fprintf(stderr, "xf %.51s\n", pol->gx_transforms[i]); */
+        /* eat the trailing newline */
+        if (*crp == '\n') {
+          crp++;
+        }
       }
       /* grab the status flags */
       dp = pol->gx_status + k/3*8;
       for (j = 0; j < 8 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "st %.8s\n", pol->gx_status); */
     }
@@ -2275,7 +2289,7 @@ static void ndi_GX_helper(ndicapi *pol, const char *cp, const char *crp)
     for (i = 0; i < nactive; i++) {
       dp = pol->gx_information[i];
       for (j = 0; j < 12 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "ai %.12s\n", pol->gx_information[i]); */
     }
@@ -2290,13 +2304,13 @@ static void ndi_GX_helper(ndicapi *pol, const char *cp, const char *crp)
     for (i = 0; i < nactive; i++) {
       dp = pol->gx_single_stray[i];
       for (j = 0; j < 21 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       *dp = '\0';
       /* fprintf(stderr, "ss %.21s\n", pol->gx_single_stray[i]); */      
       /* eat the trailing newline */
       if (*crp == '\n') {
-	crp++;
+        crp++;
       }
     }
   }
@@ -2306,7 +2320,7 @@ static void ndi_GX_helper(ndicapi *pol, const char *cp, const char *crp)
     for (i = 0; i < nactive; i++) {
       dp = pol->gx_frame[i];
       for (j = 0; j < 8 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "fn %.8s\n", pol->gx_frame[i]); */
     }
@@ -2332,29 +2346,29 @@ static void ndi_GX_helper(ndicapi *pol, const char *cp, const char *crp)
     for (k = 0; k < npassive; k += 3) {
       /* grab the three transforms */
       for (i = 0; i < 3; i++) {
-	dp = pol->gx_passive_transforms[k+i];
-	for (j = 0; j < 51 && *crp >= ' '; j++) {
-	  *dp++ = *crp++;
-	}
-	*dp = '\0';
-	/* fprintf(stderr, "pxf %.31s\n", pol->gx_passive_transforms[k+i]); */
-	/* eat the trailing newline */
-	if (*crp == '\n') {
-	  crp++;
-	}
+        dp = pol->gx_passive_transforms[k+i];
+        for (j = 0; j < 51 && *crp >= ' '; j++) {
+          *dp++ = *crp++;
+        }
+        *dp = '\0';
+        /* fprintf(stderr, "pxf %.31s\n", pol->gx_passive_transforms[k+i]); */
+        /* eat the trailing newline */
+        if (*crp == '\n') {
+          crp++;
+        }
       }
       /* grab the status flags */
       dp = pol->gx_passive_status + k/3*8;
       for (j = 0; j < 8 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "pst %.8s\n", pol->gx_passive_status + k/3*8); */
       /* skip the newline */
       if (*crp == '\n') {
-	crp++;
+        crp++;
       }
       else { /* no newline: no more passive transforms */
-	npassive = k + 3;
+        npassive = k + 3;
       }
     }
     /* eat the trailing newline */
@@ -2368,7 +2382,7 @@ static void ndi_GX_helper(ndicapi *pol, const char *cp, const char *crp)
     for (i = 0; i < npassive; i++) {
       dp = pol->gx_passive_information[i];
       for (j = 0; j < 12 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "pai %.12s\n", pol->gx_passive_information[i]); */
     }
@@ -2383,7 +2397,7 @@ static void ndi_GX_helper(ndicapi *pol, const char *cp, const char *crp)
     for (i = 0; i < npassive; i++) {
       dp = pol->gx_passive_frame[i];
       for (j = 0; j < 8 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "pfn %.8s\n", pol->gx_passive_frame[i]); */      
     }
@@ -2429,11 +2443,11 @@ static void ndi_PSTAT_helper(ndicapi *pol, const char *cp, const char *crp)
     if (mode & NDI_BASIC) {
       dp = pol->pstat_basic[i];
       for (j = 0; j < 32 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* terminate if UNOCCUPIED */
       if (j < 32) {
-	*dp = '\0';
+        *dp = '\0';
       }
       /* fprintf(stderr, "ba %.32s\n", pol->pstat_basic[i]); */
     }
@@ -2443,7 +2457,7 @@ static void ndi_PSTAT_helper(ndicapi *pol, const char *cp, const char *crp)
       dp = pol->pstat_testing[i];
       *dp = '\0';
       for (j = 0; j < 8 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "ai %.8s\n", pol->pstat_testing[i]); */
     }
@@ -2453,7 +2467,7 @@ static void ndi_PSTAT_helper(ndicapi *pol, const char *cp, const char *crp)
       dp = pol->pstat_part_number[i];
       *dp = '\0';
       for (j = 0; j < 20 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "pn %.20s\n", pol->pstat_part_number[i]); */
     }
@@ -2463,7 +2477,7 @@ static void ndi_PSTAT_helper(ndicapi *pol, const char *cp, const char *crp)
       dp = pol->pstat_accessories[i];
       *dp = '\0';
       for (j = 0; j < 2 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "ac %.2s\n", pol->pstat_accessories[i]); */
     }
@@ -2473,7 +2487,7 @@ static void ndi_PSTAT_helper(ndicapi *pol, const char *cp, const char *crp)
       dp = pol->pstat_marker_type[i];
       *dp = '\0';
       for (j = 0; j < 2 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "mt %.2s\n", pol->pstat_marker_type[i]); */
     }
@@ -2508,11 +2522,11 @@ static void ndi_PSTAT_helper(ndicapi *pol, const char *cp, const char *crp)
       dp = pol->pstat_passive_basic[i];
       *dp = '\0';
       for (j = 0; j < 32 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* terminate if UNOCCUPIED */
       if (j < 32) {
-	*dp = '\0';
+        *dp = '\0';
       }
       /* fprintf(stderr, "pba %.32s\n", pol->pstat_passive_basic[i]); */
     }
@@ -2522,7 +2536,7 @@ static void ndi_PSTAT_helper(ndicapi *pol, const char *cp, const char *crp)
       dp = pol->pstat_passive_testing[i];
       *dp = '\0';
       for (j = 0; j < 8 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "pai %.8s\n", pol->pstat_passive_testing[i]); */
     }
@@ -2532,7 +2546,7 @@ static void ndi_PSTAT_helper(ndicapi *pol, const char *cp, const char *crp)
       dp = pol->pstat_passive_part_number[i];
       *dp = '\0';
       for (j = 0; j < 20 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "ppn %.20s\n", pol->pstat_passive_part_number[i]); */
     }
@@ -2542,7 +2556,7 @@ static void ndi_PSTAT_helper(ndicapi *pol, const char *cp, const char *crp)
       dp = pol->pstat_passive_accessories[i];
       *dp = '\0';
       for (j = 0; j < 2 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "pac %.2s\n", pol->pstat_passive_accessories[i]); */
     }
@@ -2552,7 +2566,7 @@ static void ndi_PSTAT_helper(ndicapi *pol, const char *cp, const char *crp)
       dp = pol->pstat_passive_marker_type[i];
       *dp = '\0';
       for (j = 0; j < 2 && *crp >= ' '; j++) {
-	*dp++ = *crp++;
+        *dp++ = *crp++;
       }
       /* fprintf(stderr, "pmt %.2s\n", pol->pstat_passive_marker_type[i]); */
     }
@@ -2682,7 +2696,7 @@ static int ndi_set_error(ndicapi *pol, int errnum)
   /* call the user-supplied callback function */
   if (pol->error_callback) {
     pol->error_callback(errnum, ndiErrorString(errnum),
-			pol->error_callback_data);
+                        pol->error_callback_data);
   }
 
   return errnum;
