@@ -23,10 +23,6 @@ vtkTracker
 ABSTRACT
 )
 
-INCLUDE_DIRECTORIES(${ATAMAITRACKING_SOURCE_DIR}
-                    ${ATAMAITRACKING_BINARY_DIR})
-
-
 IF (VTK_USE_POLARIS)
   SET ( Kit_SRCS ${Kit_SRCS}
         vtkPOLARISTracker.cxx
@@ -68,6 +64,10 @@ SET(Kit_JAVA_EXTRA_SRCS)
 
 # -----------------------------------------------------------------
 # Start of common section
+
+# Need to include class headers and the configuration header.
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR})
+INCLUDE_DIRECTORIES(${PROJECT_BINARY_DIR})
 
 ## Setup vtkInstantiator registration for this library's classes.
 #VTK_MAKE_INSTANTIATOR2(vtk${KIT}Instantiator KitInstantiator_SRCS
