@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/07/01 22:52:05 $
-  Version:   $Revision: 1.6 $
+  Date:      $Date: 2005/08/08 19:49:50 $
+  Version:   $Revision: 1.7 $
 
 ==========================================================================
 
@@ -173,7 +173,11 @@ static void *vtkTrackerThread(vtkMultiThreader::ThreadInfo *data)
   for (int i = 0;; i++)
     {
     // get current tracking rate over last 10 updates
+#if (VTK_MAJOR_VERSION <= 4)
     double newtime = vtkTimerLog::GetCurrentTime();
+#else
+    double newtime = vtkTimerLog::GetUniversalTime();
+#endif
     double difftime = newtime - currtime[i%10];
     currtime[i%10] = newtime;
     if (i > 10 && difftime != 0)
