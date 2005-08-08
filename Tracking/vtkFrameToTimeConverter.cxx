@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/07/01 22:52:05 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2005/08/08 19:42:54 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 
@@ -107,8 +107,12 @@ void vtkFrameToTimeConverter::SetLastFrame(unsigned long framecount)
     return;
     }
 
-  // read the system clock
+  // read the system clock (name changed in VTK 5.0)
+#if (VTK_MAJOR_VERSION <= 4)
   double timestamp = vtkTimerLog::GetCurrentTime();
+#else
+  double timestamp = vtkTimerLog::GetUniversalTime();
+#endif
 
   double frameperiod = ((timestamp - this->LastTimeStamp)/
                         (framecount - this->LastFrameCount));
