@@ -121,24 +121,26 @@ public:
   // Description:
   // Set the clip rectangle (x0,y0,x1,y1) to apply to the image. 
   // Specify the rectange in millimeter coords, not pixel indices.
-  vtkSetVector4Macro(ClipRectangle,float);
-  vtkGetVector4Macro(ClipRectangle,float);
+  vtkSetVector4Macro(ClipRectangle,double);
+  vtkGetVector4Macro(ClipRectangle,double);
 
   // Description:
   // Get the clip rectangle as an extent, given a specific origin,
   // spacing, and max possible extent.
-  void GetClipExtent(int clipExtent[6], const float origin[3],
-		     const float spacing[3], const int extent[6]);
+  void GetClipExtent(int clipExtent[6],
+		     vtkFloatingPointType origin[3],
+		     vtkFloatingPointType spacing[3],
+		     const int extent[6]);
 
   // Description:
   // If the ultrasound probe collects a fan of data, specify the position and
   // dimensions of the fan.
-  vtkSetVector2Macro(FanAngles,float);
-  vtkGetVector2Macro(FanAngles,float);
-  vtkSetVector2Macro(FanOrigin,float);
-  vtkGetVector2Macro(FanOrigin,float);
-  vtkSetMacro(FanDepth,float);
-  vtkGetMacro(FanDepth,float);
+  vtkSetVector2Macro(FanAngles,double);
+  vtkGetVector2Macro(FanAngles,double);
+  vtkSetVector2Macro(FanOrigin,double);
+  vtkGetVector2Macro(FanOrigin,double);
+  vtkSetMacro(FanDepth,double);
+  vtkGetMacro(FanDepth,double);
 
   // Description:
   // Set the axes of the slice to insert into the reconstruction volume,
@@ -187,10 +189,10 @@ public:
   // Description:
   // Spacing, origin, and extent of output data
   // You MUST set this information.
-  vtkSetVector3Macro(OutputSpacing, float);
-  vtkGetVector3Macro(OutputSpacing, float);
-  vtkSetVector3Macro(OutputOrigin, float);
-  vtkGetVector3Macro(OutputOrigin, float);
+  vtkSetVector3Macro(OutputSpacing, vtkFloatingPointType);
+  vtkGetVector3Macro(OutputSpacing, vtkFloatingPointType);
+  vtkSetVector3Macro(OutputOrigin, vtkFloatingPointType);
+  vtkGetVector3Macro(OutputOrigin, vtkFloatingPointType);
   vtkSetVector6Macro(OutputExtent, int);
   vtkGetVector6Macro(OutputExtent, int);
 
@@ -233,14 +235,14 @@ protected:
   int InterpolationMode;
   int Optimization;
   int Compounding;
-  float OutputOrigin[3];
-  float OutputSpacing[3];
+  vtkFloatingPointType OutputOrigin[3];
+  vtkFloatingPointType OutputSpacing[3];
   int OutputExtent[6];
 
-  float ClipRectangle[4];
-  float FanAngles[2];
-  float FanOrigin[2];
-  float FanDepth;
+  double ClipRectangle[4];
+  double FanAngles[2];
+  double FanOrigin[2];
+  double FanDepth;
 
   vtkMatrix4x4 *IndexMatrix;
   vtkMatrix4x4 *LastIndexMatrix;

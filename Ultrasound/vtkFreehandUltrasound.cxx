@@ -32,7 +32,7 @@ Copyright (c) 2000,2002 David Gobbi.
 #include "vtkTrackerTool.h"
 #include "vtkPNGWriter.h"
 
-vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.1 $");
+vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.2 $");
 vtkStandardNewMacro(vtkFreehandUltrasound);
 
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,VideoSource,vtkVideoSource);
@@ -184,9 +184,9 @@ vtkFreehandUltrasound::~vtkFreehandUltrasound()
 // convert the ClipRectangle (which is in millimetre coordinates) into a
 // clip extent that can be applied to the input data.
 void vtkFreehandUltrasound::GetClipExtent(int clipExt[6],
-					  const float inOrigin[3],
-					  const float inSpacing[3],
-					  const int inExt[6])
+				     vtkFloatingPointType inOrigin[3],
+				     vtkFloatingPointType inSpacing[3],
+				     const int inExt[6])
 {
   int x0 = (int)ceil((this->GetClipRectangle()[0]-inOrigin[0])/inSpacing[0]);
   int x1 = (int)floor((this->GetClipRectangle()[2]-inOrigin[0])/inSpacing[0]);
@@ -251,8 +251,8 @@ double vtkFreehandUltrasound::CalculateMaxSliceSeparation(vtkMatrix4x4 *m1,
   vtkImageData *inData = this->GetSlice();
   inData->UpdateInformation();
 
-  float inSpacing[3];
-  float inOrigin[3];
+  vtkFloatingPointType inSpacing[3];
+  vtkFloatingPointType inOrigin[3];
   int inExtent[6];
 
   inData->GetSpacing(inSpacing);
@@ -405,8 +405,8 @@ void vtkFreehandUltrasound::InternalExecuteInformation()
 {
   vtkImageData *output = this->GetOutput();
   int oldwholeextent[6];
-  float oldspacing[3];
-  float oldorigin[3];
+  vtkFloatingPointType oldspacing[3];
+  vtkFloatingPointType oldorigin[3];
   int oldtype = output->GetScalarType();
   int oldncomponents = output->GetNumberOfScalarComponents();
   output->GetWholeExtent(oldwholeextent);
@@ -835,32 +835,33 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
   int idX, idY, idZ;
   int inIncX, inIncY, inIncZ;
   int outExt[6], outInc[3], clipExt[6];
-  float inSpacing[3], inOrigin[3];
+  vtkFloatingPointType inSpacing[3], inOrigin[3];
   unsigned long target;
-  float outPoint[4], inPoint[4];
+  double outPoint[4], inPoint[4];
 
-  int (*interpolate)(float *point, T *inPtr, T *outPtr, unsigned short *accPtr,
+  int (*interpolate)(double *point, T *inPtr, T *outPtr,
+		     unsigned short *accPtr,
                      int numscalars, int outExt[6], int outInc[3]);
   
   inData->GetSpacing(inSpacing);
   inData->GetOrigin(inOrigin);
 
-  float xf = (self->GetFanOrigin()[0]-inOrigin[0])/inSpacing[0];
-  float yf = (self->GetFanOrigin()[1]-inOrigin[1])/inSpacing[1];
+  double xf = (self->GetFanOrigin()[0]-inOrigin[0])/inSpacing[0];
+  double yf = (self->GetFanOrigin()[1]-inOrigin[1])/inSpacing[1];
 
-  float d2 = self->GetFanDepth()*self->GetFanDepth();
+  double d2 = self->GetFanDepth()*self->GetFanDepth();
 
-  float xs = fabs(inSpacing[0]);
-  float ys = fabs(inSpacing[1]);
+  double xs = fabs((double)(inSpacing[0]));
+  double ys = fabs((double)(inSpacing[1]));
 
-  float ml = tan(self->GetFanAngles()[0]*vtkMath::DoubleDegreesToRadians())/
+  double ml = tan(self->GetFanAngles()[0]*vtkMath::DoubleDegreesToRadians())/
     xs*ys;
-  float mr = tan(self->GetFanAngles()[1]*vtkMath::DoubleDegreesToRadians())/
+  double mr = tan(self->GetFanAngles()[1]*vtkMath::DoubleDegreesToRadians())/
     xs*ys;
 
   if (ml > mr)
     {
-    float tmp = ml; ml = mr; mr = tmp;
+    double tmp = ml; ml = mr; mr = tmp;
     }
 
   self->GetClipExtent(clipExt, inOrigin, inSpacing, inExt);
@@ -890,8 +891,8 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
         if (idX >= clipExt[0] && idX <= clipExt[1] && 
 	    idY >= clipExt[2] && idY <= clipExt[3])
           {
-          float x = (idX-xf);
-          float y = (idY-yf);
+          double x = (idX-xf);
+          double y = (idY-yf);
           if ((ml == 0 && mr == 0) || y > 0 &&
               ((x*x)*(xs*xs)+(y*y)*(ys*ys) < d2 && x/y >= ml && x/y <= mr))
             {  
@@ -1534,10 +1535,10 @@ vtkMatrix4x4 *vtkFreehandUltrasound::GetIndexMatrix()
     this->IndexMatrix = vtkMatrix4x4::New();
     }
 
-  float inOrigin[3];
-  float inSpacing[3];
-  float outOrigin[3];
-  float outSpacing[3];
+  vtkFloatingPointType inOrigin[3];
+  vtkFloatingPointType inSpacing[3];
+  vtkFloatingPointType outOrigin[3];
+  vtkFloatingPointType outSpacing[3];
 
   this->GetSlice()->GetSpacing(inSpacing);
   this->GetSlice()->GetOrigin(inOrigin);
@@ -2026,8 +2027,9 @@ static void vtkUltraFindExtent(int& r1, int& r2, F *point, F *xAxis,
 
 template<class T>
 static inline void vtkFreehandOptimizedNNHelper(int r1, int r2,
-                                                float *outPoint,
-                                                float *outPoint1, float *xAxis,
+                                                double *outPoint,
+                                                double *outPoint1,
+						double *xAxis,
                                                 T *&inPtr, T *outPtr,
                                                 int *outExt, int *outInc,
                                                 int numscalars, 
@@ -2227,27 +2229,27 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
   F outPoint1[3];
   F outPoint[3];
   F xAxis[3], yAxis[3], zAxis[3], origin[3];
-  float inSpacing[3],inOrigin[3];
+  vtkFloatingPointType inSpacing[3],inOrigin[3];
 
   inData->GetSpacing(inSpacing);
   inData->GetOrigin(inOrigin);
 
-  float xf = (self->GetFanOrigin()[0]-inOrigin[0])/inSpacing[0];
-  float yf = (self->GetFanOrigin()[1]-inOrigin[1])/inSpacing[1];
+  double xf = (self->GetFanOrigin()[0]-inOrigin[0])/inSpacing[0];
+  double yf = (self->GetFanOrigin()[1]-inOrigin[1])/inSpacing[1];
 
-  float d2 = self->GetFanDepth()*self->GetFanDepth();
+  double d2 = self->GetFanDepth()*self->GetFanDepth();
 
-  float xs = inSpacing[0];
-  float ys = inSpacing[1];
+  double xs = inSpacing[0];
+  double ys = inSpacing[1];
 
-  float ml = tan(self->GetFanAngles()[0]*vtkMath::DoubleDegreesToRadians())/
+  double ml = tan(self->GetFanAngles()[0]*vtkMath::DoubleDegreesToRadians())/
     xs*ys;
-  float mr = tan(self->GetFanAngles()[1]*vtkMath::DoubleDegreesToRadians())/
+  double mr = tan(self->GetFanAngles()[1]*vtkMath::DoubleDegreesToRadians())/
     xs*ys;
 
   if (ml > mr)
     {
-    float tmp = ml; ml = mr; mr = tmp;
+    double tmp = ml; ml = mr; mr = tmp;
     }
 
   self->GetClipExtent(clipExt, inOrigin, inSpacing, inExt);
@@ -2305,7 +2307,7 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
       vtkUltraFindExtent(r1,r2,outPoint1,xAxis,outMin,outMax,inExt);
 
       // next, handle the 'fan' shape of the input
-      float y = (yf - idY);
+      double y = (yf - idY);
       if (ys < 0)
         {
         y = -y;
@@ -2323,7 +2325,7 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
           }
         
         // next, check the radius of the fan
-        float dx = (d2 - (y*y)*(ys*ys))/(xs*xs);
+        double dx = (d2 - (y*y)*(ys*ys))/(xs*xs);
         if (dx < 0)
           {
           r1 = inExt[0];
@@ -2635,7 +2637,7 @@ void vtkFreehandUltrasound::ThreadedExecute(vtkImageData *inData,
     // change transform matrix so that instead of taking 
     // input coords -> output coords it takes output indices -> input indices
     vtkMatrix4x4 *matrix = this->GetIndexMatrix();
-    float newmatrix[4][4];
+    double newmatrix[4][4];
     for (int i = 0; i < 4; i++)
       {
       newmatrix[i][0] = matrix->GetElement(i,0);

@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundImageStencilSource.h,v $
   Language:  C++
-  Date:      $Date: 2003/02/02 20:48:30 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2005/08/08 23:02:43 $
+  Version:   $Revision: 1.2 $
   Thanks:    Thanks to David G. Gobbi who developed this class.
 
 Copyright (c) 1993-2001 Ken Martin, Will Schroeder, Bill Lorensen 
@@ -67,18 +67,18 @@ public:
   // Description:
   // Set the clip rectangle to apply to the image (in slice image coords,
   // not pixel indices).
-  vtkSetVector4Macro(ClipRectangle, float);
-  vtkGetVector4Macro(ClipRectangle, float);
+  vtkSetVector4Macro(ClipRectangle, double);
+  vtkGetVector4Macro(ClipRectangle, double);
 
   // Description:
   // If the ultrasound probe collects a fan of data, specify the position and
   // dimensions of the fan.
-  vtkSetVector2Macro(FanAngles, float);
-  vtkGetVector2Macro(FanAngles, float);
-  vtkSetVector2Macro(FanOrigin, float);
-  vtkGetVector2Macro(FanOrigin, float);
-  vtkSetMacro(FanDepth, float);
-  vtkGetMacro(FanDepth, float);
+  vtkSetVector2Macro(FanAngles, double);
+  vtkGetVector2Macro(FanAngles, double);
+  vtkSetVector2Macro(FanOrigin, double);
+  vtkGetVector2Macro(FanOrigin, double);
+  vtkSetMacro(FanDepth, double);
+  vtkGetMacro(FanDepth, double);
 
 protected:
   vtkUltrasoundImageStencilSource();
@@ -87,10 +87,10 @@ protected:
   void ThreadedExecute(vtkImageStencilData *output,
 		       int extent[6], int threadId);
 
-  float ClipRectangle[4];
-  float FanAngles[2];
-  float FanOrigin[2];
-  float FanDepth;
+  double ClipRectangle[4];
+  double FanAngles[2];
+  double FanOrigin[2];
+  double FanDepth;
 
 private:
   vtkUltrasoundImageStencilSource(const vtkUltrasoundImageStencilSource&);

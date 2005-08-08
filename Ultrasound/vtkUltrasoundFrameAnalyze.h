@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundFrameAnalyze.h,v $
   Language:  C++
-  Date:      $Date: 2003/02/02 20:48:30 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2005/08/08 23:02:43 $
+  Version:   $Revision: 1.2 $
 
 
 Copyright (c) 1993-2001 Ken Martin, Will Schroeder, Bill Lorensen 
@@ -69,8 +69,8 @@ public:
   // Description:
   // Get the origin and spacing for the input image accoding to
   // the graticules (the rulers) in the image.
-  vtkGetVector3Macro(Spacing, float);
-  vtkGetVector3Macro(Origin, float);
+  vtkGetVector3Macro(Spacing, vtkFloatingPointType);
+  vtkGetVector3Macro(Origin, vtkFloatingPointType);
 
   // Description:
   // Get the clipping extent for the part of the image that lies
@@ -83,7 +83,7 @@ public:
   // This isn't completely functional yet, instead it simply returns
   // the ClipExtent converted into millimetre units according to the
   // Spacing and Origin.
-  vtkGetVector4Macro(ClipRectangle, float);
+  vtkGetVector4Macro(ClipRectangle, double);
 
   // Description:
   // Get a boolean value to specify whether the ultrasound image
@@ -93,14 +93,14 @@ public:
 
   // Description:
   // Get the color levels that correspond to black and white.
-  vtkGetMacro(BlackLevel, float);
-  vtkGetMacro(WhiteLevel, float);
+  vtkGetMacro(BlackLevel, double);
+  vtkGetMacro(WhiteLevel, double);
 
   // Description:
   // Get the fan angles and the fan depth
-  vtkGetVector2Macro(FanAngles, float);
-  vtkGetVector2Macro(FanOrigin, float);
-  vtkGetMacro(FanDepth, float);
+  vtkGetVector2Macro(FanAngles, double);
+  vtkGetVector2Macro(FanOrigin, double);
+  vtkGetMacro(FanDepth, double);
 
   // Description:
   // Get a stencil for clipping out just the image portion of the
@@ -118,16 +118,16 @@ protected:
     this->vtkImageToImageFilter::ExecuteInformation(); };
   void ExecuteData(vtkDataObject *data);
 
-  float Spacing[3];
-  float Origin[3];
+  vtkFloatingPointType Spacing[3];
+  vtkFloatingPointType Origin[3];
   int ClipExtent[6];
-  float ClipRectangle[6];
+  double ClipRectangle[6];
   int Flip[3];
   float BlackLevel;
   float WhiteLevel;
-  float FanAngles[2];
-  float FanOrigin[2];
-  float FanDepth;
+  double FanAngles[2];
+  double FanOrigin[2];
+  double FanDepth;
 
   int ClipGuess[6];
 

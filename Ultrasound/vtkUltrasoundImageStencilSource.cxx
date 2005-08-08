@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundImageStencilSource.cxx,v $
   Language:  C++
-  Date:      $Date: 2003/02/02 20:48:30 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2005/08/08 23:02:43 $
+  Version:   $Revision: 1.2 $
   Thanks:    Thanks to David G Gobbi who developed this class.
 
 Copyright (c) 1993-2001 Ken Martin, Will Schroeder, Bill Lorensen 
@@ -104,23 +104,23 @@ void vtkUltrasoundImageStencilSource::ThreadedExecute(vtkImageStencilData
                                                       *data,
                                                       int extent[6], int id)
 {
-  float *spacing = data->GetSpacing();
-  float *origin = data->GetOrigin();
+  vtkFloatingPointType *spacing = data->GetSpacing();
+  vtkFloatingPointType *origin = data->GetOrigin();
 
-  float xf = (this->GetFanOrigin()[0] - origin[0])/spacing[0];
-  float yf = (this->GetFanOrigin()[1] - origin[1])/spacing[1];
+  double xf = (this->GetFanOrigin()[0] - origin[0])/spacing[0];
+  double yf = (this->GetFanOrigin()[1] - origin[1])/spacing[1];
 
-  float d2 = this->GetFanDepth()*this->GetFanDepth();
+  double d2 = this->GetFanDepth()*this->GetFanDepth();
 
-  float xs = spacing[0];
-  float ys = spacing[1];
+  vtkFloatingPointType xs = spacing[0];
+  vtkFloatingPointType ys = spacing[1];
 
-  float ml = tan(this->GetFanAngles()[0]*0.0174532925199)/xs*ys;
-  float mr = tan(this->GetFanAngles()[1]*0.0174532925199)/xs*ys;
+  double ml = tan(this->GetFanAngles()[0]*0.0174532925199)/xs*ys;
+  double mr = tan(this->GetFanAngles()[1]*0.0174532925199)/xs*ys;
 
   if (ml > mr)
     {
-    float tmp = ml; ml = mr; mr = tmp;
+    double tmp = ml; ml = mr; mr = tmp;
     }
 
   int x0 =  (int)ceil((this->GetClipRectangle()[0] - origin[0])/spacing[0]);
@@ -146,7 +146,7 @@ void vtkUltrasoundImageStencilSource::ThreadedExecute(vtkImageStencilData
   // loop through all voxels
   for (int idZ = extent[4]; idZ <= extent[5]; idZ++)
     {
-    float z = idZ*spacing[2] + origin[2];
+    double z = idZ*spacing[2] + origin[2];
 
     for (int idY = extent[2]; idY <= extent[3]; idY++)
       {
@@ -163,7 +163,7 @@ void vtkUltrasoundImageStencilSource::ThreadedExecute(vtkImageStencilData
       int r2 = extent[1];
 
       // next, handle the 'fan' shape of the input
-      float y = (yf - idY);
+      double y = (yf - idY);
       if (spacing[1] < 0)
         {
         y = -y;
@@ -181,7 +181,7 @@ void vtkUltrasoundImageStencilSource::ThreadedExecute(vtkImageStencilData
           }
 
         // next, check the radius of the fan
-        float dx = (d2 - (y*y)*(ys*ys))/(xs*xs);
+        double dx = (d2 - (y*y)*(ys*ys))/(xs*xs);
         if (dx < 0)
           {
           r1 = extent[0];

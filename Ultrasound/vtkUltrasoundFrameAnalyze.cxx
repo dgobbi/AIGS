@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundFrameAnalyze.cxx,v $
   Language:  C++
-  Date:      $Date: 2003/02/02 20:48:29 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2005/08/08 23:02:43 $
+  Version:   $Revision: 1.2 $
 
 
 Copyright (c) 1993-2001 Ken Martin, Will Schroeder, Bill Lorensen 
@@ -210,8 +210,9 @@ static inline void vtkGratInterpCoeffs(double x,
 // The spacing between the graticules, the position of the first graticule,
 // and the number of graticules are returned.
 static void vtkAnalyzeGratingImage(float *image, int size,
-				   float mins, float maxs,
-                                   float &rspacing, float &rstart, int &rn)
+				   double mins, double maxs,
+                                   vtkFloatingPointType &rspacing,
+				   vtkFloatingPointType &rstart, int &rn)
 {
   int i;
   double bestspacing = 0;
@@ -539,9 +540,11 @@ static int vtkGetGlyphPositions(unsigned char *imPtr, int imExt[6],
 // origin of the image.
 static void vtkGetSpacingAndOrigin(vtkUltrasoundFrameAnalyze *self,
                                    vtkImageData *input, unsigned char *inPtr,
-                                   float Origin[3], float Spacing[3],
+                                   vtkFloatingPointType Origin[3],
+				   vtkFloatingPointType Spacing[3],
 				   int ClipGuess[6],
-                                   int ClipExtent[6], float ClipRectangle[6])
+                                   int ClipExtent[6],
+				   double ClipRectangle[6])
 {
   int i, j, jstart, jstop;
   int inExt[6], inInc[3], numScalars;
@@ -576,7 +579,7 @@ static void vtkGetSpacingAndOrigin(vtkUltrasoundFrameAnalyze *self,
   double maxs = (ClipGuess[3] - ClipGuess[2] + 1)/5;
 
   // analyze the 1D image to find the graticule parameters
-  float yspacing, ystart;
+  vtkFloatingPointType yspacing, ystart;
   int yn;
   vtkAnalyzeGratingImage(ygrating, ClipGuess[3] - ClipGuess[2] + 1,
 			 mins, maxs,
@@ -680,7 +683,7 @@ static void vtkGetSpacingAndOrigin(vtkUltrasoundFrameAnalyze *self,
     }
 
   // analyze the 1D image to find the graticule parameters
-  float xspacing, xstart;
+  vtkFloatingPointType xspacing, xstart;
   int xn;
   vtkAnalyzeGratingImage(xgrating, ClipGuess[1] - ClipGuess[0] + 1,
 			 yspacing*0.8, yspacing*1.2,
@@ -820,8 +823,8 @@ static void vtkGetFlip(vtkUltrasoundFrameAnalyze *self,
 
   // find the 'centre' of the image, i.e. the points that separates
   // it into its four quadrants
-  float *spacing = self->GetSpacing();
-  float *origin = self->GetOrigin();
+  vtkFloatingPointType *spacing = self->GetSpacing();
+  vtkFloatingPointType *origin = self->GetOrigin();
   int xcenter = vtkResliceFloor(-origin[0]/spacing[0]);
   int ycenter = (inWholeExt[0] + inWholeExt[1])/2;
 
@@ -839,8 +842,8 @@ static void vtkGetFlip(vtkUltrasoundFrameAnalyze *self,
 // the fan.
 static void vtkGetFanAngles(vtkUltrasoundFrameAnalyze *self,
                             vtkImageData *input, unsigned char *inPtr,
-                            float FanAngles[2], float FanOrigin[2],
-                            float &FanDepth)
+                            double FanAngles[2], double FanOrigin[2],
+                            double &FanDepth)
 {
   int inExt[6], inInc[3], inWholeExt[6], numScalars;
   input->GetExtent(inExt);
@@ -848,8 +851,8 @@ static void vtkGetFanAngles(vtkUltrasoundFrameAnalyze *self,
   input->GetIncrements(inInc);
   numScalars = input->GetNumberOfScalarComponents();
 
-  float Spacing[3];
-  float Origin[3];
+  vtkFloatingPointType Spacing[3];
+  vtkFloatingPointType Origin[3];
   self->GetSpacing(Spacing);
   self->GetOrigin(Origin);
 
@@ -1054,7 +1057,7 @@ static void vtkGetFanAngles(vtkUltrasoundFrameAnalyze *self,
 void vtkUltrasoundFrameAnalyze::Analyze()
 {
   vtkImageData *input = this->GetInput();
-  float *inSpacing, *inOrigin;
+  vtkFloatingPointType *inSpacing, *inOrigin;
   int inExt[6], inInc[3], numScalars;
   unsigned char *inPtr;
 
