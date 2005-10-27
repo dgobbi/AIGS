@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/07/01 22:52:05 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2005/10/27 14:39:44 $
+  Version:   $Revision: 1.4 $
 
 ==========================================================================
 
@@ -45,8 +45,6 @@ POSSIBILITY OF SUCH DAMAGES.
 // .SECTION Description
 // The vtkPOLARISTracker class provides an  interface to the POLARIS
 // (Northern Digital Inc., Waterloo, Canada) optical tracking system.
-// It also works with the AURORA magnetic tracking system, using the
-// POLARIS API.
 // .SECTION Caveats
 // This class refers to ports 1,2,3,A,B,C as ports 0,1,2,3,4,5
 // .SECTION see also

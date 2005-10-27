@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/07/01 22:52:05 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2005/10/27 14:39:44 $
+  Version:   $Revision: 1.4 $
 
 ==========================================================================
 
@@ -41,12 +41,13 @@ THE USE OR INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGES.
 
 =========================================================================*/
-// .NAME vtkNDITracker - VTK interface for Northern Digital's NDI
+// .NAME vtkNDITracker - VTK interface for Northern Digital's tracking devices
 // .SECTION Description
-// The vtkNDITracker class provides an  interface to the NDI
-// (Northern Digital Inc., Waterloo, Canada) optical tracking system.
-// It also works with the AURORA magnetic tracking system, using the
-// NDI API.
+// The vtkNDITracker class provides an  interface to the AURORA and POLARIS
+// (Northern Digital Inc., Waterloo, Canada) using the new "combined API" and
+// should also support all newer NDI tracking devices.  Any POLARIS systems
+// purchased before 2002 will not support the combined API, and should be
+// used with vtkPOLARISTracker instead.
 // .SECTION Caveats
 // This class refers to ports 1,2,3,A,B,C as ports 0,1,2,3,4,5
 // .SECTION see also
@@ -129,7 +130,7 @@ protected:
 
   // Description:
   // Start the tracking system.  The tracking system is brought from
-  // its ground state into full tracking mode.  The NDI will
+  // its ground state into full tracking mode.  The device will
   // only be reset if communication cannot be established without
   // a reset.
   int InternalStartTracking();
@@ -140,7 +141,7 @@ protected:
   int InternalStopTracking();
 
   // Description:
-  // Cause the NDI to beep the specified number of times.
+  // Cause the device to beep the specified number of times.
   int InternalBeep(int n);
 
   // Description:
@@ -149,7 +150,7 @@ protected:
 
   // Description:
   // This is a low-level method for loading a virtual SROM.
-  // You must halt the tracking thread and take the NDI
+  // You must halt the tracking thread and take the device
   // out of tracking mode before you use it.
   void InternalLoadVirtualSROM(int tool, const unsigned char data[1024]);
   void InternalClearVirtualSROM(int tool);
