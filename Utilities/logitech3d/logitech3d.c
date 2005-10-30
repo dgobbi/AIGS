@@ -4,8 +4,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:40 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2005/10/30 22:26:23 $
+  Version:   $Revision: 1.2 $
 */
 /*
   Copyright 2002 Atamai Inc.
@@ -30,13 +30,13 @@
 #endif /* _MT */
 #endif /* _WIN32 */
 
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <fcntl.h>
-#include <termio.h>
+#include <termios.h>
 #include <errno.h>
 #ifdef _POSIX_THREADS
 #include <pthread.h>
@@ -81,7 +81,7 @@ struct logitech3d {
 #if defined(_WIN32) || defined(WIN32)
   HANDLE file;           /* windows file handle */
 #endif
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
   int file;              /* unix file handle */
 #endif
 
@@ -94,7 +94,7 @@ struct logitech3d {
   HANDLE stream_thread;  /* tracking thread for asynchronous mode */
   HANDLE stream_mutex;   /* use to pause tracking thread */
 #endif /* _WIN32 */
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
 #ifdef _POSIX_THREADS
   pthread_mutex_t file_mutex;      /* mutex lock on file handle */
   pthread_cond_t  fresh_data_cond; /* condition to wait on for new data */
@@ -123,7 +123,7 @@ static void set_timestamp(struct logitech3d *lt);
 #if defined(_WIN32) || defined(WIN32)
 static void stream_thread(void *user_data);
 #endif
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
 static void *stream_thread(void *user_data);
 #endif
 static int start_stream_thread(struct logitech3d *lt);
@@ -202,7 +202,7 @@ static int convert_baud_rate(int rate)
 			 CBR_57600,
 			 CBR_115200 };
 #endif
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
 #if defined(sgi) && defined(__NEW_MAX_BAUD)
   static int equiv[] = { 1200,
                          2400,
@@ -339,7 +339,8 @@ int ltOpen(struct logitech3d *lt, int port, int dimension, int mode)
   }
 #endif /* _WIN32 */
 
-#if defined(__unix__) || defined(unix) /* start of UNIX portion of code -------------------*/
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
+/* start of UNIX portion of code -------------------*/
 
   char name[16];
   struct termios t;
@@ -451,7 +452,7 @@ void ltClose(struct logitech3d *lt)
 #if defined(_WIN32) || defined(WIN32)
     CloseHandle(lt->file);
 #endif
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
     close(lt->file);
 #endif
   }
@@ -469,7 +470,7 @@ void ltHardReset(struct logitech3d *lt, int dimension)
 #if defined(_WIN32) || defined(WIN32)
   DCB comm_settings;
 #endif
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
   int term_bits;
 #endif
 
@@ -522,7 +523,7 @@ void ltHardReset(struct logitech3d *lt, int dimension)
 
 #endif /* _WIN32 */
 
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
   /* the equivalent of this for other unices would be nice */
 #ifdef linux
   /* set DTR line low for 3D, high for 2D */
@@ -630,7 +631,7 @@ void ltSoftReset(struct logitech3d *lt)
 #if defined(_WIN32) || defined(WIN32)
   Sleep(1000);
 #endif
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
   usleep(1000000);
 #endif
 
@@ -643,7 +644,7 @@ void ltSoftReset(struct logitech3d *lt)
 #if defined(_WIN32) || defined(WIN32)
   PurgeComm(lt->file,PURGE_RXCLEAR);
 #endif /* _WIN32 */
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
   tcflush(lt->file,TCIFLUSH);
 #endif /* __unix__ */
 }
@@ -709,7 +710,7 @@ void ltDemandMode(struct logitech3d *lt)
   Sleep(300);
   PurgeComm(lt->file,PURGE_RXCLEAR);
 #endif /* _WIN32 */
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
   usleep(300000);
   tcflush(lt->file,TCIFLUSH);
 #endif /* __unix__ */
@@ -765,7 +766,7 @@ int ltReport(struct logitech3d *lt, int timeout)
 
 #endif /* _MT */
 #endif /* _WIN32 */
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
 #ifdef _POSIX_THREADS
 
     /* wait until a new data record arrives */
@@ -844,7 +845,7 @@ int ltReport(struct logitech3d *lt, int timeout)
     SetCommTimeouts(lt->file,&ctmo); 
 #endif /* _WIN32 */
 
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
     struct termios t;
 
     tcgetattr(lt->file,&t);
@@ -1106,7 +1107,7 @@ to the mouse
 
 void ltSetBaudRate(struct logitech3d *lt, int baud)
 {
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
   struct termios t;
 #endif
 #if defined(_WIN32) || defined(WIN32)
@@ -1147,7 +1148,8 @@ void ltSetBaudRate(struct logitech3d *lt, int baud)
   }
 #endif /* _WIN32 */
 
-#if defined(__unix__) || defined(unix)      /* start of unix portion of code -------- */
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
+/* start of unix portion of code -------- */
   if (tcgetattr(lt->file,&t) == -1) { /* get I/O information */
     set_error(lt,LT_ERROR_COM);
     return;
@@ -1200,7 +1202,7 @@ int ltSendRaw(struct logitech3d *lt, const char *text, int len)
 #endif /* _MT */
 #endif /* _WIN32 */
 
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
   int i,n;
   struct timeval start_time,tv;
 
@@ -1239,7 +1241,7 @@ int ltSendRaw(struct logitech3d *lt, const char *text, int len)
 #endif
 #endif /* _WIN32 */
 
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
   gettimeofday(&start_time,0);
   while ((i = write(lt->file,text,n)) != n) { 
     if (i == -1 && errno != EAGAIN) {
@@ -1295,7 +1297,7 @@ int ltReceiveRaw(struct logitech3d *lt, char *reply, int len)
 #endif /* _WIN32 */
 
   /* unix code ------------------------*/
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
   int m,n,i;
 
 #ifdef _POSIX_THREADS
@@ -1346,7 +1348,7 @@ int ltReceiveRaw(struct logitech3d *lt, char *reply, int len)
 #endif /* _WIN32 */
 
   /* unix code ------------------------*/
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
   while (!error && (m = read(lt->file,&reply[i],n)) != n) {
     /* fprintf(stderr,"m = %d, n = %d, i = %d\n",m,n,i); */
     if (m == -1 && errno != EAGAIN) {    /* if problem is not 'temporary,' */ 
@@ -1432,7 +1434,7 @@ static void set_timestamp(struct logitech3d *lt)
   lt->timestamp_secs = curr_time.time;
   lt->timestamp_msecs = curr_time.millitm;
 #endif /* _WIN32 */
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
   struct timeval curr_time;
   gettimeofday(&curr_time, 0);
   lt->timestamp_secs = curr_time.tv_sec;
@@ -1570,7 +1572,7 @@ static void wake_stream_thread(struct logitech3d *lt)
 #endif /* _MT */
 #endif /* _WIN32 */
 
-#if defined(__unix__) || defined(unix)
+#if defined(__unix__) || defined(unix) || defined(__APPLE__)
 #ifdef _POSIX_THREADS
 
 static void *stream_thread(void *user_data)
