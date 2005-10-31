@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/07/01 22:52:05 $
-  Version:   $Revision: 1.4 $
+  Date:      $Date: 2005/10/31 02:07:17 $
+  Version:   $Revision: 1.5 $
 
 ==========================================================================
 
@@ -68,11 +68,9 @@ POSSIBILITY OF SUCH DAMAGES.
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
-#if defined(__APPLE__)
 #include <termios.h>
-#else
-#include <termio.h>
 #endif
 
 /* =========== mac includes */

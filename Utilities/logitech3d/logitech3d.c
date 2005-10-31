@@ -4,8 +4,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/10/30 22:26:23 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2005/10/31 02:07:16 $
+  Version:   $Revision: 1.3 $
 */
 /*
   Copyright 2002 Atamai Inc.
@@ -35,6 +35,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <errno.h>

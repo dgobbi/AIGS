@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/06/28 21:21:59 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2005/10/31 02:07:17 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 Copyright 2005 Atamai, Inc.
@@ -49,12 +49,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
-#if defined(__APPLE__)
 #include <termios.h>
+#if defined(__APPLE__)
 #include <dirent.h>
-#else 
-#include <termio.h>
 #endif
 #include <errno.h>
 #ifdef _POSIX_THREADS
