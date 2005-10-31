@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/10/31 02:07:17 $
-  Version:   $Revision: 1.5 $
+  Date:      $Date: 2005/10/31 02:15:36 $
+  Version:   $Revision: 1.6 $
 
 ==========================================================================
 
@@ -71,7 +71,6 @@ POSSIBILITY OF SUCH DAMAGES.
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <termios.h>
-#endif
 
 /* =========== mac includes */
 #elif defined(macintosh)
