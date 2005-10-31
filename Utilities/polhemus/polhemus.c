@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/10/31 02:07:17 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2005/10/31 22:19:50 $
+  Version:   $Revision: 1.4 $
 
 ==========================================================================
 Copyright 2005 Atamai, Inc.
@@ -434,6 +434,8 @@ int phSetInitialComm(polhemus *ph, int baud, int parity, int bits,
   ph->parity = parity;
   ph->data_bits = bits;
   ph->handshake = handshake;
+
+  return 0;
 }
 
 /** \fn      int phSetThreadMode(polhemus *ph, int mode) 
@@ -485,6 +487,8 @@ int phSetThreadMode(polhemus *ph, int mode)
     return set_error(ph,PH_MODE_ERROR,"bad mode: threading not supported");
   }
 #endif
+
+  return 0;
 }
 
 /*

@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/07/01 22:52:05 $
-  Version:   $Revision: 1.4 $
+  Date:      $Date: 2005/10/31 22:22:36 $
+  Version:   $Revision: 1.5 $
 
 ==========================================================================
 
@@ -535,7 +535,7 @@ void vtkTrackerBufferWriteRecord(FILE *file, double timestamp, long flags,
                                  const double *matrix)
 {
   fprintf(file,"%14.3f ",timestamp);
-  fprintf(file,"%04.4x ",flags);
+  fprintf(file,"%04.4lx ",flags);
   fprintf(file,"%8.2f %8.2f %8.2f ",
           matrix[4*0+3],matrix[4*1+3],matrix[4*2+3]);
   
