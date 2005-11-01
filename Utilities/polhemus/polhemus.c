@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/10/31 22:19:50 $
-  Version:   $Revision: 1.4 $
+  Date:      $Date: 2005/11/01 14:14:52 $
+  Version:   $Revision: 1.5 $
 
 ==========================================================================
 Copyright 2005 Atamai, Inc.
@@ -205,7 +205,7 @@ static int record_length(polhemus *ph, int station);
 static int record_offset(polhemus *ph, int station, unsigned char *try_format,
 			 int try_len, int *found_format);
 static int binary16_offset(polhemus *ph, int station);
-static void read_format_list(const char *cp, char *dlist, int *len);
+static void read_format_list(const char *cp, unsigned char *dlist, int *len);
 
 #ifdef POLHEMUS_USE_THREADS
 #if defined(_WIN32) || defined(WIN32)
@@ -2917,7 +2917,7 @@ static int binary16_offset(polhemus *ph, int station)
 /* read the comma-separated list of data record item formats that
    is sent with the 'O' command */
 
-static void read_format_list(const char *cp, char *dlist, int *len)
+static void read_format_list(const char *cp, unsigned char *dlist, int *len)
 {
   int val;
   int i;
