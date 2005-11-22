@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/07/01 22:52:05 $
-  Version:   $Revision: 1.4 $
+  Date:      $Date: 2005/11/22 19:14:36 $
+  Version:   $Revision: 1.5 $
 
 ==========================================================================
 
@@ -358,7 +358,7 @@ int vtkNDITracker::InternalStopTracking()
     {
     if (VirtualSROM[tool])
       {
-      this->ClearVirtualSROM(tool);
+      this->InternalClearVirtualSROM(tool);
       }
     }
 
