@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
   Author:    $Author: kwang $
-  Date:      $Date: 2005/12/06 16:30:12 $
-  Version:   $Revision: 1.6 $
+  Date:      $Date: 2005/12/06 19:14:03 $
+  Version:   $Revision: 1.7 $
 
 ==========================================================================
 Copyright 2005 Atamai, Inc.
@@ -733,15 +733,8 @@ the polhemus.
 int phOpen(polhemus *ph, const char *device)
 {
   int i;
-
-#if defined(_WIN32) || defined(WIN32)
-  DCB comm_settings;
-  DWORD comm_bits;
-#elif defined(__unix__) || defined(unix) || defined(__APPLE__)
-  int term_bits;
-#endif
-
 #if defined(_WIN32) || defined(WIN32)   /* start of WIN32 portion of code - */
+  DWORD comm_bits;
   static COMMTIMEOUTS default_ctmo = { 0, 2, /* return every char */
                                        TIMEOUT_PERIOD, 
                                        2, 
