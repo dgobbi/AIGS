@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2006/05/11 01:51:21 $
-  Version:   $Revision: 1.6 $
+  Date:      $Date: 2006/05/11 07:54:21 $
+  Version:   $Revision: 1.7 $
 
 ==========================================================================
 
@@ -304,14 +304,15 @@ int vtkNDITracker::InternalStartTracking()
     return 0;
     }
 
-  // get information about the divice
+  // get information about the device
   this->SetVersion(ndiVER(this->Device,0));
 
   for (tool = 0; tool < VTK_NDI_NTOOLS; tool++)
     {
-    if (VirtualSROM[tool])
+    this->PortHandle[tool] = 0;
+    if (this->VirtualSROM[tool])
       {
-      this->InternalLoadVirtualSROM(tool,VirtualSROM[tool]);
+      this->InternalLoadVirtualSROM(tool,this->VirtualSROM[tool]);
       }
     }
 
@@ -356,7 +357,7 @@ int vtkNDITracker::InternalStopTracking()
 
   for (tool = 0; tool < VTK_NDI_NTOOLS; tool++)
     {
-    if (VirtualSROM[tool])
+    if (this->VirtualSROM[tool])
       {
       this->InternalClearVirtualSROM(tool);
       }
@@ -757,6 +758,7 @@ void vtkNDITracker::EnableToolPorts()
       }    
     // get the physical port identifier
     ndiGetPHINFPortLocation(this->Device,location);
+
     // check to see if the tool is wired
     if (location[9] == '0')
       {
@@ -768,9 +770,9 @@ void vtkNDITracker::EnableToolPorts()
       }
     else // wireless tool: find the port handle
       {
-      for (port = 0; port < ntools; port++)
+      for (port = 3; port < VTK_NDI_NTOOLS; port++)
 	{
-	if (this->PortHandle[port] == ph)
+	if (this->VirtualSROM[port] && this->PortHandle[port] == ph)
 	  {
 	  break;
 	  }
