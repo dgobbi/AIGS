@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/11/22 19:14:36 $
-  Version:   $Revision: 1.5 $
+  Date:      $Date: 2006/05/11 01:51:21 $
+  Version:   $Revision: 1.6 $
 
 ==========================================================================
 
@@ -658,7 +658,10 @@ void vtkNDITracker::EnableToolPorts()
   // reset our information about the tool ports
   for (tool = 0; tool < VTK_NDI_NTOOLS; tool++)
     {
-    this->PortHandle[tool] = 0;
+    if (tool < 3)
+      { // only reset port handle for wired tools
+      this->PortHandle[tool] = 0;
+      }
     this->PortEnabled[tool] = 0;
     }
 
@@ -754,17 +757,24 @@ void vtkNDITracker::EnableToolPorts()
       }    
     // get the physical port identifier
     ndiGetPHINFPortLocation(this->Device,location);
-    if (location[11] >= 'A')
-      {
-      port = location[11] - 'A' + 3;
-      }
-    else
+    // check to see if the tool is wired
+    if (location[9] == '0')
       {
       port = (location[10]-'0')*10 + (location[11]-'0') - 1;
+      if (port > 0 && port < VTK_NDI_NTOOLS)
+	{
+	this->PortHandle[port] = ph;
+	}
       }
-    if (port < VTK_NDI_NTOOLS)
+    else // wireless tool: find the port handle
       {
-      this->PortHandle[port] = ph;
+      for (port = 0; port < ntools; port++)
+	{
+	if (this->PortHandle[port] == ph)
+	  {
+	  break;
+	  }
+	}
       }
 
     // decompose identity string from end to front
@@ -962,7 +972,7 @@ void vtkNDITracker::InternalLoadVirtualSROM(int tool,
   char hexbuffer[128];
   char location[14];
 
-  if (tool < 3) // wired tools
+  if (tool >= 0 && tool < 3) // wired tools
     {
     ndiCommand(this->Device, "PHSR:00");
     n = ndiGetPHSRNumberOfHandles(this->Device);
@@ -985,11 +995,19 @@ void vtkNDITracker::InternalLoadVirtualSROM(int tool,
       return;
       }
     }
-  else // wireless tools
+  else if (tool < VTK_NDI_NTOOLS) // wireless tools
     {
-    ndiCommand(this->Device, "PHRQ:**********0%c**", tool-3+'A');
+    ndiCommand(this->Device, "PHRQ:*********1****");
     ph = ndiGetPHRQHandle(this->Device);
+    this->PortHandle[tool] = ph;
     }
+  else
+    {
+    vtkErrorMacro(<< "LoadVirtualSROM: Tool number " << tool
+		  << "is out of range");
+    return;
+    }
+
   errnum = ndiGetError(this->Device);
   if (errnum)
     {
@@ -1007,6 +1025,13 @@ void vtkNDITracker::InternalLoadVirtualSROM(int tool,
 //----------------------------------------------------------------------------
 void vtkNDITracker::InternalClearVirtualSROM(int tool)
 {
+  if (tool < 0 || tool >= VTK_NDI_NTOOLS)
+    {
+    vtkErrorMacro(<< "ClearVirtualSROM: Tool number " << tool
+		  << "is out of range");
+    return;
+    }
+
   int ph = this->PortHandle[tool];
   ndiCommand(this->Device, "PHF:%02X", ph);
   this->PortEnabled[tool] = 0;
