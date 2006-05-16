@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/08/08 19:49:50 $
-  Version:   $Revision: 1.7 $
+  Date:      $Date: 2006/05/16 19:35:30 $
+  Version:   $Revision: 1.8 $
 
 ==========================================================================
 
@@ -114,6 +114,7 @@ vtkTracker::~vtkTracker()
 
   this->Threader->Delete();
   this->UpdateMutex->Delete();
+  this->RequestUpdateMutex->Delete();
 }
   
 //----------------------------------------------------------------------------

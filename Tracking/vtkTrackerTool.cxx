@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2005/07/01 22:52:05 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2006/05/16 19:35:30 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 
@@ -325,6 +325,9 @@ void vtkTrackerTool::SetLED3(int state)
 //----------------------------------------------------------------------------
 void vtkTrackerTool::SetTracker(vtkTracker *tracker)
 {
+  // The Tracker is not reference counted, since that would cause a
+  // reference loop
+
   if (tracker == this->Tracker)
     {
     return;
@@ -333,12 +336,11 @@ void vtkTrackerTool::SetTracker(vtkTracker *tracker)
   if (this->Tracker)
     {
     this->Buffer->SetWorldCalibrationMatrix(NULL);
-    this->Tracker->Delete();
+    this->Tracker = NULL;
     }
 
   if (tracker)
     {
-    tracker->Register(this);
     this->Tracker = tracker;
     this->Buffer->SetWorldCalibrationMatrix(tracker->\
               GetWorldCalibrationMatrix());
