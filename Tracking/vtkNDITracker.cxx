@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2006/05/11 07:54:21 $
-  Version:   $Revision: 1.7 $
+  Date:      $Date: 2006/05/17 01:27:28 $
+  Version:   $Revision: 1.8 $
 
 ==========================================================================
 
@@ -431,7 +431,7 @@ void vtkNDITracker::InternalUpdate()
     }
 
   // get the transforms for all tools from the NDI
-  ndiCommand(this->Device,"TX:0001");
+  ndiCommand(this->Device,"TX:0801");
   //fprintf(stderr,"TX:0001 %s\n",ndiCommand(this->Device,"TX:0001"));
   errnum = ndiGetError(this->Device);
 
