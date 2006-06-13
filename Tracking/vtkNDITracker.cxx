@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2006/05/17 01:27:28 $
-  Version:   $Revision: 1.8 $
+  Date:      $Date: 2006/06/13 00:38:45 $
+  Version:   $Revision: 1.9 $
 
 ==========================================================================
 
@@ -763,7 +763,7 @@ void vtkNDITracker::EnableToolPorts()
     if (location[9] == '0')
       {
       port = (location[10]-'0')*10 + (location[11]-'0') - 1;
-      if (port > 0 && port < VTK_NDI_NTOOLS)
+      if (port >= 0 && port < VTK_NDI_NTOOLS)
 	{
 	this->PortHandle[port] = ph;
 	}
