@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkTracker.cxx,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: dgobbi $
-  Date:      $Date: 2006/05/16 19:35:30 $
-  Version:   $Revision: 1.8 $
+  Author:    $Author: glehmann $
+  Date:      $Date: 2006/06/20 13:53:23 $
+  Version:   $Revision: 1.9 $
 
 ==========================================================================
 
@@ -308,6 +308,8 @@ void vtkTracker::Update()
     }
 
   this->LastUpdateTime = this->UpdateTime.GetMTime();
+
+  this->Modified();
 }
 
 //----------------------------------------------------------------------------
