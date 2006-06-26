@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkTrackerTool.cxx,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: dgobbi $
-  Date:      $Date: 2006/05/16 19:35:30 $
-  Version:   $Revision: 1.3 $
+  Author:    $Author: glehmann $
+  Date:      $Date: 2006/06/26 12:08:43 $
+  Version:   $Revision: 1.4 $
 
 ==========================================================================
 
@@ -173,6 +173,8 @@ void vtkTrackerTool::Update()
   this->TimeStamp = this->Buffer->GetTimeStamp(0);
 
   this->Buffer->Unlock();
+
+  this->Modified();
 }
 
 //----------------------------------------------------------------------------
