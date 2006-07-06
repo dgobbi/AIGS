@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: glehmann $
-  Date:      $Date: 2006/06/20 13:53:23 $
-  Version:   $Revision: 1.9 $
+  Date:      $Date: 2006/07/06 15:55:37 $
+  Version:   $Revision: 1.10 $
 
 ==========================================================================
 
@@ -308,8 +308,6 @@ void vtkTracker::Update()
     }
 
   this->LastUpdateTime = this->UpdateTime.GetMTime();
-
-  this->Modified();
 }
 
 //----------------------------------------------------------------------------
