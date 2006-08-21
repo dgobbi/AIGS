@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2006/06/13 00:38:45 $
-  Version:   $Revision: 1.9 $
+  Date:      $Date: 2006/08/21 15:23:34 $
+  Version:   $Revision: 1.10 $
 
 ==========================================================================
 
@@ -142,7 +142,7 @@ int vtkNDITracker::Probe()
     }
 
   // if SerialPort is set to -1, then probe all serial ports
-  if (this->SerialDevice == 0 || this->SerialDevice[0] == '\0' ||
+  if ((this->SerialDevice == 0 || this->SerialDevice[0] == '\0') &&
       this->SerialPort < 0)
     {
     for (int i = 0; i < 4; i++)
