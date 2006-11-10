@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkFlockTracker.cxx,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: dgobbi $
-  Date:      $Date: 2002/11/04 02:09:39 $
-  Version:   $Revision: 1.1 $
+  Author:    $Author: glehmann $
+  Date:      $Date: 2006/11/10 18:31:42 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 
@@ -362,7 +362,11 @@ void vtkFlockTracker::InternalUpdate()
   long *flags = new long[this->NumberOfBirds];
   double *timestamps = new double[this->NumberOfBirds];
 
+#if (VTK_MAJOR_VERSION < 5)
   double timestamp = vtkTimerLog::GetCurrentTime();
+#else
+  double timestamp = vtkTimerLog::GetUniversalTime();
+#endif
 
   // initialize the flags to 'out-of-view'
   for (tool = 0; tool < this->NumberOfBirds; tool++)
