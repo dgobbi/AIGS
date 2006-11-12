@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundImageStencilSource.cxx,v $
   Language:  C++
-  Date:      $Date: 2006/11/12 10:39:59 $
-  Version:   $Revision: 1.4 $
+  Date:      $Date: 2006/11/12 17:08:58 $
+  Version:   $Revision: 1.5 $
   Thanks:    Thanks to David G Gobbi who developed this class.
 
 Copyright (c) 1993-2001 Ken Martin, Will Schroeder, Bill Lorensen 
@@ -240,6 +240,8 @@ int vtkUltrasoundImageStencilSource::RequestData(
         }
       }
     }
+
+  return 1;
 }
 
 
