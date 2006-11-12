@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundImageStencilSource.cxx,v $
   Language:  C++
-  Date:      $Date: 2006/11/11 21:45:51 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2006/11/12 10:39:59 $
+  Version:   $Revision: 1.4 $
   Thanks:    Thanks to David G Gobbi who developed this class.
 
 Copyright (c) 1993-2001 Ken Martin, Will Schroeder, Bill Lorensen 
@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
+#include "vtkDataObject.h"
 #include "vtkStreamingDemandDrivenPipeline.h" 
 
 //----------------------------------------------------------------------------
@@ -117,9 +118,9 @@ int vtkUltrasoundImageStencilSource::RequestData(
   double spacing[3];
   double origin[3];
 
-  outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent, 6);
-  outInfo->Get(vtkDataObject::SPACING(), spacing, 3);
-  outInfo->Get(vtkDataObject::ORIGIN(), origin, 3);
+  outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
+  outInfo->Get(vtkDataObject::SPACING(), spacing);
+  outInfo->Get(vtkDataObject::ORIGIN(), origin);
 
   // Allocate the data
   this->AllocateOutputData(data, extent);
@@ -174,7 +175,6 @@ int vtkUltrasoundImageStencilSource::RequestData(
         this->UpdateProgress(count/(50.0*target));
         }
       count++;
-      }
 
       int r1 = extent[0];
       int r2 = extent[1];
@@ -189,7 +189,7 @@ int vtkUltrasoundImageStencilSource::RequestData(
         {
         // first, check the angle range of the fan
         if (r1 < ml*y + xf )
-            {
+          {
           r1 = int(ceil(ml*y + xf));
           }
         if (r2 > mr*y + xf)
