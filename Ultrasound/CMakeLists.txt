@@ -5,11 +5,19 @@ SET(UKIT ATAMAIULTRASOUND)
 SET(KIT_LIBS vtkHybrid vtkAtamaiTracking)
 
 SET ( Kit_SRCS
-vtkFreehandUltrasound.cxx
-vtkUltrasoundFrameAnalyze.cxx
-vtkUltrasoundCompare.cxx
-vtkUltrasoundImageStencilSource.cxx
 )
+
+IF(VTK_MAJOR_VERSION LESS 5)
+  SET(Kit_SRCS ${Kit_SRCS}
+    vtkFreehandUltrasound.cxx
+    vtkUltrasoundCompare.cxx
+    vtkUltrasoundFrameAnalyze.cxx
+  )
+ELSE(VTK_MAJOR_VERSION LESS 5)
+  SET(Kit_SRCS ${Kit_SRCS}
+    vtkUltrasoundImageStencilSource.cxx
+  )
+ENDIF(VTK_MAJOR_VERSION LESS 5)
 
 INCLUDE_DIRECTORIES(${ATAMAITRACKING_SOURCE_DIR}
                     ${ATAMAITRACKING_BINARY_DIR})
