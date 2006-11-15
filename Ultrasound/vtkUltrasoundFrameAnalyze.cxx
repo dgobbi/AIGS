@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundFrameAnalyze.cxx,v $
   Language:  C++
-  Date:      $Date: 2005/08/08 23:02:43 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2006/11/15 22:16:01 $
+  Version:   $Revision: 1.3 $
 
 
 Copyright (c) 1993-2001 Ken Martin, Will Schroeder, Bill Lorensen 
@@ -43,6 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vtkObjectFactory.h"
 #include "vtkImageData.h"
 #include "vtkPointData.h"
+#include "vtkInformationVector.h"
+#include "vtkInformation.h"
+#include "vtkStreamingDemandDrivenPipeline.h"
 
 //----------------------------------------------------------------------------
 vtkUltrasoundFrameAnalyze* vtkUltrasoundFrameAnalyze::New()
@@ -141,7 +144,8 @@ static void vtkGetBlackAndWhite(vtkUltrasoundFrameAnalyze *self,
                                 float& black, float& white)
 {
   int i,j;
-  int inExt[6], inInc[3], numScalars;
+  int inExt[6], numScalars;
+  vtkIdType inInc[3];
   input->GetExtent(inExt);
   input->GetIncrements(inInc);
   numScalars = input->GetNumberOfScalarComponents();
@@ -211,8 +215,8 @@ static inline void vtkGratInterpCoeffs(double x,
 // and the number of graticules are returned.
 static void vtkAnalyzeGratingImage(float *image, int size,
 				   double mins, double maxs,
-                                   vtkFloatingPointType &rspacing,
-				   vtkFloatingPointType &rstart, int &rn)
+                                   double &rspacing,
+				   double &rstart, int &rn)
 {
   int i;
   double bestspacing = 0;
@@ -393,11 +397,10 @@ static unsigned char SSD5000_FOCUS[]   = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 // The return value from this function is the number of matches actually
 // found, which might be either greater or less than ncoords.
 static int vtkGetGlyphPositions(unsigned char *imPtr, int imExt[6], 
-                                int imInc[3], float black, float white,
+                                vtkIdType imInc[3], float black, float white,
                                 unsigned char *glyph, 
                                 int (*coords)[2], int ncoords)
 {
-  float scale = 1.0/(white-black);
   int whitethresh = vtkResliceFloor(white*0.5);
 
   int mini = imExt[0];
@@ -406,8 +409,8 @@ static int vtkGetGlyphPositions(unsigned char *imPtr, int imExt[6],
   int minj = imExt[2];
   int maxj = imExt[3] - 16;
   
-  int imIncX = imInc[0];
-  int imIncY = imInc[1];
+  vtkIdType imIncX = imInc[0];
+  vtkIdType imIncY = imInc[1];
 
   unsigned char *tmpGlyph = new unsigned char[288];
   memset(tmpGlyph,0,288);
@@ -540,14 +543,15 @@ static int vtkGetGlyphPositions(unsigned char *imPtr, int imExt[6],
 // origin of the image.
 static void vtkGetSpacingAndOrigin(vtkUltrasoundFrameAnalyze *self,
                                    vtkImageData *input, unsigned char *inPtr,
-                                   vtkFloatingPointType Origin[3],
-				   vtkFloatingPointType Spacing[3],
+                                   double Origin[3],
+				   double Spacing[3],
 				   int ClipGuess[6],
                                    int ClipExtent[6],
 				   double ClipRectangle[6])
 {
   int i, j, jstart, jstop;
-  int inExt[6], inInc[3], numScalars;
+  int inExt[6], numScalars;
+  vtkIdType inInc[3];
   input->GetExtent(inExt);
   input->GetIncrements(inInc);
   numScalars = input->GetNumberOfScalarComponents();
@@ -579,7 +583,7 @@ static void vtkGetSpacingAndOrigin(vtkUltrasoundFrameAnalyze *self,
   double maxs = (ClipGuess[3] - ClipGuess[2] + 1)/5;
 
   // analyze the 1D image to find the graticule parameters
-  vtkFloatingPointType yspacing, ystart;
+  double yspacing, ystart;
   int yn;
   vtkAnalyzeGratingImage(ygrating, ClipGuess[3] - ClipGuess[2] + 1,
 			 mins, maxs,
@@ -683,7 +687,7 @@ static void vtkGetSpacingAndOrigin(vtkUltrasoundFrameAnalyze *self,
     }
 
   // analyze the 1D image to find the graticule parameters
-  vtkFloatingPointType xspacing, xstart;
+  double xspacing, xstart;
   int xn;
   vtkAnalyzeGratingImage(xgrating, ClipGuess[1] - ClipGuess[0] + 1,
 			 yspacing*0.8, yspacing*1.2,
@@ -790,7 +794,8 @@ static void vtkGetFlip(vtkUltrasoundFrameAnalyze *self,
                        vtkImageData *input, unsigned char *inPtr,
                        int flip[2])
 {
-  int inExt[6], inInc[3], inWholeExt[6], numScalars;
+  int inExt[6], inWholeExt[6], numScalars;
+  vtkIdType inInc[3];
   input->GetExtent(inExt);
   input->GetWholeExtent(inWholeExt);
   input->GetIncrements(inInc);
@@ -823,8 +828,8 @@ static void vtkGetFlip(vtkUltrasoundFrameAnalyze *self,
 
   // find the 'centre' of the image, i.e. the points that separates
   // it into its four quadrants
-  vtkFloatingPointType *spacing = self->GetSpacing();
-  vtkFloatingPointType *origin = self->GetOrigin();
+  double *spacing = self->GetSpacing();
+  double *origin = self->GetOrigin();
   int xcenter = vtkResliceFloor(-origin[0]/spacing[0]);
   int ycenter = (inWholeExt[0] + inWholeExt[1])/2;
 
@@ -845,14 +850,15 @@ static void vtkGetFanAngles(vtkUltrasoundFrameAnalyze *self,
                             double FanAngles[2], double FanOrigin[2],
                             double &FanDepth)
 {
-  int inExt[6], inInc[3], inWholeExt[6], numScalars;
+  int inExt[6],  inWholeExt[6], numScalars;
+  vtkIdType inInc[3];
   input->GetExtent(inExt);
   input->GetWholeExtent(inWholeExt);
   input->GetIncrements(inInc);
   numScalars = input->GetNumberOfScalarComponents();
 
-  vtkFloatingPointType Spacing[3];
-  vtkFloatingPointType Origin[3];
+  double Spacing[3];
+  double Origin[3];
   self->GetSpacing(Spacing);
   self->GetOrigin(Origin);
 
@@ -1056,9 +1062,10 @@ static void vtkGetFanAngles(vtkUltrasoundFrameAnalyze *self,
 //----------------------------------------------------------------------------
 void vtkUltrasoundFrameAnalyze::Analyze()
 {
-  vtkImageData *input = this->GetInput();
-  vtkFloatingPointType *inSpacing, *inOrigin;
-  int inExt[6], inInc[3], numScalars;
+  vtkImageData *input = vtkImageData::SafeDownCast(this->GetInput());
+  double *inSpacing, *inOrigin;
+  int inExt[6], numScalars;
+  vtkIdType inInc[3];
   unsigned char *inPtr;
 
   // Check the inputs
@@ -1113,29 +1120,49 @@ void vtkUltrasoundFrameAnalyze::Analyze()
 
 //----------------------------------------------------------------------------
 // Change the information
-void vtkUltrasoundFrameAnalyze::ExecuteInformation(vtkImageData *inData, 
-                                                   vtkImageData *outData)
+int vtkUltrasoundFrameAnalyze::RequestInformation(
+  vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inInfoVector,
+  vtkInformationVector* outInfoVector)
 {
-  outData->SetWholeExtent(inData->GetWholeExtent());
-  outData->SetSpacing(this->Spacing);
-  outData->SetOrigin(this->Origin);
+  vtkInformation *outInfo = outInfoVector->GetInformationObject(0);
+  vtkInformation *inInfo = inInfoVector[0]->GetInformationObject(0);
+
+  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
+	       inInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT()),
+	       6);
+  outInfo->Set(vtkDataObject::SPACING(), this->Spacing, 3);
+  outInfo->Set(vtkDataObject::ORIGIN(), this->Origin, 3);
+
+  return 1;
 }
 
 //----------------------------------------------------------------------------
 // This method simply copies by reference the input data to the output.
-void vtkUltrasoundFrameAnalyze::ExecuteData(vtkDataObject *data)
+int vtkUltrasoundFrameAnalyze::RequestData(
+  vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inInfoVector,
+  vtkInformationVector* outInfoVector)
 {
-  vtkImageData *inData = this->GetInput();
-  vtkImageData *outData = (vtkImageData *)(data);
+  vtkInformation *outInfo = outInfoVector->GetInformationObject(0);
+  vtkInformation *inInfo = inInfoVector[0]->GetInformationObject(0);
+  
+  vtkImageData *inData = vtkImageData::SafeDownCast(
+		   inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkImageData *outData = vtkImageData::SafeDownCast(
+		   outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
+  // Just reference the data, since we aren't changing it
   outData->SetExtent(inData->GetExtent());
   outData->GetPointData()->PassData(inData->GetPointData());
+
+  return 1;
 }
 
 //----------------------------------------------------------------------------
 void vtkUltrasoundFrameAnalyze::PrintSelf(ostream& os, vtkIndent indent)
 {
-  vtkImageToImageFilter::PrintSelf(os,indent);
+  vtkImageAlgorithm::PrintSelf(os,indent);
   os << indent << "Input: " << this->GetInput() << "\n";
 
   os << indent << "BlackLevel: " << this->BlackLevel << "\n";

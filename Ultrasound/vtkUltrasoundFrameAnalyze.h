@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundFrameAnalyze.h,v $
   Language:  C++
-  Date:      $Date: 2005/08/08 23:02:43 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2006/11/15 22:16:01 $
+  Version:   $Revision: 1.3 $
 
 
 Copyright (c) 1993-2001 Ken Martin, Will Schroeder, Bill Lorensen 
@@ -50,14 +50,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __vtkUltrasoundFrameAnalyze_h
 #define __vtkUltrasoundFrameAnalyze_h
 
-#include "vtkImageToImageFilter.h"
+#include "vtkImageAlgorithm.h"
 #include "vtkUltrasoundImageStencilSource.h"
 
-class VTK_EXPORT vtkUltrasoundFrameAnalyze : public vtkImageToImageFilter
+class VTK_EXPORT vtkUltrasoundFrameAnalyze : public vtkImageAlgorithm
 {
 public:
   static vtkUltrasoundFrameAnalyze *New();
-  vtkTypeMacro(vtkUltrasoundFrameAnalyze,vtkImageToImageFilter);
+  vtkTypeMacro(vtkUltrasoundFrameAnalyze,vtkImageAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:
@@ -69,8 +69,8 @@ public:
   // Description:
   // Get the origin and spacing for the input image accoding to
   // the graticules (the rulers) in the image.
-  vtkGetVector3Macro(Spacing, vtkFloatingPointType);
-  vtkGetVector3Macro(Origin, vtkFloatingPointType);
+  vtkGetVector3Macro(Spacing, double);
+  vtkGetVector3Macro(Origin, double);
 
   // Description:
   // Get the clipping extent for the part of the image that lies
@@ -113,13 +113,16 @@ protected:
   vtkUltrasoundFrameAnalyze();
   ~vtkUltrasoundFrameAnalyze();
 
-  void ExecuteInformation(vtkImageData *inData, vtkImageData *outData);
-  void ExecuteInformation() {
-    this->vtkImageToImageFilter::ExecuteInformation(); };
-  void ExecuteData(vtkDataObject *data);
+  virtual int RequestInformation(vtkInformation* request,
+                                 vtkInformationVector** inputVector,
+                                 vtkInformationVector* outputVector);
 
-  vtkFloatingPointType Spacing[3];
-  vtkFloatingPointType Origin[3];
+  virtual int RequestData(vtkInformation* request,
+			  vtkInformationVector** inputVector,
+			  vtkInformationVector* outputVector);
+
+  double Spacing[3];
+  double Origin[3];
   int ClipExtent[6];
   double ClipRectangle[6];
   int Flip[3];
