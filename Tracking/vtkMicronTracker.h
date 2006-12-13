@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkMicronTracker.h,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: dgobbi $
-  Date:      $Date: 2006/12/05 22:05:05 $
-  Version:   $Revision: 1.1 $
+  Author:    $Author: pdas $
+  Date:      $Date: 2006/12/13 19:44:20 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 
@@ -65,7 +65,7 @@ POSSIBILITY OF SUCH DAMAGES.
 #include "vtkLongArray.h"
 #include "vtkDoubleArray.h"
 #include "MicronTrackerInterface.h"
-#include "tracking.h"
+//#include "tracking.h"
 #include "time.h"
 
 #define MAX_TOOL_NUM 10
