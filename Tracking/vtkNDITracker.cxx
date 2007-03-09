@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkNDITracker.cxx,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: dgobbi $
-  Date:      $Date: 2006/08/21 15:23:34 $
-  Version:   $Revision: 1.10 $
+  Author:    $Author: pdas $
+  Date:      $Date: 2007/03/09 21:44:08 $
+  Version:   $Revision: 1.11 $
 
 ==========================================================================
 
@@ -57,6 +57,9 @@ POSSIBILITY OF SUCH DAMAGES.
 #include "vtkTrackerTool.h"
 #include "vtkFrameToTimeConverter.h"
 #include "vtkObjectFactory.h"
+#include "vtkSocketCommunicator.h"
+#include <string.h>
+#include "vtkCharArray.h"
 
 //----------------------------------------------------------------------------
 vtkNDITracker* vtkNDITracker::New()
@@ -140,21 +143,35 @@ int vtkNDITracker::Probe()
     {
     return 1;
     }
-
+  if(!this->ServerMode && this->RemoteAddress)//client
+    {
+    vtkCharArray *ca = vtkCharArray::New();
+    ca->SetNumberOfComponents(6);
+    ca->InsertNextTupleValue("Probe");
+    if(this->SocketCommunicator->Send(ca, 1, 9))
+      {
+      return 1;
+      }
+    else
+      {
+      vtkErrorMacro("Could not send message Probe");
+      }
+    return 0;
+    }
   // if SerialPort is set to -1, then probe all serial ports
   if ((this->SerialDevice == 0 || this->SerialDevice[0] == '\0') &&
       this->SerialPort < 0)
     {
     for (int i = 0; i < 4; i++)
       {
-      char *devicename = ndiDeviceName(i);
+      devicename = ndiDeviceName(i);
       if (devicename)
         {
         errnum = ndiProbe(devicename);
         if (errnum == NDI_OKAY)
           {
           this->SerialPort = i+1;
-          break;
+	  break;
           }
         }
       }
@@ -178,6 +195,7 @@ int vtkNDITracker::Probe()
     if (this->Device)
       {
       this->SetVersion(ndiVER(this->Device,0));
+     
       ndiClose(this->Device);
       this->Device = 0;
       }
@@ -315,7 +333,6 @@ int vtkNDITracker::InternalStartTracking()
       this->InternalLoadVirtualSROM(tool,this->VirtualSROM[tool]);
       }
     }
-
   this->EnableToolPorts();
 
   ndiCommand(this->Device,"TSTART:");
@@ -547,46 +564,82 @@ void vtkNDITracker::InternalUpdate()
       tooltimestamp = this->Timer->GetTimeStampForFrame(frame[tool]);
       }
     // send the matrix and flags to the tool
-    this->ToolUpdate(tool,this->SendMatrix,flags,tooltimestamp);
+   
+    this->ToolUpdate(tool,this->SendMatrix,flags,tooltimestamp);   
     }
 }
 
 //----------------------------------------------------------------------------
 void vtkNDITracker::LoadVirtualSROM(int tool, const char *filename)
 {
-  FILE *file = fopen(filename,"rb");
-  if (file == NULL)
+  char buff[1024];
+  unsigned char ubuff[1024];
+  int t = tool;
+  if( !this->ServerMode )// client & Normal
     {
-    vtkErrorMacro("couldn't find srom file " << filename);
-    return;
-    }
-
-  if (this->VirtualSROM[tool] == 0)
-    {
-    this->VirtualSROM[tool] = new unsigned char[1024];
-    }
-
-  memset(this->VirtualSROM[tool],0,1024);
-  fread(this->VirtualSROM[tool],1,1024,file);
-
-  fclose(file);
-
-  if (this->Tracking)
-    {
-    this->RequestUpdateMutex->Lock();
-    this->UpdateMutex->Lock();
-    this->RequestUpdateMutex->Unlock();
-    if (this->IsDeviceTracking)
+    FILE *file = fopen(filename,"rb");
+    if (file == NULL)
       {
-      ndiCommand(this->Device,"TSTOP:");
+      vtkErrorMacro("couldn't find srom file " << filename);
+      return;
       }
-    this->InternalLoadVirtualSROM(tool,this->VirtualSROM[tool]);
-    if (this->IsDeviceTracking)
+    
+    if (this->VirtualSROM[tool] == 0)
       {
-      ndiCommand(this->Device,"TSTART:");
+      this->VirtualSROM[tool] = new unsigned char[1024];
       }
-    this->UpdateMutex->Unlock();
+  
+    memset(this->VirtualSROM[tool],0,1024);
+    fread(this->VirtualSROM[tool],1,1024,file);
+    memset(buff,0,1024);
+    memcpy(buff, this->VirtualSROM[tool], 1024);
+    
+    fclose(file);
+    
     }
+  if(!this->ServerMode && this->RemoteAddress) // client
+    {
+    float len[1]={1044.0};
+    char chartool[3];
+    char msg[1045];
+    memcpy(msg, "LoadVirtualSROM:", 16);
+    memcpy(msg+16, "3:", 2);
+    memcpy(msg+18, this->VirtualSROM[tool], 1024);
+    memcpy(msg+1042, ":", 1);
+    
+   
+    vtkCharArray *ca = vtkCharArray::New();
+    ca->SetNumberOfComponents(1050);
+    ca->InsertNextTupleValue(msg);
+  
+    if(!this->SocketCommunicator->Send(ca,1,9))
+      {
+      vtkErrorMacro("Message could not be sent. \n");
+      }
+    }
+  if( this->ServerMode || !this->RemoteAddress) // server  & normal
+    {
+    if (this->Tracking)
+      {
+      
+      this->RequestUpdateMutex->Lock();
+      this->UpdateMutex->Lock();
+      this->RequestUpdateMutex->Unlock();
+      if (this->IsDeviceTracking)
+	{
+	ndiCommand(this->Device,"TSTOP:");
+	}
+
+      this->InternalLoadVirtualSROM(tool,this->VirtualSROM[tool]);
+
+      if (this->IsDeviceTracking)
+	{
+	ndiCommand(this->Device,"TSTART:");
+	}
+      this->UpdateMutex->Unlock();
+      }
+    }
+  return;
 }
 
 //----------------------------------------------------------------------------
@@ -676,7 +729,6 @@ void vtkNDITracker::EnableToolPorts()
       vtkErrorMacro(<< ndiErrorString(errnum));
       }    
     }
-
   // free ports that are waiting to be freed
   ndiCommand(this->Device,"PHSR:01");
   ntools = ndiGetPHSRNumberOfHandles(this->Device);
@@ -711,7 +763,6 @@ void vtkNDITracker::EnableToolPorts()
       }
     }
   while (ntools > 0 && errnum == 0);
-
   // enable initialized tools
   ndiCommand(this->Device,"PHSR:03");
   ntools = ndiGetPHSRNumberOfHandles(this->Device);
@@ -778,7 +829,6 @@ void vtkNDITracker::EnableToolPorts()
 	  }
 	}
       }
-
     // decompose identity string from end to front
     ndiGetPHINFToolInfo(this->Device, identity);
     identity[31] = '\0';
@@ -789,14 +839,76 @@ void vtkNDITracker::EnableToolPorts()
     this->Tools[port]->SetToolManufacturer(vtkStripWhitespace(&identity[8]));
     identity[8] = '\0';
     this->Tools[port]->SetToolType(vtkStripWhitespace(&identity[0]));
-
     ndiGetPHINFPartNumber(this->Device, partNumber);
     partNumber[20] = '\0';
     this->Tools[port]->SetToolPartNumber(vtkStripWhitespace(partNumber));
-    
     status = ndiGetPHINFPortStatus(this->Device);
-    this->PortEnabled[port] = ((status & NDI_ENABLED) != 0);
 
+    // send the Tool Info to the server
+    if(this->ServerMode)
+      {
+      char msg[40];
+      sprintf(msg, "SetToolSerialNumber:%d:%s",
+	      port, this->Tools[port]->GetToolSerialNumber());
+
+      vtkCharArray *ca = vtkCharArray::New();
+      ca->SetNumberOfComponents(40);
+      ca->InsertNextTupleValue(msg);
+      if(!this->SocketCommunicator->Send(ca,1, 9))
+	{
+	vtkErrorMacro("Could not Send SetToolManufacturer");
+	}
+      ca->Delete();
+      
+      vtkCharArray *ca1 = vtkCharArray::New();
+      ca1->SetNumberOfComponents(40);
+      
+      sprintf(msg, "SetToolRevision:%d:%s",
+	      port, this->Tools[port]->GetToolRevision());
+      ca1->InsertNextTupleValue(msg);
+      if(!this->SocketCommunicator->Send(ca1, 1, 9))
+	{
+	vtkErrorMacro("Could not Send SetToolRevision");
+	}
+      ca1->Delete();
+
+      vtkCharArray *ca2 = vtkCharArray::New();
+      ca2->SetNumberOfComponents(40);
+      sprintf(msg, "SetToolManufacturer:%d:%s",
+	      port, this->Tools[port]->GetToolManufacturer());
+      ca2->InsertNextTupleValue(msg);
+      if(!this->SocketCommunicator->Send(ca2,1, 9))
+	{
+	vtkErrorMacro("Could not Send SetToolManufacturer");
+	}
+      ca2->Delete();
+
+      vtkCharArray *ca3 = vtkCharArray::New();
+      ca3->SetNumberOfComponents(40);
+      sprintf(msg, "SetToolType:%d:%s",
+	      port, this->Tools[port]->GetToolType());
+      ca3->InsertNextTupleValue(msg);
+      if(!this->SocketCommunicator->Send(ca3,1, 9))
+	{
+	vtkErrorMacro("Could not Send SetToolManufacturer");
+	}
+      ca3->Delete();
+
+      vtkCharArray *ca4 = vtkCharArray::New();
+      ca4->SetNumberOfComponents(40);
+      sprintf(msg, "SetToolPartNumber:%d:%s",
+	      port, this->Tools[port]->GetToolPartNumber());
+      ca4->InsertNextTupleValue(msg);
+      if(!this->SocketCommunicator->Send(ca4,1, 9))
+	{
+	vtkErrorMacro("Could not Send SetToolManufacturer");
+	}
+      ca4->Delete();
+      }
+      // done sending the Tool Info
+      
+    this->PortEnabled[port] = ((status & NDI_ENABLED) != 0);
+      
     if (this->Tools[port]->GetLED1())
       {
       this->InternalSetToolLED(tool,1,this->Tools[port]->GetLED1());
@@ -810,6 +922,7 @@ void vtkNDITracker::EnableToolPorts()
       this->InternalSetToolLED(tool,3,this->Tools[port]->GetLED3());
       }
     }
+ 
 
   // re-start the tracking
   if (this->IsDeviceTracking)
@@ -1019,6 +1132,7 @@ void vtkNDITracker::InternalLoadVirtualSROM(int tool,
 
   for ( i = 0; i < 1024; i += 64)
     {
+    ndiCommand(this->Device," VER 0");
     ndiCommand(this->Device, "PVWR:%02X%04X%.128s",
          ph, i, ndiHexEncode(hexbuffer, &data[i], 64));
     }  
@@ -1039,4 +1153,113 @@ void vtkNDITracker::InternalClearVirtualSROM(int tool)
   this->PortEnabled[tool] = 0;
   this->PortHandle[tool] = 0;
 }
+
+//----------------------------------------------------------------------------
+void vtkNDITracker::InternalInterpretCommand( char * messageText)
+{
+  if( !messageText)
+    {
+    return;
+    }
+
+  int tool = 0;
+  unsigned char *ubuff;
+  char *token1 = NULL;
+  char *token2= NULL;
+  char *token3 = NULL;
+  token1 = strtok(messageText,":");
+  int port;
+   
+  if( token1 && !strcmp( token1, "LoadVirtualSROM" ))
+    {
+    token2 = strtok(NULL,":");
+    tool = atoi(token2);
+    if (this->VirtualSROM[tool] == 0)
+      {
+      this->VirtualSROM[tool] = new unsigned char[1024];
+      }
+    
+    memset(this->VirtualSROM[tool],0,1024);
+    // copy the 1024 bytes from messageText to VirtualSROM
+    memcpy(this->VirtualSROM[tool], messageText+18, 1024);
+    this->LoadVirtualSROM(tool, NULL);
+    return ;
+    }
+   
+  if( token1 && !strcmp( token1, "SetToolManufacturer" ))
+    {
+    token2 = strtok(NULL,":");
+    if(token2)
+      {
+      port = atoi(token2);
+      token3 = strtok(NULL,":");
+      }
+    this->Tools[port]->SetToolManufacturer(token3);
+    return ;
+    }
+  if( token1 && !strcmp( token1, "SetToolRevision" ))
+    {
+    token2 = strtok(NULL,":");
+    if(token2)
+      {
+      port = atoi(token2);
+      token3 = strtok(NULL,":");
+      }
+    this->Tools[port]->SetToolRevision( token3);
+    return ;
+    }
+
+  if( token1 && !strcmp( token1, "SetToolType" ))
+    {
+    token2 = strtok(NULL,":");
+    if(token2)
+      {
+      port = atoi(token2);
+      token3 = strtok(NULL,":");
+      }
+    this->Tools[port]->SetToolType( token3);
+    return ;
+    }
+
+  if( token1 && !strcmp( token1, "SetToolPartNumber" ))
+    {
+    token2 = strtok(NULL,":");
+    if(token2)
+      {
+      port = atoi(token2);
+      token3 = strtok(NULL,":");
+      }
+    this->Tools[port]->SetToolPartNumber( token3);
+    return ;
+    }
+
+  if( token1 && !strcmp( token1, "SetToolSerialNumber" ))
+    {
+    token2 = strtok(NULL,":");
+    if(token2)
+      {
+      port = atoi(token2);
+      token3 = strtok(NULL,":");
+      }
+    this->Tools[port]->SetToolSerialNumber( token3);
+    return ;
+    }
+  if( token1 && !strcmp( token1, "InternalStopTrackingSuccessful" ))
+    {
+    this->IsDeviceTracking = 0;
+    this->Tracking = 0;
+    for ( tool=0; tool<VTK_NDI_NTOOLS; tool++ )
+      {
+      if (this->VirtualSROM[tool] != 0)
+	{
+	delete [] this->VirtualSROM[tool];
+	}
+      this->VirtualSROM[tool] = 0;
+      this->PortEnabled[tool] = 0;
+      this->PortHandle[tool] = 0;
+      }
+    return ;
+    }
+}
+
 

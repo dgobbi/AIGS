@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkNDITracker.h,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: dgobbi $
-  Date:      $Date: 2005/10/27 14:39:44 $
-  Version:   $Revision: 1.4 $
+  Author:    $Author: pdas $
+  Date:      $Date: 2007/03/09 21:44:08 $
+  Version:   $Revision: 1.5 $
 
 ==========================================================================
 
@@ -119,6 +119,7 @@ public:
   // Get an update from the tracking system and push the new transforms
   // to the tools.  This should only be used within vtkTracker.cxx.
   void InternalUpdate();
+  virtual void InternalInterpretCommand( char * c);
 
 protected:
   vtkNDITracker();
