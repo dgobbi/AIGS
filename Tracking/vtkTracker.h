@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkTracker.h,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: dgobbi $
-  Date:      $Date: 2005/07/01 22:52:05 $
-  Version:   $Revision: 1.4 $
+  Author:    $Author: pdas $
+  Date:      $Date: 2007/03/09 21:41:02 $
+  Version:   $Revision: 1.5 $
 
 ==========================================================================
 
@@ -66,6 +66,10 @@ POSSIBILITY OF SUCH DAMAGES.
 class vtkMatrix4x4;
 class vtkMultiThreader;
 class vtkTrackerTool;
+class vtkSocketCommunicator;
+class vtkCharArray;
+class vtkDataArray;
+class vtkDoubleArray;
 
 // several flags which give added info about a transform
 enum {
@@ -155,7 +159,18 @@ public:
   // if a reference tool is not desired.
   vtkSetMacro(ReferenceTool, int);
   vtkGetMacro(ReferenceTool, int);
+  
+  vtkSetMacro(ServerMode, int);
+  vtkGetMacro(ServerMode, int);
+  
+  vtkSetMacro(NetworkPort, int);
+  vtkGetMacro(NetworkPort, int);
 
+  void SetRemoteAddress( char * ra){this->RemoteAddress = ra;};
+  char* GetRemoteAddress(){ return this->RemoteAddress;};
+
+  vtkSocketCommunicator* GetSocketCommunicator()
+  { return this->SocketCommunicator;};
   // Description:
   // Set the transformation matrix between tracking-system coordinates
   // and the desired world coordinate system.  You can use 
@@ -196,7 +211,30 @@ public:
   vtkCriticalSection *RequestUpdateMutex;
   vtkTimeStamp UpdateTime;
   double InternalUpdateRate;  
-//ETX
+  //ETX
+  
+  // Description:
+  // The ServerTracker should call only this function. This creates
+  // a thread that allows it to wait till a client connects. 
+  void Connect();
+  void Disconnect();
+  void StartServer();
+  void InterpretCommands(char *message);
+
+  // Description:
+  // helper function that converts all the buffer info into a DoubleArray
+  void ConvertBufferToMessage( int tool, vtkMatrix4x4 *matrix, 
+			       long flags, double ts,
+			       vtkDoubleArray *msg );
+  // Description:
+  // helper function that converts all the buffer info into a DoubleArray
+  void ConvertMessageToBuffer( vtkDoubleArray *msg, 
+			       double*vals, vtkMatrix4x4 *matrix); 
+			       //long flags, double ts );
+  
+  void ServerToolUpdate( int tool, 
+			 vtkMatrix4x4 *matrix, 
+			 long flags, double ts );
 
 protected:
   vtkTracker();
@@ -222,7 +260,7 @@ protected:
   // or 0 if they are not.
   virtual int InternalStartTracking() { return 1; };
   virtual int InternalStopTracking() { return 1; };
-
+  virtual void InternalInterpretCommand( char * c) { };
   // Description:
   // This method should be overridden in derived classes that can make
   // an audible beep.  The return value should be zero if an error
@@ -240,12 +278,19 @@ protected:
   vtkTrackerTool **Tools;
   int ReferenceTool;
   int Tracking;
+  
   double UpdateTimeStamp;
   unsigned long LastUpdateTime;
 
   vtkMultiThreader *Threader;
   int ThreadId;
 
+  int ServerMode;
+  int NetworkPort;
+  int ClientConnected;
+  char *RemoteAddress;
+  vtkSocketCommunicator *SocketCommunicator;
+  
 private:
   vtkTracker(const vtkTracker&);
   void operator=(const vtkTracker&);  
