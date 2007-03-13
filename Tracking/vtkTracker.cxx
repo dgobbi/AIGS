@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkTracker.cxx,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: pdas $
-  Date:      $Date: 2007/03/09 21:41:02 $
-  Version:   $Revision: 1.11 $
+  Author:    $Author: dgobbi $
+  Date:      $Date: 2007/03/13 15:17:31 $
+  Version:   $Revision: 1.12 $
 
 ==========================================================================
 
@@ -348,7 +348,7 @@ void vtkTracker::StartTracking()
     if(this->SocketCommunicator->GetIsConnected() )
       {
       ca->SetNumberOfComponents(16);
-      ca->InsertNextTupleValue("StartTracking");
+      ca->SetArray("StartTracking", 16, 1);
       ca->Modified();
       if(!this->SocketCommunicator->Send(ca, 1, 9))
 	{
@@ -408,7 +408,7 @@ void vtkTracker::StartTracking()
       vtkCharArray *endmsg = vtkCharArray::New();
      
       endmsg->SetNumberOfComponents(40);
-      endmsg->InsertNextTupleValue( msgText );
+      endmsg->SetArray( msgText, 40, 1);
       if(!this->SocketCommunicator->Send(endmsg, 1, 9))
 	{
 	vtkErrorMacro(
@@ -464,7 +464,7 @@ void vtkTracker::StopTracking()
     {
     vtkCharArray *ca = vtkCharArray::New();
     ca->SetNumberOfComponents(13);
-    ca->InsertNextTupleValue("StopTracking");
+    ca->SetArray("StopTracking", 13, 1);
     
     if( this->SocketCommunicator->GetIsConnected())
       {
@@ -507,7 +507,7 @@ void vtkTracker::StopTracking()
     {
     vtkCharArray * ca = vtkCharArray::New();
     ca->SetNumberOfComponents(40);
-    ca->InsertNextTupleValue("InternalStopTrackingSuccessful");
+    ca->SetArray("InternalStopTrackingSuccessful", 40, 1);
     if(!this->SocketCommunicator->Send(ca, 1, 9))
       {
       vtkErrorMacro("Could not send message InternalStopTrackingSuccessful");
@@ -527,7 +527,7 @@ void vtkTracker::Update()
     {
     vtkCharArray *ca = vtkCharArray::New();
     ca->SetNumberOfComponents(7);
-    ca->InsertNextTupleValue("Update");
+    ca->SetArray("Update", 7, 1);
   
     if( this->SocketCommunicator->GetIsConnected())
       {
@@ -646,7 +646,7 @@ void vtkTracker::Disconnect()
     {
     vtkCharArray *ca = vtkCharArray::New();
     ca->SetNumberOfComponents(12);
-    ca->InsertNextTupleValue("Disconnect");
+    ca->SetArray("Disconnect", 12, 1);
     if(!this->SocketCommunicator->Send(ca, 1, 9))
       {
       vtkErrorMacro(" Could not send Disconnect\n");
