@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2007/03/13 15:17:31 $
-  Version:   $Revision: 1.12 $
+  Date:      $Date: 2007/03/14 14:21:08 $
+  Version:   $Revision: 1.13 $
 
 ==========================================================================
 
@@ -374,7 +374,8 @@ void vtkTracker::StartTracking()
 	    {
 	    msg = NULL;
 	    msg = new char [toolInfoMessage->GetNumberOfComponents()];
-	    toolInfoMessage->GetTupleValue( 0, msg );
+	    memcpy(msg, toolInfoMessage->GetPointer(0), 
+		   toolInfoMessage->GetNumberOfComponents());
 	    }
 	  this->InterpretCommands( msg );
 	  // Delete local variables
@@ -482,10 +483,7 @@ void vtkTracker::StopTracking()
       }
     else
       {
-      char *msgText = new char [ca2->GetNumberOfComponents()];
-      ca2->GetTupleValue(0, msgText);
-      this->InterpretCommands(msgText);
-      msgText = NULL;
+      this->InterpretCommands(ca2->GetPointer(0));
       ca2->Delete();
       }
     
