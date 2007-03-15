@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2007/03/14 14:21:08 $
-  Version:   $Revision: 1.13 $
+  Date:      $Date: 2007/03/15 13:16:29 $
+  Version:   $Revision: 1.14 $
 
 ==========================================================================
 
@@ -676,11 +676,7 @@ void vtkTracker::StartServer()
 	break;
 	}
       
-      char * messageText = new char [ca->GetNumberOfComponents()];
-      ca->GetTupleValue( 0, messageText );
-      int t = ca->GetNumberOfTuples();
-      
-      this->InterpretCommands( messageText );
+      this->InterpretCommands( ca->GetPointer(0) );
       // delete local variables
       ca->Delete();
       }
