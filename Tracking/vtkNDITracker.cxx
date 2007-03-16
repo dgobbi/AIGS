@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkNDITracker.cxx,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: pdas $
-  Date:      $Date: 2007/03/15 17:45:08 $
-  Version:   $Revision: 1.12 $
+  Author:    $Author: dgobbi $
+  Date:      $Date: 2007/03/16 22:18:14 $
+  Version:   $Revision: 1.13 $
 
 ==========================================================================
 
@@ -149,7 +149,7 @@ int vtkNDITracker::Probe()
     int success[1] = {0};
     vtkCharArray *ca = vtkCharArray::New();
     ca->SetNumberOfComponents(6);
-    ca->InsertNextTupleValue("Probe");
+    ca->SetArray("Probe", 6, 1);
     if(this->SocketCommunicator->GetIsConnected()>0)
       {
       if(this->SocketCommunicator->Send(ca, 1, 9))
@@ -639,7 +639,7 @@ void vtkNDITracker::LoadVirtualSROM(int tool, const char *filename)
    
     vtkCharArray *ca = vtkCharArray::New();
     ca->SetNumberOfComponents(1050);
-    ca->InsertNextTupleValue(msg);
+    ca->SetArray(msg, 1050, 1);
     if(this->SocketCommunicator->GetIsConnected()>0)
       {
       if(!this->SocketCommunicator->Send(ca,1,9))
@@ -887,8 +887,7 @@ void vtkNDITracker::EnableToolPorts()
 	len = strlen(msg) +1;
 	vtkCharArray *ca = vtkCharArray::New();
 	ca->SetNumberOfComponents(len);
-	ca->SetArray(msg, len, 1);//
-	//ca->InsertNextTupleValue(msg);
+	ca->SetArray(msg, len, 1);
 	if(!this->SocketCommunicator->Send(ca,1, 9))
 	  {
 	  vtkErrorMacro("Could not Send SetToolManufacturer");
@@ -900,8 +899,7 @@ void vtkNDITracker::EnableToolPorts()
 	len = strlen(msg) + 1;
 	vtkCharArray *ca1 = vtkCharArray::New();
 	ca1->SetNumberOfComponents(len);
-	ca1->SetArray(msg, len, 1);//
-	//ca1->InsertNextTupleValue(msg);
+	ca1->SetArray(msg, len, 1);
 	if(!this->SocketCommunicator->Send(ca1, 1, 9))
 	  {
 	  vtkErrorMacro("Could not Send SetToolRevision");
