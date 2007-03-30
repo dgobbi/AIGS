@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: pdas $
-  Date:      $Date: 2007/03/15 17:43:01 $
-  Version:   $Revision: 1.15 $
+  Date:      $Date: 2007/03/30 15:14:50 $
+  Version:   $Revision: 1.16 $
 
 ==========================================================================
 
@@ -205,20 +205,18 @@ static void *vtkTrackerThread(vtkMultiThreader::ThreadInfo *data)
       // client 
       for( int i = 0; i< self->GetNumberOfTools(); i++ )
 	{
-	vtkDoubleArray * msg = vtkDoubleArray::New();
-	msg->SetNumberOfTuples(19);
+	double *msg = new double[19];
 	vtkMatrix4x4 *matrix = NULL;
 	double vals[3];
 	long flags=0; 
 	double ts=0;
 	int tool=0;
-	if(self->GetSocketCommunicator()->Receive( msg, 1, 7 ) == 0)
+	if(self->GetSocketCommunicator()->Receive( msg, 19, 1, 33 ) == 0)
 	  {
 	  vtkGenericWarningMacro(" Didin't receive the buffer");
 	  }
 	else
 	  {
-	  
 	  matrix = vtkMatrix4x4::New();
 	  self->ConvertMessageToBuffer(msg, vals, matrix);
 	  tool = static_cast<int>(vals[0]);
@@ -248,14 +246,14 @@ static void *vtkTrackerThread(vtkMultiThreader::ThreadInfo *data)
 	    flags = buffer->GetFlags(0);
 	    ts = buffer->GetTimeStamp(0);
 	    buffer->Unlock();
-	    vtkDoubleArray *da = vtkDoubleArray::New();
+	    double *da = new double[19];
 	    self->ConvertBufferToMessage(tool, mat, flags, ts, da);
 	    if(self->GetSocketCommunicator()->GetIsConnected()>0)
 	      {
-	      if (self->GetSocketCommunicator()->Send(da, 1, 7) == 0)
-		{
-		vtkGenericWarningMacro("Could not set tool buffer message");
-		}
+	      if (self->GetSocketCommunicator()->Send(da, 19, 1, 33) == 0)
+ 		{
+ 		vtkGenericWarningMacro("Could not set tool buffer message");
+ 		}
 	      }
 	    }
 	  }
@@ -280,7 +278,6 @@ static void *vtkTrackerThread(vtkMultiThreader::ThreadInfo *data)
     }
 }
 
-
 //----------------------------------------------------------------------------
 int vtkTracker::Probe()
 {
@@ -288,30 +285,35 @@ int vtkTracker::Probe()
   // Client
   if(!this->ServerMode && this->RemoteAddress) 
     {
-    vtkCharArray* ca = vtkCharArray::New();
-    ca->SetArray("Probe", 6, 1);
     int success[1] = {0};
+    int len = 6;
+    char *msg = "Probe";
     if(this->SocketCommunicator->GetIsConnected()>0)
       {
-      if(! this->SocketCommunicator->Send(ca, 1, 9))
+      if(this->SocketCommunicator->Send(&len, 1, 1, 11))
 	{
-	vtkErrorMacro("Could not send message Probe\n");
-	this->UpdateMutex->Unlock();
-	return 0;
-	}
-      else
-	{
-	this->UpdateMutex->Unlock();
-	if(!this->SocketCommunicator->Receive(success, 1, 1, 22))
+	if(!this->SocketCommunicator->Send(msg, len, 1, 22))
 	  {
-	  vtkErrorMacro("Could not receive the Probe results");
+	  vtkErrorMacro("Could not send message Probe\n");
+	  exit(0);
+	  this->UpdateMutex->Unlock();
+	  return 0;
 	  }
 	}
+      else
+ 	{
+ 	this->UpdateMutex->Unlock();
+ 	if(!this->SocketCommunicator->Receive(success, 1, 1, 11))
+ 	  {
+ 	  vtkErrorMacro("Could not receive the Probe results");
+	  exit(0);
+ 	  }
+ 	}
       }
     return success[0];
     }
   // Server / Normal
-   if (this->InternalStartTracking() == 0)
+  if (this->InternalStartTracking() == 0)
     {
     this->UpdateMutex->Unlock();
     int success[1] = {0};
@@ -319,7 +321,7 @@ int vtkTracker::Probe()
       {
       if(this->SocketCommunicator->GetIsConnected()>0)
 	{
-	this->SocketCommunicator->Send(success,1, 1, 9);
+	this->SocketCommunicator->Send(success,1, 1, 11);
 	}
       }
       return 0;
@@ -336,9 +338,10 @@ int vtkTracker::Probe()
 	int success[1]= {0};
 	if(this->SocketCommunicator->GetIsConnected()>0)
 	  {
-	  if(!this->SocketCommunicator->Send(success, 1, 1, 22))
+	  if(!this->SocketCommunicator->Send(success, 1, 1, 11))
 	    {
 	    vtkErrorMacro("Could not send Success information!\n");
+	    exit(0);
 	    }
 	  }
 	else
@@ -356,9 +359,10 @@ int vtkTracker::Probe()
       int success[1]= {1};
       if(this->SocketCommunicator->GetIsConnected()>0)
 	  {
-	  if(!this->SocketCommunicator->Send(success, 1, 1, 22))
+	  if(!this->SocketCommunicator->Send(success, 1, 1, 11))
 	    {
 	    vtkErrorMacro("Could not send Success information!\n");
+	    exit(0);
 	    }
 	  }
       else
@@ -377,82 +381,92 @@ void vtkTracker::StartTracking()
   if(!this->ServerMode && this->RemoteAddress) 
     {
     // ask the communication thread to send a message" StartTracking"
-    vtkCharArray *ca = vtkCharArray::New();
-  
+    int len = 16;
+    char* msg1 = "StartTracking";
+    
     if(this->SocketCommunicator->GetIsConnected()>0 )
       {
-      ca->SetNumberOfComponents(16);
-      ca->SetArray("StartTracking", 16, 1);
-      ca->Modified();
-      if(!this->SocketCommunicator->Send(ca, 1, 9))
+      if(!this->SocketCommunicator->Send(&len, 1, 1, 11) )
 	{
-	vtkErrorMacro(" Could not send the message\n");
 	}
       else
 	{
-	// wait to receive the Tool Information acknowledgement
-	char *msg = "InternalStartTracking";
-	const int maxMessages = 50;
-	int messageNum = 0;
-	for (messageNum = 0; 
-	     messageNum < maxMessages && 
-	       strcmp( msg, "InternalStartTrackingSuccessful" ) ;
-	     messageNum++)
+	if( !this->SocketCommunicator->Send(msg1, len, 1, 22))
 	  {
-	  vtkCharArray *toolInfoMessage = vtkCharArray::New();
-	  if( !this->SocketCommunicator->Receive(toolInfoMessage, 1, 9) )
-	    {
-	    vtkErrorMacro("Could not RecieveToolInfo");
-	    }
-	  else
-	    {
-	    msg = NULL;
-	    msg = new char [toolInfoMessage->GetNumberOfComponents()];
-	    memcpy(msg, toolInfoMessage->GetPointer(0), 
-		   toolInfoMessage->GetNumberOfComponents());
-	    }
-	  this->InterpretCommands( msg );
-	  // Delete local variables
-	  toolInfoMessage->Delete();
+	  vtkErrorMacro(" Could not send the message\n");
+	  exit(0);
 	  }
-	if (messageNum == maxMessages)
+	else
 	  {
-	  vtkErrorMacro("Waited to receive \"EndEnabledToolPort\" "
-			"but it never came");
+	  // wait to receive the Tool Information acknowledgement
+	  char *msg = "InternalStartTracking";
+	  const int maxMessages = 50;
+	  int messageNum = 0;
+	  for (messageNum = 0; 
+	       messageNum < maxMessages && 
+		 strcmp( msg, "InternalStartTrackingSuccessful" ) ;
+	       messageNum++)
+	    {
+	    int rlen[1] = {0};
+	    if( this->SocketCommunicator->Receive(rlen, 1, 1, 11) )
+	      {
+	      char *rmsg = new char [rlen[0]];
+	      if(!this->SocketCommunicator->Receive(rmsg, rlen[0], 1, 22) )
+		{
+		vtkErrorMacro("Could not RecieveToolInfo");
+		exit(0);
+		}
+	      else
+		{
+		this->InterpretCommands( rmsg );
+		msg = NULL;
+		msg = new char [rlen[0]];
+		memcpy(msg, rmsg, rlen[0]);
+		}
+	      }
+	    }
+	  if (messageNum == maxMessages)
+	    {
+	    vtkErrorMacro("Waited to receive \"EndEnabledToolPort\" "
+			  "but it never came");
+	    }
+	  this->Tracking = 1;
 	  }
-	this->Tracking = 1;
 	}
       }
-    
     this->UpdateMutex->Lock();
     this->ThreadId = this->Threader->SpawnThread((vtkThreadFunctionType)\
                                                  &vtkTrackerThread,this);
     this->LastUpdateTime = this->UpdateTime.GetMTime();
     this->UpdateMutex->Unlock();
-    // Delete 
-    ca->Delete();
     } //end client
-
+  
   //server / normal
   else if(this->ServerMode || !this->RemoteAddress) 
     {
     this->Tracking = this->InternalStartTracking();
+    
     if(this->ServerMode)
       {
       if(this->SocketCommunicator->GetIsConnected()>0)
 	{
 	char *msgText = "InternalStartTrackingSuccessful";
-	vtkCharArray *endmsg = vtkCharArray::New();
-	
-	endmsg->SetNumberOfComponents(40);
-	endmsg->SetArray( msgText, 40, 1);
-	if(!this->SocketCommunicator->Send(endmsg, 1, 9))
+	int len = strlen(msgText);
+	if( this->SocketCommunicator->Send(&len, 1, 1, 11) )
+	  {
+	  if(!this->SocketCommunicator->Send(msgText, len, 1, 22))
+	    {
+	    vtkErrorMacro(
+	      "Could not send message: InternalStartTrackingSuccessful");
+	    exit(0);
+	    }
+	  }
+	else
 	  {
 	  vtkErrorMacro(
-	    "Could not send message: InternalStartTrackingSuccessful");
+	    "Could not send length of InternalStartTrackingSuccessful");
+	  exit(0);
 	  }
-	// delete local variable
-	endmsg->Delete();
 	}
       else
 	{
@@ -507,31 +521,39 @@ void vtkTracker::StopTracking()
       {
       return;
       }
-    vtkCharArray *ca = vtkCharArray::New();
-    ca->SetNumberOfComponents(13);
-    ca->SetArray("StopTracking", 13, 1);
-    
+    int slen = 13;
+    char *smsg = "StopTracking";
     if( this->SocketCommunicator->GetIsConnected()>0)
       {
-      if( !this->SocketCommunicator->Send(ca, 1, 9))
+      if ( this->SocketCommunicator->Send(&slen, 1, 1, 11))
 	{
-	vtkErrorMacro("Could not Send the message StopTracking!\n");
-	}
-      vtkCharArray *ca2= vtkCharArray::New();
-      this->Threader->TerminateThread(this->ThreadId);
-      this->ThreadId = -1;
-      if(!this->SocketCommunicator->Receive(ca2, 1, 9))
-	{
-	vtkErrorMacro("Could not receive InternalStopTrackingSuccessful");
+	if(!this->SocketCommunicator->Send(smsg, slen, 1, 22))
+	  {
+	  vtkErrorMacro("Could not Send the message StopTracking!\n");
+	  exit(0);
+	  }
 	}
       else
 	{
-	this->InterpretCommands(ca2->GetPointer(0));
-	ca2->Delete();
+	vtkErrorMacro("Could not send the length of  StopTracking!\n");
+	exit(0);
 	}
-    
-    // Delete local variable
-      ca->Delete();
+      this->Threader->TerminateThread(this->ThreadId);
+      this->ThreadId = -1;
+      int len[1] = {0};
+      if ( this->SocketCommunicator->Receive(len, 1, 1, 11))
+	{
+	char *msg = new char [len[0]];
+	if( !this->SocketCommunicator->Receive(msg, len[0], 1, 22))
+	  {
+	  vtkErrorMacro("Could not receive InternalStopTrackingSuccessful");
+	  }
+	
+	else
+	  {
+	  this->InterpretCommands(msg);//ca2->GetPointer(0));
+	  }
+	}
       }
     else
       {
@@ -554,15 +576,21 @@ void vtkTracker::StopTracking()
 	vtkErrorMacro("Client not Connected\n");
 	return ;
 	}
-      vtkCharArray * ca = vtkCharArray::New();
-      ca->SetNumberOfComponents(40);
-      ca->SetArray("InternalStopTrackingSuccessful", 40, 1);
-      if(!this->SocketCommunicator->Send(ca, 1, 9))
+      int len = 31;
+      if(this->SocketCommunicator->Send(&len, 1, 1, 11))
 	{
-	vtkErrorMacro("Could not send message InternalStopTrackingSuccessful");
+	char *msg = "InternalStopTrackingSuccessful";
+	if(!this->SocketCommunicator->Send(msg, 31, 1, 22))
+	  {
+	  vtkErrorMacro("Could not send InternalStopTrackingSuccessful\n");
+	  exit(0);
+	  }
 	}
-      // Delete local variable
-      ca->Delete();
+      else
+	{
+	vtkErrorMacro("Could not send length\n");
+	exit(0);
+	}
       }
     }
 }
@@ -675,49 +703,64 @@ void vtkTracker::Disconnect()
 {
   if( this->RemoteAddress && !this->ServerMode )
     {
-    vtkCharArray *ca = vtkCharArray::New();
-    ca->SetNumberOfComponents(12);
-    ca->SetArray("Disconnect", 12, 1);
     if(this->SocketCommunicator->GetIsConnected()>0)
       {
-      if(!this->SocketCommunicator->Send(ca, 1, 9))
+      int len = 12;
+      if (this->SocketCommunicator->Send( &len, 1, 1, 11 ))
 	{
-	vtkErrorMacro(" Could not send Disconnect\n");
+	char *msg = "Disconnect";
+	if(!this->SocketCommunicator->Send( msg, len, 1, 22))
+	  {
+	  vtkErrorMacro("Could not receive message text\n");
+	  exit(0);
+	  }
 	}
-      ca->Delete();
-      }
-    else
-      {
-      vtkErrorMacro("Not Connected to server. \n");
+      else
+	{
+	vtkErrorMacro("Not Connected to server. \n");
+	}
       }
     }
- else
+  else
     {
     vtkErrorMacro("Disconnect can be called from Client Tracker only !\n");
     }
 }
+
 //-----------------------------------------------------------------------------
 void vtkTracker::StartServer()
 {
   while (1)
-    {
-    if(this->SocketCommunicator->WaitForConnection(this->NetworkPort))
+    { 
+    if(this->SocketCommunicator->GetIsConnected())
+      {
+      exit(0);
+      }
+      if(this->SocketCommunicator->WaitForConnection(this->NetworkPort))
       {
       this->ClientConnected = 1;
       while( this->ClientConnected )
 	{
-	// receive length 
-	vtkCharArray *ca = vtkCharArray::New();
-	if (!this->SocketCommunicator->Receive( ca, 1, 9 ))
+	int len[1] = {0};
+	if (this->SocketCommunicator->Receive( len, 1, 1, 11 ))
 	  {
-	  this->ClientConnected = 0;
-	  vtkErrorMacro("Could not receive message.");
-	  break;
+	  int msglen = static_cast<int>(len[0]);
+	  char *msg = new char [msglen];
+	  if(this->SocketCommunicator->Receive( msg, msglen, 1, 22))
+	    {
+	    this->InterpretCommands( msg );
+	    }
+	  else
+	    {
+	    vtkErrorMacro("Could not receive message text\n");
+	    exit(0);
+	    }
 	  }
-		
-	this->InterpretCommands( ca->GetPointer(0));
-	// delete local variables
-	ca->Delete();
+	else
+	  {
+	  vtkErrorMacro("Could not receive length.");
+	  exit(0);
+	  }
 	}
       }
     }
@@ -763,17 +806,17 @@ void vtkTracker::InterpretCommands( char *messageText )
 }
 
 //-----------------------------------------------------------------------------
-void vtkTracker::ConvertMessageToBuffer( vtkDoubleArray *da, 
+void vtkTracker::ConvertMessageToBuffer( double *da, 
 					 double *vals, vtkMatrix4x4 *matrix )
 {
   double t, f;
   double elements[16];
-  vals[0] = da->GetValue(0);
-  vals[1] = da->GetValue(1);
-  vals[2] = da->GetValue(2);
+  vals[0] = da[0];
+  vals[1] = da[1];
+  vals[2] = da[2];
   for( int i= 0; i<16; i++)
     {
-    elements[i]=da->GetValue(i+3);
+    elements[i]=da[i+3];
     }
   matrix->DeepCopy(elements);
 }
@@ -781,21 +824,21 @@ void vtkTracker::ConvertMessageToBuffer( vtkDoubleArray *da,
 //-----------------------------------------------------------------------------
 void vtkTracker::ConvertBufferToMessage( int tool, vtkMatrix4x4 *matrix, 
 					 long flags, double ts,
-					 vtkDoubleArray *msg )
+					 double *msg )
 {
   if(!msg)
     {
-    msg = vtkDoubleArray::New();
+    msg = new double[19];
     }
-  msg->InsertNextValue(static_cast<double>(tool));
-  msg->InsertNextValue(static_cast<double>(flags));
-  msg->InsertNextValue(ts);
-  
+  msg[0] = static_cast<double>(tool);
+  msg[1] = static_cast<double>(flags);
+  msg[2] = ts;
+  int k = 3;
   for( int i = 0; i < 4; i++)
     {
     for( int j =0; j < 4; j++)
       {
-      msg->InsertNextValue( matrix->GetElement(i,j));
+      msg[k++] = matrix->GetElement(i,j);
       }
     }
 }

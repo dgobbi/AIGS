@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: pdas $
-  Date:      $Date: 2007/03/09 21:41:02 $
-  Version:   $Revision: 1.5 $
+  Date:      $Date: 2007/03/30 15:14:50 $
+  Version:   $Revision: 1.6 $
 
 ==========================================================================
 
@@ -225,10 +225,10 @@ public:
   // helper function that converts all the buffer info into a DoubleArray
   void ConvertBufferToMessage( int tool, vtkMatrix4x4 *matrix, 
 			       long flags, double ts,
-			       vtkDoubleArray *msg );
+			       double *msg );
   // Description:
   // helper function that converts all the buffer info into a DoubleArray
-  void ConvertMessageToBuffer( vtkDoubleArray *msg, 
+  void ConvertMessageToBuffer( double *msg, 
 			       double*vals, vtkMatrix4x4 *matrix); 
 			       //long flags, double ts );
   

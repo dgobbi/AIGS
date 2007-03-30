@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkNDITracker.cxx,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: dgobbi $
-  Date:      $Date: 2007/03/16 22:18:14 $
-  Version:   $Revision: 1.13 $
+  Author:    $Author: pdas $
+  Date:      $Date: 2007/03/30 15:14:50 $
+  Version:   $Revision: 1.14 $
 
 ==========================================================================
 
@@ -147,19 +147,22 @@ int vtkNDITracker::Probe()
   if(!this->ServerMode && this->RemoteAddress)
     {
     int success[1] = {0};
-    vtkCharArray *ca = vtkCharArray::New();
-    ca->SetNumberOfComponents(6);
-    ca->SetArray("Probe", 6, 1);
+    char *msg = "Probe";
+    int len = 6;
+
     if(this->SocketCommunicator->GetIsConnected()>0)
       {
-      if(this->SocketCommunicator->Send(ca, 1, 9))
+      if(this->SocketCommunicator->Send(&len, 1, 1, 11))
 	{
-	//wait to receive the information whether the Probe() was
-	//successful on the server;
-	if(!this->SocketCommunicator->Receive(success, 1,1, 11))
-	  {	
-	  vtkErrorMacro("Could not receive the success information"
-			" from server Probe()\n");
+	if(this->SocketCommunicator->Send(msg, len, 1, 22))
+	  { 
+	  //wait to receive the information whether the Probe() was
+	  //successful on the server;
+	  if(!this->SocketCommunicator->Receive(success, 1,1, 11))
+	    {	
+	    vtkErrorMacro("Could not receive the success information"
+			  " from server Probe()\n");
+	    }
 	  }
 	}
       else
@@ -628,23 +631,26 @@ void vtkNDITracker::LoadVirtualSROM(int tool, const char *filename)
     }
   if(!this->ServerMode && this->RemoteAddress) // client
     {
-    float len[1]={1044.0};
+    int len[1]={1044};
     char chartool[3];
     char msg[1045];
     memcpy(msg, "LoadVirtualSROM:", 16);
     memcpy(msg+16, "3:", 2);
     memcpy(msg+18, this->VirtualSROM[tool], 1024);
     memcpy(msg+1042, ":", 1);
-    
-   
-    vtkCharArray *ca = vtkCharArray::New();
-    ca->SetNumberOfComponents(1050);
-    ca->SetArray(msg, 1050, 1);
+
     if(this->SocketCommunicator->GetIsConnected()>0)
       {
-      if(!this->SocketCommunicator->Send(ca,1,9))
+      if(this->SocketCommunicator->Send(len,1, 1,11))
 	{
-	vtkErrorMacro("Message could not be sent. \n");
+	if(!this->SocketCommunicator->Send(msg,len[0],1,22))
+	  {
+	  vtkErrorMacro("Message could not be sent. \n");
+	  }
+	}
+      else
+	{
+	vtkErrorMacro("Could not send length. \n");
 	}
       }
     }
@@ -885,39 +891,41 @@ void vtkNDITracker::EnableToolPorts()
 	sprintf(msg, "SetToolSerialNumber:%d:%s",
 		port, this->Tools[port]->GetToolSerialNumber());
 	len = strlen(msg) +1;
-	vtkCharArray *ca = vtkCharArray::New();
-	ca->SetNumberOfComponents(len);
-	ca->SetArray(msg, len, 1);
-	if(!this->SocketCommunicator->Send(ca,1, 9))
+
+	if( this->SocketCommunicator->Send(&len, 1, 1, 11) )
 	  {
-	  vtkErrorMacro("Could not Send SetToolManufacturer");
+	  if( !this->SocketCommunicator->Send(msg, len, 1, 22) )
+	    {
+	    vtkErrorMacro("Could not Send SetToolSerialNumber");
+	    }
 	  }
-	ca->Delete();
+	
+//	ca->Delete();
 	
 	sprintf(msg, "SetToolRevision:%d:%s",
 		port, this->Tools[port]->GetToolRevision());
 	len = strlen(msg) + 1;
-	vtkCharArray *ca1 = vtkCharArray::New();
-	ca1->SetNumberOfComponents(len);
-	ca1->SetArray(msg, len, 1);
-	if(!this->SocketCommunicator->Send(ca1, 1, 9))
-	  {
-	  vtkErrorMacro("Could not Send SetToolRevision");
-	  }
-	ca1->Delete();
 
+	if( this->SocketCommunicator->Send(&len, 1, 1, 11) )
+	  {
+	  if( !this->SocketCommunicator->Send(msg, len, 1, 22) )
+	    {
+	    vtkErrorMacro("Could not Send SetToolSerialNumber");
+	    }
+	  }
 	sprintf(msg, "SetToolManufacturer:%d:%s",
 		port, this->Tools[port]->GetToolManufacturer());
 	len = strlen(msg) +1;
 	vtkCharArray *ca2 = vtkCharArray::New();
 	ca2->SetNumberOfComponents(len);
 	ca2->SetArray(msg, len, 1);
-
-	if(!this->SocketCommunicator->Send(ca2,1, 9))
+	if( this->SocketCommunicator->Send(&len, 1, 1, 11) )
 	  {
-	  vtkErrorMacro("Could not Send SetToolManufacturer");
+	  if( !this->SocketCommunicator->Send(msg, len, 1, 22) )
+	    {
+	    vtkErrorMacro("Could not Send SetToolSerialNumber");
+	    }
 	  }
-	ca2->Delete();
 	
 	sprintf(msg, "SetToolType:%d:%s",
 		port, this->Tools[port]->GetToolType());
@@ -925,24 +933,27 @@ void vtkNDITracker::EnableToolPorts()
 	vtkCharArray *ca3 = vtkCharArray::New();
 	ca3->SetNumberOfComponents(len);
 	ca3->SetArray(msg, len, 1);//
-	if(!this->SocketCommunicator->Send(ca3,1, 9))
+	if( this->SocketCommunicator->Send(&len, 1, 1, 11) )
 	  {
-	  vtkErrorMacro("Could not Send SetToolManufacturer");
+	  if( !this->SocketCommunicator->Send(msg, len, 1, 22) )
+	    {
+	    vtkErrorMacro("Could not Send SetToolSerialNumber");
+	    }
 	  }
-	ca3->Delete();
-	
+
 	sprintf(msg, "SetToolPartNumber:%d:%s",
 		port, this->Tools[port]->GetToolPartNumber());
 	len = strlen(msg) + 1;
 	vtkCharArray *ca4 = vtkCharArray::New();
 	ca4->SetNumberOfComponents(len);
 	ca4->SetArray(msg,  len, 1);
-
-	if(!this->SocketCommunicator->Send(ca4,1, 9))
+	if( this->SocketCommunicator->Send(&len, 1, 1, 11) )
 	  {
-	  vtkErrorMacro("Could not Send SetToolManufacturer");
+	  if( !this->SocketCommunicator->Send(msg, len, 1, 22) )
+	    {
+	    vtkErrorMacro("Could not Send SetToolSerialNumber");
+	    }
 	  }
-	ca4->Delete();
 	}
       }
       // done sending the Tool Info
