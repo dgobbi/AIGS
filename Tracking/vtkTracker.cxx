@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: pdas $
-  Date:      $Date: 2007/03/30 15:14:50 $
-  Version:   $Revision: 1.16 $
+  Date:      $Date: 2007/05/30 18:36:48 $
+  Version:   $Revision: 1.17 $
 
 ==========================================================================
 
@@ -769,8 +769,6 @@ void vtkTracker::StartServer()
 //-----------------------------------------------------------------------------
 void vtkTracker::InterpretCommands( char *messageText )
 {
-  vtkIdType t = 0;
-  
   if(!messageText)
     {
     return;
@@ -809,7 +807,6 @@ void vtkTracker::InterpretCommands( char *messageText )
 void vtkTracker::ConvertMessageToBuffer( double *da, 
 					 double *vals, vtkMatrix4x4 *matrix )
 {
-  double t, f;
   double elements[16];
   vals[0] = da[0];
   vals[1] = da[1];
