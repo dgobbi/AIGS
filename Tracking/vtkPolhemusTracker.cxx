@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkPolhemusTracker.cxx,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: dgobbi $
-  Date:      $Date: 2005/06/28 21:21:59 $
-  Version:   $Revision: 1.2 $
+  Author:    $Author: pdas $
+  Date:      $Date: 2007/06/15 18:44:33 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 
@@ -176,7 +176,6 @@ int vtkPolhemusTracker::Probe()
 int vtkPolhemusTracker::InternalStartTracking()
 {
   int errnum,i,baud;
-  char status[128];
 
   switch (this->BaudRate)
     {

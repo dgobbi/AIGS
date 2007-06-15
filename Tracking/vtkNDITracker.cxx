@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
   Author:    $Author: pdas $
-  Date:      $Date: 2007/03/30 15:14:50 $
-  Version:   $Revision: 1.14 $
+  Date:      $Date: 2007/06/15 18:41:47 $
+  Version:   $Revision: 1.15 $
 
 ==========================================================================
 
@@ -605,8 +605,6 @@ void vtkNDITracker::InternalUpdate()
 void vtkNDITracker::LoadVirtualSROM(int tool, const char *filename)
 {
   char buff[1024];
-  unsigned char ubuff[1024];
-  int t = tool;
   if( !this->ServerMode )// client & Normal
     {
     FILE *file = fopen(filename,"rb");
@@ -632,7 +630,6 @@ void vtkNDITracker::LoadVirtualSROM(int tool, const char *filename)
   if(!this->ServerMode && this->RemoteAddress) // client
     {
     int len[1]={1044};
-    char chartool[3];
     char msg[1045];
     memcpy(msg, "LoadVirtualSROM:", 16);
     memcpy(msg+16, "3:", 2);
@@ -1132,7 +1129,7 @@ void vtkNDITracker::InternalLoadVirtualSROM(int tool,
     }
 
   int errnum;
-  int ph;
+  int ph = 0;
   int n, i;
   char hexbuffer[128];
   char location[14];
@@ -1213,7 +1210,6 @@ void vtkNDITracker::InternalInterpretCommand( char * messageText)
     }
 
   int tool = 0;
-  unsigned char *ubuff;
   char *token1 = NULL;
   char *token2= NULL;
   char *token3 = NULL;
