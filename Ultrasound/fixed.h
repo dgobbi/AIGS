@@ -30,8 +30,9 @@ private:
   static inline int point() { return 14; };
 
   static inline int from_float(double x) {
-    x += 412316860416.0; // (2**(52-point()))*1.5
-    return (((int *)(&x)))[0]; }; // warning: some compilers screw this up
+    union { double d; unsigned int i[2]; } dual;
+    dual.d = x + 412316860416.0; // (2**(52-point()))*1.5
+    return dual.i[0]; }; // warning: some compilers screw this up
 
   static inline double to_float(int x) {
     return x*(1.0/(1<<point())); };

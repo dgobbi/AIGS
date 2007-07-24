@@ -32,7 +32,7 @@ Copyright (c) 2000,2002 David Gobbi.
 #include "vtkTrackerTool.h"
 #include "vtkPNGWriter.h"
 
-vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.2 $");
+vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.3 $");
 vtkStandardNewMacro(vtkFreehandUltrasound);
 
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,VideoSource,vtkVideoSource);
@@ -141,6 +141,9 @@ vtkFreehandUltrasound::vtkFreehandUltrasound()
   this->ReconstructionThreadId = -1;
   this->RealTimeReconstruction = 0; // # real-time or buffered
   this->ReconstructionFrameCount = 0; // # of frames to reconstruct
+
+  // counter for the number of pixels inserted
+  this->PixelCount = 0;
 }
 
 //----------------------------------------------------------------------------
@@ -508,13 +511,21 @@ void vtkFreehandUltrasound::ExecuteInformation()
 // and is used a lot in this code, optimize for different CPU architectures
 static inline int vtkUltraFloor(double x)
 {
-#if defined mips || defined sparc
-  return (int)((unsigned int)(x + 2147483648.0) - 2147483648U);
-#elif defined i386
-  double tempval = (x - 0.25) + 3377699720527872.0; // (2**51)*1.5
-  return ((int*)&tempval)[0] >> 1;
+#if defined mips || defined sparc || defined __ppc__
+  x += 2147483648.0;
+  unsigned int i = (unsigned int)(x);
+  return (int)(i - 2147483648U);
+#elif defined i386 || defined _M_IX86
+  union { double d; unsigned short s[4]; unsigned int i[2]; } dual;
+  dual.d = x + 103079215104.0;  // (2**(52-16))*1.5
+  return (int)((dual.i[1]<<16)|((dual.i[0])>>16));
+#elif defined ia64 || defined __ia64__ || defined IA64
+  x += 103079215104.0;
+  long long i = (long long)(x);
+  return (int)(i - 103079215104LL);
 #else
-  return int(floor(x));
+  double y = floor(x);
+  return (int)(y);
 #endif
 }
 
@@ -908,8 +919,10 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
             outPoint[2] /= outPoint[3];
             outPoint[3] = 1;
         
-            interpolate(outPoint, inPtr, outPtr, accPtr, numscalars, 
-                        outExt, outInc);
+            int hit = interpolate(outPoint, inPtr, outPtr, accPtr, numscalars, 
+                                  outExt, outInc);
+
+            self->PixelCount += hit;
             }
           }
         inPtr += numscalars; 
@@ -1497,6 +1510,7 @@ void vtkFreehandUltrasound::InternalClearOutput()
     this->LastIndexMatrix = NULL;
     }
 
+  this->PixelCount = 0;
   this->NeedsClear = 0;
 }
 
@@ -2374,10 +2388,11 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
           outPoint[1] = outPoint1[1] + idX*xAxis[1];
           outPoint[2] = outPoint1[2] + idX*xAxis[2];
           
-          vtkTrilinearInterpolation(outPoint, inPtr, outPtr, accPtr, 
-                                    numscalars, outExt, outInc);
+          int hit = vtkTrilinearInterpolation(outPoint, inPtr, outPtr, accPtr, 
+                                              numscalars, outExt, outInc);
 
           inPtr += numscalars;
+          self->PixelCount += hit;
           }
         }
       else 
@@ -2385,6 +2400,7 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
         vtkFreehandOptimizedNNHelper(r1, r2, outPoint, outPoint1, xAxis, 
                                      inPtr, outPtr, outExt, outInc,
                                      numscalars, accPtr);
+        self->PixelCount += r2-r1+1;
         }
   
       // skip the portion of the slice we don't want to reconstruct

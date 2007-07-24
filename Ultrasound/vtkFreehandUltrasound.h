@@ -115,6 +115,11 @@ public:
   void InsertSlice();
 
   // Description:
+  // Get the number of pixels that have been inserted into the
+  // reconstruction volume so far.
+  vtkGetMacro(PixelCount,int);
+
+  // Description:
   // Clear the data volume.
   void ClearOutput();
 
@@ -212,7 +217,6 @@ public:
   void ThreadedFillExecute(vtkImageData *outData,	
 			   int outExt[6], int threadId);
   
-
 //BTX
   // Description:
   // Not protected because it has to be accessible from reconstruction thread.
@@ -220,6 +224,7 @@ public:
   int RealTimeReconstruction;
   int ReconstructionFrameCount;
   vtkTrackerBuffer *TrackerBuffer;
+  int PixelCount;
 //ETX
 
 protected:
