@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundImageStencilSource.h,v $
   Language:  C++
-  Date:      $Date: 2006/11/11 21:45:51 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2007/07/26 14:18:41 $
+  Version:   $Revision: 1.4 $
   Thanks:    Thanks to David G. Gobbi who developed this class.
 
 Copyright (c) 1993-2001 Ken Martin, Will Schroeder, Bill Lorensen 
@@ -79,19 +79,14 @@ public:
   vtkGetVector2Macro(FanOrigin, double);
   vtkSetMacro(FanDepth, double);
   vtkGetMacro(FanDepth, double);
-  
+
 protected:
   vtkUltrasoundImageStencilSource();
   ~vtkUltrasoundImageStencilSource();
 
-  virtual int RequestData(vtkInformation *request,
-			  vtkInformationVector **inputVector,
-			  vtkInformationVector *outputVector);
-  
-  virtual int RequestInformation(vtkInformation *request,
-                                 vtkInformationVector **inputVector,
-                                 vtkInformationVector *outputVector);
-    
+  void ThreadedExecute(vtkImageStencilData *output,
+		       int extent[6], int threadId);
+
   double ClipRectangle[4];
   double FanAngles[2];
   double FanOrigin[2];

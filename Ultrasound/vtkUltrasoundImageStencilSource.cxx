@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundImageStencilSource.cxx,v $
   Language:  C++
-  Date:      $Date: 2006/11/12 17:08:58 $
-  Version:   $Revision: 1.5 $
+  Date:      $Date: 2007/07/26 14:18:41 $
+  Version:   $Revision: 1.6 $
   Thanks:    Thanks to David G Gobbi who developed this class.
 
 Copyright (c) 1993-2001 Ken Martin, Will Schroeder, Bill Lorensen 
@@ -43,11 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h>
 #include "vtkUltrasoundImageStencilSource.h"
 #include "vtkImageStencilData.h"
-#include "vtkInformation.h"
-#include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
-#include "vtkDataObject.h"
-#include "vtkStreamingDemandDrivenPipeline.h" 
+
 
 //----------------------------------------------------------------------------
 vtkUltrasoundImageStencilSource* vtkUltrasoundImageStencilSource::New()
@@ -65,8 +62,6 @@ vtkUltrasoundImageStencilSource* vtkUltrasoundImageStencilSource::New()
 //----------------------------------------------------------------------------
 vtkUltrasoundImageStencilSource::vtkUltrasoundImageStencilSource()
 {
-  this->SetNumberOfInputPorts(0);
-
   this->ClipRectangle[0] = -1e8;
   this->ClipRectangle[1] = -1e8;
   this->ClipRectangle[2] = +1e8;
@@ -103,36 +98,22 @@ void vtkUltrasoundImageStencilSource::PrintSelf(ostream& os,
 }
 
 //----------------------------------------------------------------------------
-int vtkUltrasoundImageStencilSource::RequestData( 
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **vtkNotUsed(inputVector),
-  vtkInformationVector *outputVector)
+// set up the clipping extents from an implicit function by brute force
+// (i.e. by evaluating the function at each and every voxel)
+void vtkUltrasoundImageStencilSource::ThreadedExecute(vtkImageStencilData 
+                                                      *data,
+                                                      int extent[6], int id)
 {
-  // Get the data
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
-  vtkImageStencilData *data = vtkImageStencilData::SafeDownCast(
-    outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkFloatingPointType *spacing = data->GetSpacing();
+  vtkFloatingPointType *origin = data->GetOrigin();
 
-  // Get the update extent and the data
-  int extent[6];
-  double spacing[3];
-  double origin[3];
-
-  outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
-  outInfo->Get(vtkDataObject::SPACING(), spacing);
-  outInfo->Get(vtkDataObject::ORIGIN(), origin);
-
-  // Allocate the data
-  this->AllocateOutputData(data, extent);
-
-  // Execute
   double xf = (this->GetFanOrigin()[0] - origin[0])/spacing[0];
   double yf = (this->GetFanOrigin()[1] - origin[1])/spacing[1];
 
   double d2 = this->GetFanDepth()*this->GetFanDepth();
 
-  double xs = spacing[0];
-  double ys = spacing[1];
+  vtkFloatingPointType xs = spacing[0];
+  vtkFloatingPointType ys = spacing[1];
 
   double ml = tan(this->GetFanAngles()[0]*0.0174532925199)/xs*ys;
   double mr = tan(this->GetFanAngles()[1]*0.0174532925199)/xs*ys;
@@ -169,12 +150,14 @@ int vtkUltrasoundImageStencilSource::RequestData(
 
     for (int idY = extent[2]; idY <= extent[3]; idY++)
       {
-      // update progress
-      if (count % target == 0) 
-        {
-        this->UpdateProgress(count/(50.0*target));
+      if (id == 0)
+        { // update progress if we're the main thread
+        if (count%target == 0) 
+          {
+          this->UpdateProgress(count/(50.0*target));
+          }
+        count++;
         }
-      count++;
 
       int r1 = extent[0];
       int r2 = extent[1];
@@ -189,7 +172,7 @@ int vtkUltrasoundImageStencilSource::RequestData(
         {
         // first, check the angle range of the fan
         if (r1 < ml*y + xf )
-          {
+            {
           r1 = int(ceil(ml*y + xf));
           }
         if (r2 > mr*y + xf)
@@ -240,26 +223,4 @@ int vtkUltrasoundImageStencilSource::RequestData(
         }
       }
     }
-
-  return 1;
-}
-
-
-int vtkUltrasoundImageStencilSource::RequestInformation(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **vtkNotUsed(inputVector),
-  vtkInformationVector *outputVector)
-{
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
-  
-  // this is an odd source that can produce any requested size.  so its whole
-  // extent is essentially infinite. This would not be a great source to
-  // connect to some sort of writer or viewer. For a sanity check we will
-  // limit the size produced to something reasonable (depending on your
-  // definition of reasonable)
-  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
-               - (VTK_LARGE_INTEGER >> 2) - 1, VTK_LARGE_INTEGER >> 2,
-               - (VTK_LARGE_INTEGER >> 2) - 1, VTK_LARGE_INTEGER >> 2,
-               - (VTK_LARGE_INTEGER >> 2) - 1, VTK_LARGE_INTEGER >> 2);
-  return 1;
 }
