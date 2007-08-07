@@ -18,10 +18,15 @@ Copyright (c) 2000,2002 David Gobbi.
 #endif
 
 #include "fixed.h"
+#include "vtkStreamingDemandDrivenPipeline.h"
+#include "vtkExecutive.h"
+#include "vtkInformation.h"
+#include "vtkInformationVector.h"
 #include "vtkFreehandUltrasound.h"
 #include "vtkMath.h"
 #include "vtkMatrix4x4.h"
 #include "vtkTransform.h"
+#include "vtkImageAlgorithm.h"
 #include "vtkImageData.h"
 #include "vtkMultiThreader.h"
 #include "vtkCriticalSection.h"
@@ -32,12 +37,10 @@ Copyright (c) 2000,2002 David Gobbi.
 #include "vtkTrackerTool.h"
 #include "vtkPNGWriter.h"
 
-vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.3 $");
+vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.4 $");
 vtkStandardNewMacro(vtkFreehandUltrasound);
-
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,VideoSource,vtkVideoSource);
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,TrackerTool,vtkTrackerTool);
-vtkCxxSetObjectMacro(vtkFreehandUltrasound,Slice,vtkImageData);
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,SliceAxes,vtkMatrix4x4);
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,SliceTransform,vtkLinearTransform);
 
@@ -52,17 +55,26 @@ struct vtkFreehandThreadStruct
 //----------------------------------------------------------------------------
 vtkFreehandUltrasound::vtkFreehandUltrasound()
 {
+  this->SetNumberOfInputPorts(1);
+  this->SetNumberOfOutputPorts(1);
+ 
   // set the video lag (i.e the lag between tracking information and
   // video information)
   this->VideoLag = 0.0;
-
+  this->PixelCount = 0;
   // set up the output (it will have been created in the superclass)
   // (the output is the reconstruction volume, the second component
   // is the alpha component that stores whether or not a voxel has
   // been touched by the reconstruction)
-  this->GetOutput()->SetScalarType(VTK_UNSIGNED_CHAR);
-  this->GetOutput()->SetNumberOfScalarComponents(2);
-
+ 
+  if(this->GetExecutive())
+    {
+    cout<<"Executive Set\n";
+    if(this->GetExecutive()->GetOutputInformation())
+      {
+      cout<<"output port info\n";
+      }
+    }
   // also see ExecuteInformation for how these are set
   this->OutputSpacing[0] = 1.0;
   this->OutputSpacing[1] = 1.0;
@@ -82,7 +94,7 @@ vtkFreehandUltrasound::vtkFreehandUltrasound()
   // accumulation buffer is for compounding, there is a voxel in
   // the accumulation buffer for each voxel in the output
   this->AccumulationBuffer = vtkImageData::New();
-
+   
   // this is set if some parameter is changed which causes the data
   // in the output to become invalid: the output will be erased
   // during the next ExecuteInformation
@@ -101,7 +113,7 @@ vtkFreehandUltrasound::vtkFreehandUltrasound()
 
   // the slice is the vtkImageData 'slice' (kind of like an input)
   // that is inserted into the reconstructed 3D volume (the output)
-  this->Slice = NULL;
+  //this->Slice = NULL;
 
   // the slice axes matrix and slice transform together give the
   // coordinate transformation from the local coordinate system
@@ -141,9 +153,6 @@ vtkFreehandUltrasound::vtkFreehandUltrasound()
   this->ReconstructionThreadId = -1;
   this->RealTimeReconstruction = 0; // # real-time or buffered
   this->ReconstructionFrameCount = 0; // # of frames to reconstruct
-
-  // counter for the number of pixels inserted
-  this->PixelCount = 0;
 }
 
 //----------------------------------------------------------------------------
@@ -181,6 +190,47 @@ vtkFreehandUltrasound::~vtkFreehandUltrasound()
     {
     this->ReconstructionThreader->Delete();
     }
+}
+
+//----------------------------------------------------------------------------
+void vtkFreehandUltrasound::SetSlice(vtkImageData *slice)
+{  
+  if( slice )
+    {
+    this->SetInputConnection(0, slice->GetProducerPort());
+    }
+}
+
+// vtkImageData* vtkFreehandUltrasound::GetReconImage()
+// {
+//   return this->ReconImage;
+// }
+//----------------------------------------------------------------------------
+vtkImageData* vtkFreehandUltrasound::GetSlice()
+{
+  if (this->GetNumberOfInputConnections(0) < 1)
+    {
+    return NULL;
+    }
+  
+  if (this->GetExecutive())
+    {
+    return vtkImageData::SafeDownCast(
+      this->GetExecutive()->GetInputData(0, 0));
+    }
+  else
+    {
+    cout<< "GetSlice: Executive = NULL \n";
+    exit(0);
+    }
+}
+
+//----------------------------------------------------------------------------
+vtkImageData *vtkFreehandUltrasound::GetOutput()
+{
+  if(this->GetOutputDataObject(0))
+   return vtkImageData::SafeDownCast(this->GetOutputDataObject(0));
+   else return NULL;
 }
 
 //----------------------------------------------------------------------------
@@ -247,7 +297,7 @@ void vtkFreehandUltrasound::GetClipExtent(int clipExt[6],
 // index transformation matrix for each.
 // This method is currently not used, so chances are very good that
 // it will NOT provide the correct result.
-double vtkFreehandUltrasound::CalculateMaxSliceSeparation(vtkMatrix4x4 *m1,
+double vtkFreehandUltrasound::SliceCalculateMaxSliceSeparation(vtkMatrix4x4 *m1,
                                                           vtkMatrix4x4 *m2)
 {
   // The first thing to do is find the four corners of the plane.
@@ -337,7 +387,7 @@ double vtkFreehandUltrasound::CalculateMaxSliceSeparation(vtkMatrix4x4 *m1,
 //----------------------------------------------------------------------------
 void vtkFreehandUltrasound::PrintSelf(ostream& os, vtkIndent indent)
 {
-  vtkImageSource::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os,indent);
 
   os << indent << "VideoLag: " << this->VideoLag << "\n";
 
@@ -373,7 +423,7 @@ void vtkFreehandUltrasound::PrintSelf(ostream& os, vtkIndent indent)
 //  any sense here?]
 unsigned long int vtkFreehandUltrasound::GetMTime()
 {
-  unsigned long mTime=this->vtkImageSource::GetMTime();
+  unsigned long mTime=this->Superclass::GetMTime();
   unsigned long time;
 
   if ( this->SliceTransform != NULL )
@@ -391,22 +441,210 @@ unsigned long int vtkFreehandUltrasound::GetMTime()
 // In most VTK classes this method is responsible for calling Execute,
 // but since the output data has already been generated it just fools
 // the pipeline into thinking that Execute has been called.
-void vtkFreehandUltrasound::UpdateData(vtkDataObject *outObject) 
+// VTK 5: change to RequestData method
+
+//----------------------------------------------------------------------------
+int vtkFreehandUltrasound::RequestData(vtkInformation* request,
+				      vtkInformationVector **vtkNotUsed(inInfo),
+					vtkInformationVector* outInfo)
 {
+  vtkDataObject *outObject = 
+    outInfo->GetInformationObject(0)->Get(vtkDataObject::DATA_OBJECT());
+
   if (this->ReconstructionThreadId == -1 && this->NeedsClear == 1)
     {
     this->InternalClearOutput();
     }
 
   ((vtkImageData *)outObject)->DataHasBeenGenerated();
+
+  return 1;
+}
+// VTK 4
+// void vtkFreehandUltrasound::UpdateData(vtkDataObject *outObject) 
+// {
+//   if (this->ReconstructionThreadId == -1 && this->NeedsClear == 1)
+//     {
+//     this->InternalClearOutput();//     }
+
+//   ((vtkImageData *)outObject)->DataHasBeenGenerated();
+// }
+
+
+//----------------------------------------------------------------------------
+int vtkFreehandUltrasound::RequestInformation(
+  vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** vtkNotUsed(inInfo),
+  vtkInformationVector* outInfoVector)
+{
+  // to avoid conflict between the main application thread and the
+  // realtime reconstruction thread
+  if (this->ReconstructionThreadId == -1)
+    {
+    //this->InternalExecuteInformation();
+    vtkInformation *outInfo = outInfoVector->GetInformationObject(0);
+    vtkImageData *output = 
+      dynamic_cast<vtkImageData *>(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+    int oldwholeextent[6];
+    vtkFloatingPointType oldspacing[3];
+    vtkFloatingPointType oldorigin[3];
+    int oldtype = output->GetScalarType();
+    int oldncomponents = output->GetNumberOfScalarComponents();
+    output->GetWholeExtent(oldwholeextent);
+    output->GetSpacing(oldspacing);
+    output->GetOrigin(oldorigin);
+    
+    if (this->GetVideoSource())
+      {
+      if (this->GetSlice() == 0)
+	{
+	this->SetSlice( this->GetVideoSource()->GetOutput());
+	//this->Slice->Register(this);
+	}
+      }
+  
+    if (this->GetSlice())
+      {
+      this->GetSlice()->UpdateInformation();
+      vtkDataObject::
+	SetPointDataActiveScalarInfo(outInfo,
+				     this->GetSlice()->GetScalarType(),
+				     this->GetSlice()->
+				     GetNumberOfScalarComponents()+1);
+      
+      output->SetScalarType(this->GetSlice()->GetScalarType());
+      output->SetNumberOfScalarComponents(this->GetSlice()->
+					  GetNumberOfScalarComponents()+1);
+      outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
+		   this->OutputExtent, 6);
+      outInfo->Set(vtkDataObject::SPACING(),
+		   this->OutputSpacing, 3);
+      outInfo->Set(vtkDataObject::ORIGIN(),
+		   this->OutputOrigin, 3);
+      output->SetExtent(this->OutputExtent);
+      output->SetWholeExtent(this->OutputExtent);
+      output->SetSpacing(this->OutputSpacing);
+      output->SetOrigin(this->OutputOrigin);
+    
+          
+    // check to see if output has changed
+    if (oldtype != output->GetScalarType() ||
+	oldncomponents != output->GetNumberOfScalarComponents() ||
+	oldwholeextent[0] != this->OutputExtent[0] ||
+	oldwholeextent[1] != this->OutputExtent[1] ||
+	oldwholeextent[2] != this->OutputExtent[2] ||
+	oldwholeextent[3] != this->OutputExtent[3] ||
+	oldwholeextent[4] != this->OutputExtent[4] ||
+	oldwholeextent[5] != this->OutputExtent[5] ||
+	oldspacing[0] != this->OutputSpacing[0] ||
+	oldspacing[1] != this->OutputSpacing[1] ||
+	oldspacing[2] != this->OutputSpacing[2] ||
+	oldorigin[0] != this->OutputOrigin[0] ||
+	oldorigin[1] != this->OutputOrigin[1] ||
+	oldorigin[2] != this->OutputOrigin[2])
+      {
+      
+      if (oldwholeextent[0] != this->OutputExtent[0] ||
+	  oldwholeextent[1] != this->OutputExtent[1] ||
+	  oldwholeextent[2] != this->OutputExtent[2] ||
+	  oldwholeextent[3] != this->OutputExtent[3] ||
+	  oldwholeextent[4] != this->OutputExtent[4] ||
+	  oldwholeextent[5] != this->OutputExtent[5])
+	{
+// 	cout << "extent "
+// 	     << oldwholeextent[0] << " " << oldwholeextent[1] << " "
+// 	     << oldwholeextent[2] << " " << oldwholeextent[3] << " "
+// 	     << oldwholeextent[4] << " " << oldwholeextent[5] << "\n"
+// 	     << this->OutputExtent[0] << " " << this->OutputExtent[1] << " "
+// 	     << this->OutputExtent[2] << " " << this->OutputExtent[3] << " "
+// 	     << this->OutputExtent[4] << " " << this->OutputExtent[5] << "\n";
+	}
+      
+      this->NeedsClear = 1;
+      }
+
+    if (this->Compounding)
+      {
+      this->AccumulationBuffer->SetScalarType(VTK_UNSIGNED_SHORT);
+      this->AccumulationBuffer->SetWholeExtent(this->OutputExtent);
+      this->AccumulationBuffer->SetSpacing(this->OutputSpacing);
+      this->AccumulationBuffer->SetOrigin(this->OutputOrigin);
+      int *extent = this->AccumulationBuffer->GetExtent();
+      if (extent[0] != this->OutputExtent[0] ||
+	  extent[1] != this->OutputExtent[1] ||
+	  extent[2] != this->OutputExtent[2] ||
+	  extent[3] != this->OutputExtent[3] ||
+	  extent[4] != this->OutputExtent[4] ||
+	  extent[5] != this->OutputExtent[5])
+	{
+	this->NeedsClear = 1;
+	}
+      }
+    }
+    }
+  return 1;
+}
+
+//----------------------------------------------------------------------------
+int  vtkFreehandUltrasound::RequestUpdateExtent(
+  vtkInformation *vtkNotUsed(request),
+  vtkInformationVector **inputVector,
+  vtkInformationVector *vtkNotUsed(outputVector))
+{
+  int inExt[6];
+  this->GetSlice()->GetWholeExtent();
+  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
+
+  inInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), inExt);
+  inInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), inExt, 6);
+  return 1;
+}
+
+// void vtkFreehandUltrasound::ExecuteInformation() 
+// {
+//   // to avoid conflict between the main application thread and the
+//   // realtime reconstruction thread
+//   if (this->ReconstructionThreadId == -1)
+//     {
+//     //    this->InternalExecuteInformation();
+//     }
+// }
+
+//----------------------------------------------------------------------------
+int vtkFreehandUltrasound::FillOutputPortInformation(
+  int vtkNotUsed(port), vtkInformation* info)
+{
+  cout<<"Fill Output Information\n";
+  info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkImageData");
+ 
+  return 1;
+}
+
+
+//----------------------------------------------------------------------------
+int  vtkFreehandUltrasound::FillInputPortInformation(
+  int port, vtkInformation* info)
+{
+  if (port == 0)
+    {
+    // The feature image input
+    //info->Set(vtkAlgorithm::INPUT_IS_OPTIONAL());
+    info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkImageData");
+  
+    }
 }
 
 //----------------------------------------------------------------------------
 // The ExecuteInformation gets the Output ready to receive data, so we
 // need to call it before the reconstruction starts.
+// VTK 5: change to "InternalRequestInformation", with the same
+// parameters and functionality as a RequestInformation method
+// it can return a vtkInformationVector */ vtkInformation * must
+// update the information for the output & the accumulation buffer
 void vtkFreehandUltrasound::InternalExecuteInformation() 
 {
   vtkImageData *output = this->GetOutput();
+  vtkInformation *outInfo = output->GetPipelineInformation();
   int oldwholeextent[6];
   vtkFloatingPointType oldspacing[3];
   vtkFloatingPointType oldorigin[3];
@@ -418,52 +656,89 @@ void vtkFreehandUltrasound::InternalExecuteInformation()
 
   if (this->GetVideoSource())
     {
-    if (this->Slice == 0)
+    if (this->GetSlice() == 0)
       {
-      this->Slice = this->GetVideoSource()->GetOutput();
-      this->Slice->Register(this);
+      this->SetSlice( this->GetVideoSource()->GetOutput());
+      //this->Slice->Register(this);
       }
     }
   // the 'Slice' is not an input, but it is like an input
-  if (this->Slice)
+  if (this->GetSlice())
     {
-    this->Slice->UpdateInformation();
-    output->SetScalarType(this->Slice->GetScalarType());
-    output->SetNumberOfScalarComponents(this->Slice->\
-                                        GetNumberOfScalarComponents()+1);
-    // the PipelineMTime() is usually handled in the superclass,
-    //  but because 'Slice' is registered as an input it has
-    //  to be done here instead.
-    unsigned long mtime = this->Slice->GetPipelineMTime();
-    if (mtime > output->GetPipelineMTime())
-      {
-      output->SetPipelineMTime(mtime);
-      }
-    }
+    this->GetSlice()->UpdateInformation();// update the slice info
+    // VTK 5: Done inside the Request Information 
 
+    // Set up the pipeline (need outInfo from the pipeline)
+    // vtkDataObject::
+//       SetPointDataActiveScalarInfo(outInfo,
+// 				   this->GetSlice()->GetScalarType(),
+// 				   this->GetSlice()->
+// 				   GetNumberOfScalarComponents()+1);
+    
+    // Set up the data object to make sure everything is in sync
+    // (don't trust pipeline mechanism to copy pipeline info to data)
+    
+  //   output->SetScalarType(this->GetSlice()->GetScalarType());
+//     output->SetNumberOfScalarComponents(this->GetSlice()->
+//                                         GetNumberOfScalarComponents()+1);
+   
+//*****
+//  For VTK 5, this was moved into ComputePipelineMTIme()
+//    unsigned long mtime = this->GetSlice()->GetPipelineMTime(); 
+    //for compiling temporarily turned off
+    // if (mtime > output->GetPipelineMTime())
+//       {
+//       output->SetPipelineMTime(mtime);
+//       }
+    }    
+ 
   // set up the output dimensions and info here
-  output->SetWholeExtent(this->OutputExtent);
-  output->SetSpacing(this->OutputSpacing);
-  output->SetOrigin(this->OutputOrigin);
+ //  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
+// 	       this->OutputExtent, 6);
+//   outInfo->Set(vtkDataObject::SPACING(),
+// 	       this->OutputSpacing, 3);
+//   outInfo->Set(vtkDataObject::ORIGIN(),
+// 	       this->OutputOrigin, 3);
+
+//   output->SetWholeExtent(this->OutputExtent);
+//   output->SetSpacing(this->OutputSpacing);
+//   output->SetOrigin(this->OutputOrigin);
 
   // check to see if output has changed
-  if (oldtype != output->GetScalarType() ||
-      oldncomponents != output->GetNumberOfScalarComponents() ||
-      oldwholeextent[0] != this->OutputExtent[0] ||
-      oldwholeextent[1] != this->OutputExtent[1] ||
-      oldwholeextent[2] != this->OutputExtent[2] ||
-      oldwholeextent[3] != this->OutputExtent[3] ||
-      oldwholeextent[4] != this->OutputExtent[4] ||
-      oldwholeextent[5] != this->OutputExtent[5] ||
-      oldspacing[0] != this->OutputSpacing[0] ||
-      oldspacing[1] != this->OutputSpacing[1] ||
-      oldspacing[2] != this->OutputSpacing[2] ||
-      oldorigin[0] != this->OutputOrigin[0] ||
-      oldorigin[1] != this->OutputOrigin[1] ||
-      oldorigin[2] != this->OutputOrigin[2])
-    {
-    this->NeedsClear = 1;
-    }
+ //  if (oldtype != output->GetScalarType() ||
+//       oldncomponents != output->GetNumberOfScalarComponents() ||
+//       oldwholeextent[0] != this->OutputExtent[0] ||
+//       oldwholeextent[1] != this->OutputExtent[1] ||
+//       oldwholeextent[2] != this->OutputExtent[2] ||
+//       oldwholeextent[3] != this->OutputExtent[3] ||
+//       oldwholeextent[4] != this->OutputExtent[4] ||
+//       oldwholeextent[5] != this->OutputExtent[5] ||
+//       oldspacing[0] != this->OutputSpacing[0] ||
+//       oldspacing[1] != this->OutputSpacing[1] ||
+//       oldspacing[2] != this->OutputSpacing[2] ||
+//       oldorigin[0] != this->OutputOrigin[0] ||
+//       oldorigin[1] != this->OutputOrigin[1] ||
+//       oldorigin[2] != this->OutputOrigin[2])
+//     {
+//     cout<<"InternalExecuteInformation: NeedsClear = 1\n";
+//     if (oldwholeextent[0] != this->OutputExtent[0] ||
+//       oldwholeextent[1] != this->OutputExtent[1] ||
+//       oldwholeextent[2] != this->OutputExtent[2] ||
+//       oldwholeextent[3] != this->OutputExtent[3] ||
+//       oldwholeextent[4] != this->OutputExtent[4] ||
+//       oldwholeextent[5] != this->OutputExtent[5])
+//       {
+//       cout << "extent "
+// 	   << oldwholeextent[0] << " " << oldwholeextent[1] << " "
+// 	   << oldwholeextent[2] << " " << oldwholeextent[3] << " "
+// 	   << oldwholeextent[4] << " " << oldwholeextent[5] << "\n"
+// 	   << this->OutputExtent[0] << " " << this->OutputExtent[1] << " "
+// 	   << this->OutputExtent[2] << " " << this->OutputExtent[3] << " "
+// 	   << this->OutputExtent[4] << " " << this->OutputExtent[5] << "\n";
+//       }
+
+//     this->NeedsClear = 1;
+//     }
 
   // set up the accumulation buffer to be the same size as the
   // output
@@ -487,16 +762,36 @@ void vtkFreehandUltrasound::InternalExecuteInformation()
 }
 
 //----------------------------------------------------------------------------
-void vtkFreehandUltrasound::ExecuteInformation() 
-{
-  // to avoid conflict between the main application thread and the
-  // realtime reconstruction thread
-  if (this->ReconstructionThreadId == -1)
-    {
-    this->InternalExecuteInformation();
-    }
-}
+// VTK 5: Change to a VTK 5 style RequestInformation method
 
+// could be equivalent to UpdateInformation() which calls
+// DemandDrivenPipeline->UpdateInformation and it in turn calls 
+// vtkImageAlgorithm::ProcessRequest()
+
+// void vtkFreehandUltrasound::UpdateInformation()
+// {
+//   if (this->ReconstructionThreadId == -1)
+//     {
+//     this->Superclass::UpdateInformation();
+//     }
+// }
+
+//----------------------------------------------------------------------------
+int vtkFreehandUltrasound::ComputePipelineMTime(
+  vtkInformation *vtkNotUsed(request),
+  vtkInformationVector **vtkNotUsed(inInfoVec),
+  vtkInformationVector *vtkNotUsed(outInfoVec),
+  int requestFromOutputPort,
+  unsigned long* mtime)
+{
+  if(this->GetSlice())
+    {
+    *mtime = this->GetSlice()->GetPipelineMTime(); 
+    
+    //  cout<<"\nPipeline time After : "<< this->GetSlice()->GetMTime()<<endl;
+    }
+  return 1;
+}
 //----------------------------------------------------------------------------
 //  Interpolation subroutines and associated code
 //----------------------------------------------------------------------------
@@ -509,6 +804,18 @@ void vtkFreehandUltrasound::ExecuteInformation()
 
 // The 'floor' function on x86 and mips is many times slower than these
 // and is used a lot in this code, optimize for different CPU architectures
+// static inline int vtkUltraFloor(double x)
+// {
+// #if defined mips || defined sparc
+//   return (int)((unsigned int)(x + 2147483648.0) - 2147483648U);
+// #elif defined i386
+//   double tempval = (x - 0.25) + 3377699720527872.0; // (2**51)*1.5
+//   return ((int*)&tempval)[0] >> 1;
+// #else
+//   return int(floor(x));
+// #endif
+// }
+
 static inline int vtkUltraFloor(double x)
 {
 #if defined mips || defined sparc || defined __ppc__
@@ -856,7 +1163,6 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
   
   inData->GetSpacing(inSpacing);
   inData->GetOrigin(inOrigin);
-
   double xf = (self->GetFanOrigin()[0]-inOrigin[0])/inSpacing[0];
   double yf = (self->GetFanOrigin()[1]-inOrigin[1])/inSpacing[1];
 
@@ -876,7 +1182,8 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
     }
 
   self->GetClipExtent(clipExt, inOrigin, inSpacing, inExt);
-
+  cout<<"ClipExtent: ("<<clipExt[0]<<", "<<clipExt[1]<<", "
+      <<clipExt[2]<<", "<<clipExt[3]<<", "<<clipExt[4]<<", "<<clipExt[5]<<")\n";
   // find maximum output range
   outData->GetExtent(outExt);
   
@@ -904,8 +1211,28 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
           {
           double x = (idX-xf);
           double y = (idY-yf);
-          if ((ml == 0 && mr == 0) || y > 0 &&
-              ((x*x)*(xs*xs)+(y*y)*(ys*ys) < d2 && x/y >= ml && x/y <= mr))
+	//   if(ml == 0 && mr == 0)
+// 	    {
+// 	    cout<<"ml == 0 && mr == 0"<<endl;
+// 	    }
+// 	  if(y > 0)
+// 	    {
+// 	    cout<<"y > 0"<<endl;
+// 	    }
+// 	  if ((x*x)*(xs*xs)+(y*y)*(ys*ys) < d2)
+// 	    {
+// 	    cout<<(x*x)*(xs*xs)+(y*y)*(ys*ys)<<" < "<<d2<<endl;
+// 	    }
+// 	  if(x/y >= ml)
+// 	    {
+// 	    cout<<"x/y: "<<x/y <<" >= "<<ml<<endl;
+// 	    }
+// 	  if(x/y <= mr)
+// 	    {
+// 	    cout<<"x/y <= mr: "<<x/y <<" <= "<<mr<<endl;
+// 	    }
+          if (((ml == 0 && mr == 0) || y > 0 &&
+              ((x*x)*(xs*xs)+(y*y)*(ys*ys) < d2 && x/y >= ml && x/y <= mr)))
             {  
             inPoint[0] = idX;
             inPoint[1] = idY;
@@ -920,9 +1247,9 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
             outPoint[3] = 1;
         
             int hit = interpolate(outPoint, inPtr, outPtr, accPtr, numscalars, 
-                                  outExt, outInc);
-
-            self->PixelCount += hit;
+                        outExt, outInc);
+	    self->SetPixelCount( self->GetPixelCount() + hit);
+	    
             }
           }
         inPtr += numscalars; 
@@ -931,7 +1258,9 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
       }
     inPtr += inIncZ;
     }
+  cout<<"PixelCount: "<<self->PixelCount<<endl;
 }
+
 
 //----------------------------------------------------------------------------
 // This method is passed a input and output region, and executes the filter
@@ -940,6 +1269,7 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
 // the regions data types.
 void vtkFreehandUltrasound::InsertSlice()
 {
+  
   if (this->GetOptimization())
     {
     this->OptimizedInsertSlice();
@@ -996,12 +1326,13 @@ void vtkFreehandUltrasound::InsertSlice()
   // input coords -> output coords it takes output indices -> input indices
   vtkMatrix4x4 *matrix = this->GetIndexMatrix();
 
-  if (this->LastIndexMatrix && 
-      this->CalculateMaxSliceSeparation(matrix,this->LastIndexMatrix) < 1.0)
-    {
-    return;
-    }
-
+  // Never fully implemented, so comment it out 
+  //if (this->LastIndexMatrix && 
+  //    this->CalculateMaxSliceSeparation(matrix,this->LastIndexMatrix) < 1.0)
+  //  {
+  //  return;
+  //  }
+  // cout<<"InsertSlice -- before switch";
   if (this->LastIndexMatrix == 0)
     {
     this->LastIndexMatrix = vtkMatrix4x4::New();
@@ -1033,7 +1364,7 @@ void vtkFreehandUltrasound::InsertSlice()
       return;
     }
 
-  this->Modified();
+  // this->Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -1049,7 +1380,7 @@ static void vtkFreehandUltrasoundFillHolesInOutput(vtkFreehandUltrasound *self,
   int accIncX, accIncY, accIncZ;
   int startX, endX, numscalars;
   int c;
-
+  cout<<"PixelCount: "<<self->PixelCount<<endl;
   // clip the extent by 1 voxel width relative to whole extent
   int *outWholeExt = outData->GetWholeExtent();
   int extent[6];
@@ -1363,7 +1694,7 @@ VTK_THREAD_RETURN_TYPE vtkFreehandThreadedFillExecute( void *arg )
 
   // execute the actual method with appropriate extent
   // first find out how many pieces extent can be split into.
-  total = str->Filter->SplitExtent(splitExt, ext, threadId, threadCount);
+  total = str->Filter->SplitSliceExtent(splitExt, ext, threadId, threadCount);
   //total = 1;
   
   if (threadId < total)
@@ -1398,9 +1729,11 @@ void vtkFreehandUltrasound::MultiThreadFill(vtkImageData *outData)
 //----------------------------------------------------------------------------
 void vtkFreehandUltrasound::FillHolesInOutput()
 {
-  this->InternalExecuteInformation();
+//  this->InternalExecuteInformation();
+  this->GetOutput()->Update();
   if (this->NeedsClear)
     {
+    this->UpdateInformation();
     this->InternalClearOutput();
     }
 
@@ -1467,6 +1800,7 @@ void vtkFreehandUltrasound::ClearOutput()
 
   if (this->ReconstructionThreadId == -1)
     {
+    this->UpdateInformation();
     this->InternalClearOutput();
     }
 
@@ -1476,8 +1810,8 @@ void vtkFreehandUltrasound::ClearOutput()
 //----------------------------------------------------------------------------
 void vtkFreehandUltrasound::InternalClearOutput()
 {
-  this->UpdateInformation();
-
+  //this->UpdateInformation();
+  // cout<<"InternalClearOutput()"<<endl;
   int *outExtent = this->OutputExtent;
 
   vtkImageData *outData = this->GetOutput();
@@ -1487,17 +1821,20 @@ void vtkFreehandUltrasound::InternalClearOutput()
   outData->AllocateScalars();
 
   void *outPtr = outData->GetScalarPointerForExtent(outExtent);
-  memset(outPtr,0,(outExtent[1]-outExtent[0]+1)*
-                  (outExtent[3]-outExtent[2]+1)*
-                  (outExtent[5]-outExtent[4]+1)*
-                  numScalars*outData->GetScalarSize());
+ //  memset(outPtr,255,(outExtent[1]-outExtent[0]+1)*
+// 	 (outExtent[3]-outExtent[2]+1)*
+// 	 (outExtent[5]-outExtent[4]+1)*
+// 	 numScalars*outData->GetScalarSize()/2);
+  // memset(outPtr,0,(outExtent[1]-outExtent[0]+1)*
+// 	 (outExtent[3]-outExtent[2]+1)*
+// 	 (outExtent[5]-outExtent[4]+1)*
+// 	 numScalars*outData->GetScalarSize());
 
   if (this->Compounding)
     {
     this->AccumulationBuffer->SetExtent(outExtent);
     this->AccumulationBuffer->AllocateScalars();
-    void *accPtr = this->AccumulationBuffer->\
-      GetScalarPointerForExtent(outExtent);
+    void *accPtr = this->AccumulationBuffer->GetScalarPointerForExtent(outExtent);
     memset(accPtr,0,(outExtent[1]-outExtent[0]+1)*
                     (outExtent[3]-outExtent[2]+1)*
                     (outExtent[5]-outExtent[4]+1)*
@@ -1510,7 +1847,6 @@ void vtkFreehandUltrasound::InternalClearOutput()
     this->LastIndexMatrix = NULL;
     }
 
-  this->PixelCount = 0;
   this->NeedsClear = 0;
 }
 
@@ -2227,7 +2563,7 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
                                     vtkImageData *inData, T *inPtr,
                                     int inExt[6],
                                     F matrix[4][4])
-{
+{//cout<<"vtkOptimizedInsertSlice\n";
   int id = 0;
   int i, numscalars;
   int idX, idY, idZ;
@@ -2389,10 +2725,10 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
           outPoint[2] = outPoint1[2] + idX*xAxis[2];
           
           int hit = vtkTrilinearInterpolation(outPoint, inPtr, outPtr, accPtr, 
-                                              numscalars, outExt, outInc);
+                                    numscalars, outExt, outInc);
 
           inPtr += numscalars;
-          self->PixelCount += hit;
+	  self->PixelCount += hit;
           }
         }
       else 
@@ -2400,7 +2736,7 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
         vtkFreehandOptimizedNNHelper(r1, r2, outPoint, outPoint1, xAxis, 
                                      inPtr, outPtr, outExt, outInc,
                                      numscalars, accPtr);
-        self->PixelCount += r2-r1+1;
+	self->PixelCount += r2-r1+1;
         }
   
       // skip the portion of the slice we don't want to reconstruct
@@ -2436,12 +2772,13 @@ VTK_THREAD_RETURN_TYPE vtkFreehandThreadedExecute( void *arg )
 
   // execute the actual method with appropriate extent
   // first find out how many pieces extent can be split into.
-  total = str->Filter->SplitExtent(splitExt, ext, threadId, threadCount);
+  total = str->Filter->SplitSliceExtent(splitExt, ext, threadId, threadCount);
   //total = 1;
   
   if (threadId < total)
     {
-    str->Filter->ThreadedExecute(str->Input, str->Output, splitExt, threadId);
+    str->Filter->ThreadedSliceExecute(str->Input, str->Output,
+				      splitExt, threadId);
     }
   // else
   //   {
@@ -2460,13 +2797,15 @@ VTK_THREAD_RETURN_TYPE vtkFreehandThreadedExecute( void *arg )
 // This method returns the number of peices resulting from a successful split.
 // This can be from 1 to "total".  
 // If 1 is returned, the extent cannot be split.
-int vtkFreehandUltrasound::SplitExtent(int splitExt[6], int startExt[6], 
-                                       int num, int total)
+int vtkFreehandUltrasound::SplitSliceExtent(int splitExt[6],
+					     int startExt[6], 
+					     int num, int total)
 {
   int splitAxis;
   int min, max;
 
-  vtkDebugMacro("SplitExtent: ( " << startExt[0] << ", " << startExt[1] << ", "
+  vtkDebugMacro("SplitSliceExtent: ( " << startExt[0] << ", " << startExt[1]
+		<< ", "
                 << startExt[2] << ", " << startExt[3] << ", "
                 << startExt[4] << ", " << startExt[5] << "), " 
                 << num << " of " << total);
@@ -2521,7 +2860,6 @@ void vtkFreehandUltrasound::MultiThread(vtkImageData *inData,
   str.Output = outData;
   
   this->Threader->SetNumberOfThreads(this->NumberOfThreads);
-  
   // setup threading and the invoke threadedExecute
   this->Threader->SetSingleMethod(vtkFreehandThreadedExecute, &str);
   this->Threader->SingleMethodExecute();
@@ -2530,12 +2868,18 @@ void vtkFreehandUltrasound::MultiThread(vtkImageData *inData,
 
 void vtkFreehandUltrasound::OptimizedInsertSlice()
 {
+//  cout<<"OptimizedInserSlice: \t NeedsClear -
+//  "<<this->NeedsClear<<endl;
+  // cout<<"OptimizedInserSlice: \t ReconstructionThreadId - "
+  //    <<this->ReconstructionThreadId<<endl;
   if (this->ReconstructionThreadId == -1)
     {
+    this->GetOutput()->Update();
     this->InternalExecuteInformation();
     }
   if (this->NeedsClear)
     {
+    this->UpdateInformation();
     this->InternalClearOutput();
     }
 
@@ -2552,9 +2896,10 @@ void vtkFreehandUltrasound::OptimizedInsertSlice()
     inData->SetUpdateExtent(clipExt);
     inData->Update();
   }
-
+  // cout<<" OptimizedInsertSlice : Before Multithread\n";
   this->MultiThread(inData, outData);
-
+  // cout<<" OptimizedInsertSlice : After Multithread\n";
+ 
   this->Modified();
 }
 
@@ -2563,12 +2908,24 @@ void vtkFreehandUltrasound::OptimizedInsertSlice()
 // algorithm to fill the output from the input.
 // It just executes a switch statement to call the correct function for
 // the regions data types.
-void vtkFreehandUltrasound::ThreadedExecute(vtkImageData *inData, 
-                                            vtkImageData *outData,
-                                            int inExt[6], int threadId)
-{
-  // fprintf(stderr,"inExt %d %d %d %d %d %d\n",inExt[0],inExt[1],inExt[2],inExt[3],inExt[4],inExt[5]);
 
+// void vtkFreehandUltrasound::ThreadedRequestData
+// (vtkInformation *,
+//  vtkInformationVector **,
+//  vtkInformationVector*,
+//   vtkImageData ***inputData, 
+//  vtkImageData **outputData,
+//  int inExt[6], int threadId)
+// {
+//   // fprintf(stderr,"inExt %d %d %d %d %d %d\n",inExt[0],inExt[1],inExt[2],inExt[3],inExt[4],inExt[5]);
+  
+//   vtkImageData *inData = inputData[0][0];
+//   vtkImageData *outData = outputData[0];
+void vtkFreehandUltrasound::ThreadedSliceExecute(
+  vtkImageData *inData,
+  vtkImageData *outData,
+  int inExt[6], int threadId)
+{
   void *inPtr = inData->GetScalarPointerForExtent(inExt);
   int *outExt = this->OutputExtent;
   void *outPtr = outData->GetScalarPointerForExtent(outExt);
@@ -2591,8 +2948,8 @@ void vtkFreehandUltrasound::ThreadedExecute(vtkImageData *inData,
   if (inData->GetScalarType() != outData->GetScalarType())
     {
     vtkErrorMacro(<< "OptimizedInsertSlice: input ScalarType, " 
-            << inData->GetScalarType()
-            << ", must match out ScalarType " << outData->GetScalarType());
+		  << inData->GetScalarType()
+		  << ", must match out ScalarType "<<outData->GetScalarType());
     return;
     }
 
@@ -2731,7 +3088,9 @@ static int vtkThreadSleep(struct ThreadInfoStruct *data, double time)
     // slice 10 millisecs off the time, since this is how long it will
     // take for this thread to start executing once it has been
     // re-scheduled
-    double remaining = time - vtkTimerLog::GetCurrentTime() - 0.01;
+    //  vtkTimerLog::GetCurrentTime() is depracated and replace with
+    //GetUniversalTime in VTK 5:
+    double remaining = time - vtkTimerLog::GetUniversalTime() - 0.01;
 
     // check to see if we have reached the specified time
     if (remaining <= 0)
@@ -2801,11 +3160,12 @@ static void *vtkReconstructionThread(struct ThreadInfoStruct *data)
       int clipExt[6];
       self->GetClipExtent(clipExt, inData->GetOrigin(), inData->GetSpacing(),
 			  inData->GetWholeExtent());
+      // VTK 5 : use Request-style method
       inData->SetUpdateExtent(clipExt);
       inData->Update();
       lastcurrtime = currtime;
       currtime = video->GetFrameTimeStamp();
-      double timenow = vtkTimerLog::GetCurrentTime();
+      double timenow = vtkTimerLog::GetUniversalTime();
       double sleepuntil = currtime + 0.010;
       if (sleepuntil > timenow)
 	{
@@ -2831,8 +3191,9 @@ static void *vtkReconstructionThread(struct ThreadInfoStruct *data)
     int clipExt[6];
     self->GetClipExtent(clipExt, inData->GetOrigin(), inData->GetSpacing(),
 			inData->GetWholeExtent());
+    // VTK 5: use Request methods
     inData->SetUpdateExtent(clipExt);
-    inData->Update();
+    inData->Update(); // VTK 5: RequestData ?? 
     // get the timestamp for the video frame data
     if (video) {
       currtime = video->GetFrameTimeStamp();
@@ -2865,7 +3226,7 @@ static void *vtkReconstructionThread(struct ThreadInfoStruct *data)
     // if not we sleep until the next video frame
     if (currtime == lastcurrtime && self->RealTimeReconstruction)
       {
-      double timenow = vtkTimerLog::GetCurrentTime();
+      double timenow = vtkTimerLog::GetUniversalTime();
       double sleepuntil = currtime + 0.033;
       if (sleepuntil > timenow)
 	{
@@ -2877,7 +3238,7 @@ static void *vtkReconstructionThread(struct ThreadInfoStruct *data)
       }
     else if (flags & (TR_MISSING | TR_OUT_OF_VIEW))
       {
-      double timenow = vtkTimerLog::GetCurrentTime();
+      double timenow = vtkTimerLog::GetUniversalTime();
       double sleepuntil = currtime + 0.033;
       if (sleepuntil > timenow)
 	{
@@ -2890,13 +3251,14 @@ static void *vtkReconstructionThread(struct ThreadInfoStruct *data)
     else
       {
       // do the reconstruction
+      // VTK 5: this method should stay the same
       self->InsertSlice();
     
       // get current reconstruction rate over last 10 updates
       double tmptime = currtime;
       if (!self->RealTimeReconstruction)
 	{ // calculate frame rate using computer clock, not timestamps
-	tmptime = vtkTimerLog::GetCurrentTime();
+	tmptime = vtkTimerLog::GetUniversalTime();
 	}
       double difftime = tmptime - prevtimes[i%10];
       prevtimes[i%10] = tmptime;
@@ -2952,7 +3314,8 @@ void vtkFreehandUltrasound::StartReconstruction(int frames)
     vtkMatrix4x4 *matrix = vtkMatrix4x4::New();
     this->SetSliceAxes(matrix);
     matrix->Delete();
-    this->InternalExecuteInformation();
+    this->GetOutput()->Update();
+    //this->InternalExecuteInformation();
     this->ReconstructionThreadId = \
       this->Threader->SpawnThread((vtkThreadFunctionType)\
 				  &vtkReconstructionThread,
@@ -2981,7 +3344,8 @@ void vtkFreehandUltrasound::StartRealTimeReconstruction()
     vtkMatrix4x4 *matrix = vtkMatrix4x4::New();
     this->SetSliceAxes(matrix);
     matrix->Delete();
-    this->InternalExecuteInformation();
+    this->GetOutput()->Update();
+//    this->InternalExecuteInformation();
     this->ReconstructionThreadId = \
       this->Threader->SpawnThread((vtkThreadFunctionType)\
 				  &vtkReconstructionThread,
@@ -3266,7 +3630,3 @@ void vtkFreehandUltrasound::ReadRawData(const char *directory)
 
   fclose(file);
 }
-
-
-
-

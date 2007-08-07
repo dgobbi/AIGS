@@ -17,27 +17,34 @@ Copyright (c) 2000,2002 David Gobbi.
 #define __vtkFreehandUltrasound_h
 
 #include "vtkImageSource.h"
+#include "vtkImageAlgorithm.h"
 
 class vtkLinearTransform;
 class vtkMatrix4x4;
+class vtkMultiThreader;
 class vtkVideoSource;
 class vtkTrackerTool;
 class vtkTrackerBuffer;
-class vtkMultiThreader;
 class vtkCriticalSection;
 class vtkImageData;
 
 #define VTK_FREEHAND_NEAREST 0
 #define VTK_FREEHAND_LINEAR 1
 
-class VTK_EXPORT vtkFreehandUltrasound : public vtkImageSource
+class VTK_EXPORT vtkFreehandUltrasound : public vtkImageAlgorithm
 {
 public:
   static vtkFreehandUltrasound *New();
-  vtkTypeRevisionMacro(vtkFreehandUltrasound, vtkImageSource);
+  vtkTypeRevisionMacro(vtkFreehandUltrasound, vtkImageAlgorithm);
 
   virtual void PrintSelf(ostream& os, vtkIndent indent);
 
+  // Description: 
+  // Set the image slice to insert into the reconstruction volume.
+  virtual void SetSlice(vtkImageData *);
+  virtual vtkImageData* GetSlice();
+
+  virtual vtkImageData *GetOutput();
   // Description:
   // Set the video source to input the slices from.
   virtual void SetVideoSource(vtkVideoSource *);
@@ -76,6 +83,7 @@ public:
   // Get the reconstruction rate.
   double GetReconstructionRate() { return this->ReconstructionRate; };
 
+  double SliceCalculateMaxSliceSeparation(vtkMatrix4x4 *m1, vtkMatrix4x4 *m2);
   // Description:
   // Fill holes in the output by using the weighted average of the
   // surrounding voxels.  If Compounding is off, then all hit voxels
@@ -106,18 +114,8 @@ public:
   vtkGetMacro(VideoLag,double);
 
   // Description:
-  // Set the image slice to insert into the reconstruction volume.
-  virtual void SetSlice(vtkImageData *);
-  vtkGetObjectMacro(Slice,vtkImageData);
-
-  // Description:
   // Cause the slice to be inserted into the reconstruction volume.
   void InsertSlice();
-
-  // Description:
-  // Get the number of pixels that have been inserted into the
-  // reconstruction volume so far.
-  vtkGetMacro(PixelCount,int);
 
   // Description:
   // Clear the data volume.
@@ -208,15 +206,17 @@ public:
   // Description:
   // Have to override because of the funny way that data is
   // generated.
-  void UpdateData(vtkDataObject *output);
-  void ThreadedExecute(vtkImageData *inData, vtkImageData *outData,
-		       int extent[6], int threadId);
-  int SplitExtent(int splitExt[6], int startExt[6], int num, int total);
+  //void UpdateData(vtkDataObject *output);
+  // need to change to ThreadedRequestData
+  void ThreadedSliceExecute(vtkImageData *inData, vtkImageData *outData,
+			    int extent[6], int threadId);
+  int SplitSliceExtent(int splitExt[6], int startExt[6], int num, int total);
 
   // for filling holes
   void ThreadedFillExecute(vtkImageData *outData,	
 			   int outExt[6], int threadId);
   
+
 //BTX
   // Description:
   // Not protected because it has to be accessible from reconstruction thread.
@@ -224,9 +224,10 @@ public:
   int RealTimeReconstruction;
   int ReconstructionFrameCount;
   vtkTrackerBuffer *TrackerBuffer;
-  int PixelCount;
 //ETX
-
+  int PixelCount;
+  vtkGetMacro(PixelCount, int);
+  vtkSetMacro(PixelCount, int);
 protected:
   vtkFreehandUltrasound();
   ~vtkFreehandUltrasound();
@@ -253,7 +254,7 @@ protected:
   vtkMatrix4x4 *LastIndexMatrix;
 
   vtkImageData *AccumulationBuffer;
-
+  vtkImageData *ReconImage;
   int NeedsClear;
 
   vtkMultiThreader *Threader;
@@ -269,11 +270,39 @@ protected:
   double CalculateMaxSliceSeparation(vtkMatrix4x4 *m1, vtkMatrix4x4 *m2);
   vtkMatrix4x4 *GetIndexMatrix();
   void OptimizedInsertSlice();
-  void ExecuteInformation();
-  void Execute(vtkImageData *data) {};
-  void Execute() { this->vtkImageSource::Execute(); };
   void InternalClearOutput();
   void InternalExecuteInformation();
+
+  // Remove these methods (they are VTK 4)
+  //void ExecuteInformation();
+  //void Execute(vtkImageData *data) {};
+  //void Execute() { this->vtkImageAlgorithm::Execute(); };
+
+  //virtual void UpdateData(vtkDataObject *outObject);
+  //virtual void UpdateInformation();
+  // These are the VTK 5 methods
+  virtual int FillInputPortInformation(int port, vtkInformation* info);
+  virtual int FillOutputPortInformation(int port, vtkInformation* info);
+  virtual int RequestInformation(vtkInformation* request,
+                                 vtkInformationVector** inputVector,
+                                 vtkInformationVector* outputVector);
+
+  virtual int RequestUpdateExtent(vtkInformation*,
+                                 vtkInformationVector**,
+                                 vtkInformationVector*);
+  
+  // main implementation of the algorithm
+  virtual int RequestData(vtkInformation *request,
+                          vtkInformationVector** inputVector,
+                          vtkInformationVector* outputVector);
+
+
+  virtual int ComputePipelineMTime(vtkInformation *request,
+				   vtkInformationVector **inInfoVec,
+				   vtkInformationVector *outInfoVec,
+				   int requestFromOutputPort,
+				   unsigned long* mtime);
+
 
 private:
   vtkFreehandUltrasound(const vtkFreehandUltrasound&);

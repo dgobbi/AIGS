@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundImageStencilSource.cxx,v $
   Language:  C++
-  Date:      $Date: 2007/07/26 14:18:41 $
-  Version:   $Revision: 1.6 $
+  Date:      $Date: 2007/08/07 20:40:19 $
+  Version:   $Revision: 1.7 $
   Thanks:    Thanks to David G Gobbi who developed this class.
 
 Copyright (c) 1993-2001 Ken Martin, Will Schroeder, Bill Lorensen 
@@ -44,7 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vtkUltrasoundImageStencilSource.h"
 #include "vtkImageStencilData.h"
 #include "vtkObjectFactory.h"
-
+#include "vtkInformation.h"
+#include "vtkInformationVector.h"
+#include "vtkStreamingDemandDrivenPipeline.h"
 
 //----------------------------------------------------------------------------
 vtkUltrasoundImageStencilSource* vtkUltrasoundImageStencilSource::New()
@@ -74,6 +76,9 @@ vtkUltrasoundImageStencilSource::vtkUltrasoundImageStencilSource()
   this->FanOrigin[1] = 0.0;
 
   this->FanDepth = +1e8;
+  // VTK 5
+  this->SetNumberOfInputPorts(0);
+  this->SetNumberOfOutputPorts(1);
 }
 
 //----------------------------------------------------------------------------
@@ -100,10 +105,27 @@ void vtkUltrasoundImageStencilSource::PrintSelf(ostream& os,
 //----------------------------------------------------------------------------
 // set up the clipping extents from an implicit function by brute force
 // (i.e. by evaluating the function at each and every voxel)
-void vtkUltrasoundImageStencilSource::ThreadedExecute(vtkImageStencilData 
-                                                      *data,
-                                                      int extent[6], int id)
+// void vtkUltrasoundImageStencilSource::ThreadedExecute(vtkImageStencilData 
+//                                                       *data,
+//                                                       int
+//extent[6], int id)
+
+int vtkUltrasoundImageStencilSource::RequestData(
+  vtkInformation *request,
+  vtkInformationVector **inputVector,
+  vtkInformationVector *outputVector)
 {
+  // VTK 5
+  this->Superclass::RequestData(request, inputVector, outputVector);
+
+  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+
+  vtkImageStencilData *data = vtkImageStencilData::SafeDownCast(
+    outInfo->Get(vtkDataObject::DATA_OBJECT()));
+
+  int extent[6];
+  data->GetExtent(extent);
+
   vtkFloatingPointType *spacing = data->GetSpacing();
   vtkFloatingPointType *origin = data->GetOrigin();
 
@@ -150,14 +172,13 @@ void vtkUltrasoundImageStencilSource::ThreadedExecute(vtkImageStencilData
 
     for (int idY = extent[2]; idY <= extent[3]; idY++)
       {
-      if (id == 0)
-        { // update progress if we're the main thread
-        if (count%target == 0) 
-          {
-          this->UpdateProgress(count/(50.0*target));
-          }
-        count++;
-        }
+      // update progress if we're the main thread
+      if (count%target == 0) 
+	{
+	this->UpdateProgress(count/(50.0*target));
+	}
+      count++;
+      
 
       int r1 = extent[0];
       int r2 = extent[1];
@@ -223,4 +244,29 @@ void vtkUltrasoundImageStencilSource::ThreadedExecute(vtkImageStencilData
         }
       }
     }
+}
+
+int vtkUltrasoundImageStencilSource::FillInputPortInformation(
+  int port, vtkInformation *info)
+{
+  
+}
+
+int vtkUltrasoundImageStencilSource::RequestInformation(
+  vtkInformation *,
+  vtkInformationVector **,
+  vtkInformationVector *outputVector)
+{
+  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  
+  // this is an odd source that can produce any requested size.  so its whole
+  // extent is essentially infinite. This would not be a great source to
+  // connect to some sort of writer or viewer. For a sanity check we will
+  // limit the size produced to something reasonable (depending on your
+  // definition of reasonable)
+  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
+               0, VTK_LARGE_INTEGER >> 2,
+               0, VTK_LARGE_INTEGER >> 2,
+               0, VTK_LARGE_INTEGER >> 2);
+  return 1;
 }

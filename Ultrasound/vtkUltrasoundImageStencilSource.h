@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundImageStencilSource.h,v $
   Language:  C++
-  Date:      $Date: 2007/07/26 14:18:41 $
-  Version:   $Revision: 1.4 $
+  Date:      $Date: 2007/08/07 20:40:19 $
+  Version:   $Revision: 1.5 $
   Thanks:    Thanks to David G. Gobbi who developed this class.
 
 Copyright (c) 1993-2001 Ken Martin, Will Schroeder, Bill Lorensen 
@@ -69,7 +69,7 @@ public:
   // not pixel indices).
   vtkSetVector4Macro(ClipRectangle, double);
   vtkGetVector4Macro(ClipRectangle, double);
-
+  
   // Description:
   // If the ultrasound probe collects a fan of data, specify the position and
   // dimensions of the fan.
@@ -79,14 +79,24 @@ public:
   vtkGetVector2Macro(FanOrigin, double);
   vtkSetMacro(FanDepth, double);
   vtkGetMacro(FanDepth, double);
-
+  
 protected:
   vtkUltrasoundImageStencilSource();
   ~vtkUltrasoundImageStencilSource();
 
-  void ThreadedExecute(vtkImageStencilData *output,
-		       int extent[6], int threadId);
-
+  // VTK 4
+  // void ThreadedExecute(vtkImageStencilData *output,
+  // int extent[6], int threadId);
+  // VTK 5
+  
+  int RequestData( vtkInformation* request,
+		   vtkInformationVector** inputVector,
+		   vtkInformationVector* outputVector);
+  int RequestInformation( vtkInformation *request,
+			  vtkInformationVector **inputVector,
+			  vtkInformationVector *outputVector);
+  
+  int FillInputPortInformation(int port, vtkInformation *info);
   double ClipRectangle[4];
   double FanAngles[2];
   double FanOrigin[2];
@@ -98,4 +108,3 @@ private:
 };
 
 #endif
-
