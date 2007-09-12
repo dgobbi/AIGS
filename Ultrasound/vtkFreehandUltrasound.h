@@ -215,7 +215,7 @@ public:
   // for filling holes
   void ThreadedFillExecute(vtkImageData *outData,	
 			   int outExt[6], int threadId);
-  
+//  void IncrementPixelCount(int i){this->PixelCount += i;};
 
 //BTX
   // Description:
@@ -225,9 +225,12 @@ public:
   int ReconstructionFrameCount;
   vtkTrackerBuffer *TrackerBuffer;
 //ETX
-  int PixelCount;
-  vtkGetMacro(PixelCount, int);
-  vtkSetMacro(PixelCount, int);
+  int PixelCount[4];
+  int GetPixelCount();
+  void SetPixelCount(int threadId, int val);
+  void IncrementPixelCount(int threadId, int increment);
+
+  int GetReconstructionThreadId(){ return this->ReconstructionThreadId; };
 protected:
   vtkFreehandUltrasound();
   ~vtkFreehandUltrasound();
@@ -244,6 +247,12 @@ protected:
   vtkFloatingPointType OutputOrigin[3];
   vtkFloatingPointType OutputSpacing[3];
   int OutputExtent[6];
+
+  vtkFloatingPointType OldOutputOrigin[3];
+  vtkFloatingPointType OldOutputSpacing[3];
+  int OldOutputExtent[6];
+  int OldScalarType;
+  int OldNComponents;
 
   double ClipRectangle[4];
   double FanAngles[2];
@@ -272,7 +281,7 @@ protected:
   void OptimizedInsertSlice();
   void InternalClearOutput();
   void InternalExecuteInformation();
-
+  
   // Remove these methods (they are VTK 4)
   //void ExecuteInformation();
   //void Execute(vtkImageData *data) {};

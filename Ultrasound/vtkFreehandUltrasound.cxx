@@ -37,7 +37,7 @@ Copyright (c) 2000,2002 David Gobbi.
 #include "vtkTrackerTool.h"
 #include "vtkPNGWriter.h"
 
-vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.4 $");
+vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.5 $");
 vtkStandardNewMacro(vtkFreehandUltrasound);
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,VideoSource,vtkVideoSource);
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,TrackerTool,vtkTrackerTool);
@@ -61,7 +61,10 @@ vtkFreehandUltrasound::vtkFreehandUltrasound()
   // set the video lag (i.e the lag between tracking information and
   // video information)
   this->VideoLag = 0.0;
-  this->PixelCount = 0;
+  this->PixelCount[0] = 0;
+  this->PixelCount[1] = 0;
+  this->PixelCount[2] = 0;
+  this->PixelCount[3] = 0;
   // set up the output (it will have been created in the superclass)
   // (the output is the reconstruction volume, the second component
   // is the alpha component that stores whether or not a voxel has
@@ -69,12 +72,12 @@ vtkFreehandUltrasound::vtkFreehandUltrasound()
  
   if(this->GetExecutive())
     {
-    cout<<"Executive Set\n";
     if(this->GetExecutive()->GetOutputInformation())
       {
       cout<<"output port info\n";
       }
     }
+
   // also see ExecuteInformation for how these are set
   this->OutputSpacing[0] = 1.0;
   this->OutputSpacing[1] = 1.0;
@@ -91,6 +94,24 @@ vtkFreehandUltrasound::vtkFreehandUltrasound()
   this->OutputExtent[4] = 0;
   this->OutputExtent[5] = 255;
 
+  this->OldScalarType = VTK_UNSIGNED_CHAR;
+  this->OldNComponents = 1;
+  
+  this->OldOutputSpacing[0] = 1.0;
+  this->OldOutputSpacing[1] = 1.0;
+  this->OldOutputSpacing[2] = 1.0;
+
+  this->OldOutputOrigin[0] = 0;
+  this->OldOutputOrigin[1] = 0;
+  this->OldOutputOrigin[2] = 0;
+
+  this->OldOutputExtent[0] = 0;
+  this->OldOutputExtent[1] = 0;
+  this->OldOutputExtent[2] = 0;
+  this->OldOutputExtent[3] = 0;
+  this->OldOutputExtent[4] = 0;
+  this->OldOutputExtent[5] = 0;
+  
   // accumulation buffer is for compounding, there is a voxel in
   // the accumulation buffer for each voxel in the output
   this->AccumulationBuffer = vtkImageData::New();
@@ -220,7 +241,7 @@ vtkImageData* vtkFreehandUltrasound::GetSlice()
     }
   else
     {
-    cout<< "GetSlice: Executive = NULL \n";
+    cerr<< "GetSlice: Executive = NULL \n";
     exit(0);
     }
 }
@@ -230,9 +251,33 @@ vtkImageData *vtkFreehandUltrasound::GetOutput()
 {
   if(this->GetOutputDataObject(0))
    return vtkImageData::SafeDownCast(this->GetOutputDataObject(0));
-   else return NULL;
+  else return NULL;
 }
 
+//----------------------------------------------------------------------------
+void  vtkFreehandUltrasound::SetPixelCount(int threadId, int count)
+{
+  if( threadId < 4 && threadId >= 0)
+    {
+    this->PixelCount[threadId] = count;
+    }
+}
+
+//----------------------------------------------------------------------------
+void  vtkFreehandUltrasound::IncrementPixelCount(int threadId, int increment)
+{
+  if( threadId < 4 && threadId >= 0)
+    {
+    this->PixelCount[threadId] += increment;
+    }
+}
+
+//----------------------------------------------------------------------------
+int  vtkFreehandUltrasound::GetPixelCount()
+{
+  return ( this->PixelCount[0] + this->PixelCount[1] +
+	   this->PixelCount[2] + this->PixelCount[3] );
+}
 //----------------------------------------------------------------------------
 // convert the ClipRectangle (which is in millimetre coordinates) into a
 // clip extent that can be applied to the input data.
@@ -445,8 +490,8 @@ unsigned long int vtkFreehandUltrasound::GetMTime()
 
 //----------------------------------------------------------------------------
 int vtkFreehandUltrasound::RequestData(vtkInformation* request,
-				      vtkInformationVector **vtkNotUsed(inInfo),
-					vtkInformationVector* outInfo)
+				       vtkInformationVector **vtkNotUsed(inInfo),
+				       vtkInformationVector* outInfo)
 {
   vtkDataObject *outObject = 
     outInfo->GetInformationObject(0)->Get(vtkDataObject::DATA_OBJECT());
@@ -455,8 +500,8 @@ int vtkFreehandUltrasound::RequestData(vtkInformation* request,
     {
     this->InternalClearOutput();
     }
-
-  ((vtkImageData *)outObject)->DataHasBeenGenerated();
+  outInfo->GetInformationObject(0)->Set(vtkDemandDrivenPipeline::DATA_NOT_GENERATED(), 0);
+   ((vtkImageData *)outObject)->DataHasBeenGenerated();
 
   return 1;
 }
@@ -525,63 +570,69 @@ int vtkFreehandUltrasound::RequestInformation(
       output->SetWholeExtent(this->OutputExtent);
       output->SetSpacing(this->OutputSpacing);
       output->SetOrigin(this->OutputOrigin);
-    
-          
-    // check to see if output has changed
-    if (oldtype != output->GetScalarType() ||
-	oldncomponents != output->GetNumberOfScalarComponents() ||
-	oldwholeextent[0] != this->OutputExtent[0] ||
-	oldwholeextent[1] != this->OutputExtent[1] ||
-	oldwholeextent[2] != this->OutputExtent[2] ||
-	oldwholeextent[3] != this->OutputExtent[3] ||
-	oldwholeextent[4] != this->OutputExtent[4] ||
-	oldwholeextent[5] != this->OutputExtent[5] ||
-	oldspacing[0] != this->OutputSpacing[0] ||
-	oldspacing[1] != this->OutputSpacing[1] ||
-	oldspacing[2] != this->OutputSpacing[2] ||
-	oldorigin[0] != this->OutputOrigin[0] ||
-	oldorigin[1] != this->OutputOrigin[1] ||
-	oldorigin[2] != this->OutputOrigin[2])
-      {
-      
-      if (oldwholeextent[0] != this->OutputExtent[0] ||
-	  oldwholeextent[1] != this->OutputExtent[1] ||
-	  oldwholeextent[2] != this->OutputExtent[2] ||
-	  oldwholeextent[3] != this->OutputExtent[3] ||
-	  oldwholeextent[4] != this->OutputExtent[4] ||
-	  oldwholeextent[5] != this->OutputExtent[5])
+ 
+      // check to see if output has changed
+      if (this->OldScalarType != output->GetScalarType() ||
+	  this->OldNComponents != output->GetNumberOfScalarComponents() ||
+	  this->OldOutputExtent[0] != this->OutputExtent[0] ||
+	  this->OldOutputExtent[1] != this->OutputExtent[1] ||
+	  this->OldOutputExtent[2] != this->OutputExtent[2] ||
+	  this->OldOutputExtent[3] != this->OutputExtent[3] ||
+	  this->OldOutputExtent[4] != this->OutputExtent[4] ||
+	  this->OldOutputExtent[5] != this->OutputExtent[5] ||
+	  this->OldOutputSpacing[0] != this->OutputSpacing[0] ||
+	  this->OldOutputSpacing[1] != this->OutputSpacing[1] ||
+	  this->OldOutputSpacing[2] != this->OutputSpacing[2] ||
+	  this->OldOutputOrigin[0] != this->OutputOrigin[0] ||
+	  this->OldOutputOrigin[1] != this->OutputOrigin[1] ||
+	  this->OldOutputOrigin[2] != this->OutputOrigin[2])
 	{
-// 	cout << "extent "
-// 	     << oldwholeextent[0] << " " << oldwholeextent[1] << " "
-// 	     << oldwholeextent[2] << " " << oldwholeextent[3] << " "
-// 	     << oldwholeextent[4] << " " << oldwholeextent[5] << "\n"
-// 	     << this->OutputExtent[0] << " " << this->OutputExtent[1] << " "
-// 	     << this->OutputExtent[2] << " " << this->OutputExtent[3] << " "
-// 	     << this->OutputExtent[4] << " " << this->OutputExtent[5] << "\n";
-	}
-      
-      this->NeedsClear = 1;
-      }
-
-    if (this->Compounding)
-      {
-      this->AccumulationBuffer->SetScalarType(VTK_UNSIGNED_SHORT);
-      this->AccumulationBuffer->SetWholeExtent(this->OutputExtent);
-      this->AccumulationBuffer->SetSpacing(this->OutputSpacing);
-      this->AccumulationBuffer->SetOrigin(this->OutputOrigin);
-      int *extent = this->AccumulationBuffer->GetExtent();
-      if (extent[0] != this->OutputExtent[0] ||
-	  extent[1] != this->OutputExtent[1] ||
-	  extent[2] != this->OutputExtent[2] ||
-	  extent[3] != this->OutputExtent[3] ||
-	  extent[4] != this->OutputExtent[4] ||
-	  extent[5] != this->OutputExtent[5])
-	{
+	
+	if (this->OldOutputExtent[0] != this->OutputExtent[0] ||
+	    this->OldOutputExtent[1] != this->OutputExtent[1] ||
+	    this->OldOutputExtent[2] != this->OutputExtent[2] ||
+	    this->OldOutputExtent[3] != this->OutputExtent[3] ||
+	    this->OldOutputExtent[4] != this->OutputExtent[4] ||
+	    this->OldOutputExtent[5] != this->OutputExtent[5])
+	  {
+	cout << "extent "
+	     << this->OldOutputExtent[0] << " " << this->OldOutputExtent[1] << " "
+	     << this->OldOutputExtent[2] << " " << this->OldOutputExtent[3] << " "
+	     << this->OldOutputExtent[4] << " " << this->OldOutputExtent[5] << "\n"
+	     << this->OutputExtent[0] << " " << this->OutputExtent[1] << " "
+	     << this->OutputExtent[2] << " " << this->OutputExtent[3] << " "
+	     << this->OutputExtent[4] << " " << this->OutputExtent[5] << "\n";
+	  }
 	this->NeedsClear = 1;
 	}
+
+      if (this->Compounding)
+	{
+	int *extent = this->AccumulationBuffer->GetExtent();
+	this->AccumulationBuffer->SetScalarType(VTK_UNSIGNED_SHORT);
+	this->AccumulationBuffer->SetWholeExtent(this->OutputExtent);
+	this->AccumulationBuffer->SetSpacing(this->OutputSpacing);
+	this->AccumulationBuffer->SetOrigin(this->OutputOrigin);
+	if (extent[0] != this->OutputExtent[0] ||
+	    extent[1] != this->OutputExtent[1] ||
+	    extent[2] != this->OutputExtent[2] ||
+	    extent[3] != this->OutputExtent[3] ||
+	    extent[4] != this->OutputExtent[4] ||
+	    extent[5] != this->OutputExtent[5])
+	  {
+	  this->NeedsClear = 1;
+	  }
+	}
+
+      output->GetExtent(this->OldOutputExtent);
+      output->GetWholeExtent(this->OldOutputExtent);
+      output->GetSpacing(this->OldOutputSpacing);
+      output->GetOrigin(this->OldOutputOrigin);
+      this->OldScalarType = output->GetScalarType();
+      this->OldNComponents = output->GetNumberOfScalarComponents();
       }
     }
-    }
+
   return 1;
 }
 
@@ -600,6 +651,7 @@ int  vtkFreehandUltrasound::RequestUpdateExtent(
   return 1;
 }
 
+//----------------------------------------------------------------------------
 // void vtkFreehandUltrasound::ExecuteInformation() 
 // {
 //   // to avoid conflict between the main application thread and the
@@ -614,7 +666,6 @@ int  vtkFreehandUltrasound::RequestUpdateExtent(
 int vtkFreehandUltrasound::FillOutputPortInformation(
   int vtkNotUsed(port), vtkInformation* info)
 {
-  cout<<"Fill Output Information\n";
   info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkImageData");
  
   return 1;
@@ -693,62 +744,62 @@ void vtkFreehandUltrasound::InternalExecuteInformation()
     }    
  
   // set up the output dimensions and info here
- //  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
-// 	       this->OutputExtent, 6);
-//   outInfo->Set(vtkDataObject::SPACING(),
-// 	       this->OutputSpacing, 3);
-//   outInfo->Set(vtkDataObject::ORIGIN(),
-// 	       this->OutputOrigin, 3);
+  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
+	       this->OutputExtent, 6);
+  outInfo->Set(vtkDataObject::SPACING(),
+	       this->OutputSpacing, 3);
+  outInfo->Set(vtkDataObject::ORIGIN(),
+	       this->OutputOrigin, 3);
 
-//   output->SetWholeExtent(this->OutputExtent);
-//   output->SetSpacing(this->OutputSpacing);
-//   output->SetOrigin(this->OutputOrigin);
+  output->SetWholeExtent(this->OutputExtent);
+  output->SetSpacing(this->OutputSpacing);
+  output->SetOrigin(this->OutputOrigin);
 
   // check to see if output has changed
- //  if (oldtype != output->GetScalarType() ||
-//       oldncomponents != output->GetNumberOfScalarComponents() ||
-//       oldwholeextent[0] != this->OutputExtent[0] ||
-//       oldwholeextent[1] != this->OutputExtent[1] ||
-//       oldwholeextent[2] != this->OutputExtent[2] ||
-//       oldwholeextent[3] != this->OutputExtent[3] ||
-//       oldwholeextent[4] != this->OutputExtent[4] ||
-//       oldwholeextent[5] != this->OutputExtent[5] ||
-//       oldspacing[0] != this->OutputSpacing[0] ||
-//       oldspacing[1] != this->OutputSpacing[1] ||
-//       oldspacing[2] != this->OutputSpacing[2] ||
-//       oldorigin[0] != this->OutputOrigin[0] ||
-//       oldorigin[1] != this->OutputOrigin[1] ||
-//       oldorigin[2] != this->OutputOrigin[2])
-//     {
-//     cout<<"InternalExecuteInformation: NeedsClear = 1\n";
-//     if (oldwholeextent[0] != this->OutputExtent[0] ||
-//       oldwholeextent[1] != this->OutputExtent[1] ||
-//       oldwholeextent[2] != this->OutputExtent[2] ||
-//       oldwholeextent[3] != this->OutputExtent[3] ||
-//       oldwholeextent[4] != this->OutputExtent[4] ||
-//       oldwholeextent[5] != this->OutputExtent[5])
-//       {
-//       cout << "extent "
-// 	   << oldwholeextent[0] << " " << oldwholeextent[1] << " "
-// 	   << oldwholeextent[2] << " " << oldwholeextent[3] << " "
-// 	   << oldwholeextent[4] << " " << oldwholeextent[5] << "\n"
-// 	   << this->OutputExtent[0] << " " << this->OutputExtent[1] << " "
-// 	   << this->OutputExtent[2] << " " << this->OutputExtent[3] << " "
-// 	   << this->OutputExtent[4] << " " << this->OutputExtent[5] << "\n";
-//       }
+  if (oldtype != output->GetScalarType() ||
+      oldncomponents != output->GetNumberOfScalarComponents() ||
+      oldwholeextent[0] != this->OutputExtent[0] ||
+      oldwholeextent[1] != this->OutputExtent[1] ||
+      oldwholeextent[2] != this->OutputExtent[2] ||
+      oldwholeextent[3] != this->OutputExtent[3] ||
+      oldwholeextent[4] != this->OutputExtent[4] ||
+      oldwholeextent[5] != this->OutputExtent[5] ||
+      oldspacing[0] != this->OutputSpacing[0] ||
+      oldspacing[1] != this->OutputSpacing[1] ||
+      oldspacing[2] != this->OutputSpacing[2] ||
+      oldorigin[0] != this->OutputOrigin[0] ||
+      oldorigin[1] != this->OutputOrigin[1] ||
+      oldorigin[2] != this->OutputOrigin[2])
+    {
+    if (oldwholeextent[0] != this->OutputExtent[0] ||
+      oldwholeextent[1] != this->OutputExtent[1] ||
+      oldwholeextent[2] != this->OutputExtent[2] ||
+      oldwholeextent[3] != this->OutputExtent[3] ||
+      oldwholeextent[4] != this->OutputExtent[4] ||
+      oldwholeextent[5] != this->OutputExtent[5])
+      {
+      cout << "extent "
+	   << oldwholeextent[0] << " " << oldwholeextent[1] << " "
+	   << oldwholeextent[2] << " " << oldwholeextent[3] << " "
+	   << oldwholeextent[4] << " " << oldwholeextent[5] << "\n"
+	   << this->OutputExtent[0] << " " << this->OutputExtent[1] << " "
+	   << this->OutputExtent[2] << " " << this->OutputExtent[3] << " "
+	   << this->OutputExtent[4] << " " << this->OutputExtent[5] << "\n";
+      }
 
-//     this->NeedsClear = 1;
-//     }
+    this->NeedsClear = 1;
+    }
 
   // set up the accumulation buffer to be the same size as the
   // output
   if (this->Compounding)
     {
+    int *extent = this->AccumulationBuffer->GetExtent();
+
     this->AccumulationBuffer->SetScalarType(VTK_UNSIGNED_SHORT);
     this->AccumulationBuffer->SetWholeExtent(this->OutputExtent);
     this->AccumulationBuffer->SetSpacing(this->OutputSpacing);
     this->AccumulationBuffer->SetOrigin(this->OutputOrigin);
-    int *extent = this->AccumulationBuffer->GetExtent();
     if (extent[0] != this->OutputExtent[0] ||
         extent[1] != this->OutputExtent[1] ||
         extent[2] != this->OutputExtent[2] ||
@@ -1039,6 +1090,7 @@ static int vtkTrilinearInterpolation(F *point, T *inPtr, T *outPtr,
         f = fdx[j];
         r = F(*accPtrTmp)/255;
         a = f + r;
+	
         int i = numscalars;
         do
           {
@@ -1054,6 +1106,7 @@ static int vtkTrilinearInterpolation(F *point, T *inPtr, T *outPtr,
         a *= 255;
         if (a < F(65535)) // don't allow accumulation buffer overflow
           {
+//	  cout<<"Overflow"<<endl;
           vtkUltraRound(a, *accPtrTmp);
           }
         }
@@ -1063,7 +1116,6 @@ static int vtkTrilinearInterpolation(F *point, T *inPtr, T *outPtr,
       {
       //------------------------------------
       // no accumulation buffer
-
       // loop over the eight voxels
       int j = 8;
       do
@@ -1182,8 +1234,7 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
     }
 
   self->GetClipExtent(clipExt, inOrigin, inSpacing, inExt);
-  cout<<"ClipExtent: ("<<clipExt[0]<<", "<<clipExt[1]<<", "
-      <<clipExt[2]<<", "<<clipExt[3]<<", "<<clipExt[4]<<", "<<clipExt[5]<<")\n";
+
   // find maximum output range
   outData->GetExtent(outExt);
   
@@ -1211,26 +1262,7 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
           {
           double x = (idX-xf);
           double y = (idY-yf);
-	//   if(ml == 0 && mr == 0)
-// 	    {
-// 	    cout<<"ml == 0 && mr == 0"<<endl;
-// 	    }
-// 	  if(y > 0)
-// 	    {
-// 	    cout<<"y > 0"<<endl;
-// 	    }
-// 	  if ((x*x)*(xs*xs)+(y*y)*(ys*ys) < d2)
-// 	    {
-// 	    cout<<(x*x)*(xs*xs)+(y*y)*(ys*ys)<<" < "<<d2<<endl;
-// 	    }
-// 	  if(x/y >= ml)
-// 	    {
-// 	    cout<<"x/y: "<<x/y <<" >= "<<ml<<endl;
-// 	    }
-// 	  if(x/y <= mr)
-// 	    {
-// 	    cout<<"x/y <= mr: "<<x/y <<" <= "<<mr<<endl;
-// 	    }
+
           if (((ml == 0 && mr == 0) || y > 0 &&
               ((x*x)*(xs*xs)+(y*y)*(ys*ys) < d2 && x/y >= ml && x/y <= mr)))
             {  
@@ -1248,7 +1280,8 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
         
             int hit = interpolate(outPoint, inPtr, outPtr, accPtr, numscalars, 
                         outExt, outInc);
-	    self->SetPixelCount( self->GetPixelCount() + hit);
+	    //    self->SetPixelCount( self->GetPixelCount() + hit);
+	    self->IncrementPixelCount(0, hit);
 	    
             }
           }
@@ -1258,7 +1291,6 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
       }
     inPtr += inIncZ;
     }
-  cout<<"PixelCount: "<<self->PixelCount<<endl;
 }
 
 
@@ -1332,7 +1364,6 @@ void vtkFreehandUltrasound::InsertSlice()
   //  {
   //  return;
   //  }
-  // cout<<"InsertSlice -- before switch";
   if (this->LastIndexMatrix == 0)
     {
     this->LastIndexMatrix = vtkMatrix4x4::New();
@@ -1380,7 +1411,6 @@ static void vtkFreehandUltrasoundFillHolesInOutput(vtkFreehandUltrasound *self,
   int accIncX, accIncY, accIncZ;
   int startX, endX, numscalars;
   int c;
-  cout<<"PixelCount: "<<self->PixelCount<<endl;
   // clip the extent by 1 voxel width relative to whole extent
   int *outWholeExt = outData->GetWholeExtent();
   int extent[6];
@@ -1730,10 +1760,11 @@ void vtkFreehandUltrasound::MultiThreadFill(vtkImageData *outData)
 void vtkFreehandUltrasound::FillHolesInOutput()
 {
 //  this->InternalExecuteInformation();
-  this->GetOutput()->Update();
+  // this->GetOutput()->Update();
+  this->UpdateInformation();
   if (this->NeedsClear)
     {
-    this->UpdateInformation();
+    //this->UpdateInformation();
     this->InternalClearOutput();
     }
 
@@ -1810,25 +1841,16 @@ void vtkFreehandUltrasound::ClearOutput()
 //----------------------------------------------------------------------------
 void vtkFreehandUltrasound::InternalClearOutput()
 {
-  //this->UpdateInformation();
-  // cout<<"InternalClearOutput()"<<endl;
   int *outExtent = this->OutputExtent;
-
+  this->NeedsClear = 0;
   vtkImageData *outData = this->GetOutput();
   int numScalars = outData->GetNumberOfScalarComponents();
 
   outData->SetExtent(outExtent);
   outData->AllocateScalars();
+  
 
   void *outPtr = outData->GetScalarPointerForExtent(outExtent);
- //  memset(outPtr,255,(outExtent[1]-outExtent[0]+1)*
-// 	 (outExtent[3]-outExtent[2]+1)*
-// 	 (outExtent[5]-outExtent[4]+1)*
-// 	 numScalars*outData->GetScalarSize()/2);
-  // memset(outPtr,0,(outExtent[1]-outExtent[0]+1)*
-// 	 (outExtent[3]-outExtent[2]+1)*
-// 	 (outExtent[5]-outExtent[4]+1)*
-// 	 numScalars*outData->GetScalarSize());
 
   if (this->Compounding)
     {
@@ -1836,9 +1858,10 @@ void vtkFreehandUltrasound::InternalClearOutput()
     this->AccumulationBuffer->AllocateScalars();
     void *accPtr = this->AccumulationBuffer->GetScalarPointerForExtent(outExtent);
     memset(accPtr,0,(outExtent[1]-outExtent[0]+1)*
-                    (outExtent[3]-outExtent[2]+1)*
-                    (outExtent[5]-outExtent[4]+1)*
-                    this->AccumulationBuffer->GetScalarSize());
+	   (outExtent[3]-outExtent[2]+1)*
+	   (outExtent[5]-outExtent[4]+1)*
+	   this->AccumulationBuffer->GetScalarSize());
+     
     }
 
   if (this->LastIndexMatrix)
@@ -1847,6 +1870,10 @@ void vtkFreehandUltrasound::InternalClearOutput()
     this->LastIndexMatrix = NULL;
     }
 
+  this->SetPixelCount(0,0);
+  this->SetPixelCount(1,0);
+  this->SetPixelCount(2,0);
+  this->SetPixelCount(3,0);
   this->NeedsClear = 0;
 }
 
@@ -2562,8 +2589,8 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
                                     unsigned short *accPtr,
                                     vtkImageData *inData, T *inPtr,
                                     int inExt[6],
-                                    F matrix[4][4])
-{//cout<<"vtkOptimizedInsertSlice\n";
+                                    F matrix[4][4], int threadId)
+{
   int id = 0;
   int i, numscalars;
   int idX, idY, idZ;
@@ -2655,7 +2682,7 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
       
       // find intersections of x raster line with the output extent
       vtkUltraFindExtent(r1,r2,outPoint1,xAxis,outMin,outMax,inExt);
-
+           
       // next, handle the 'fan' shape of the input
       double y = (yf - idY);
       if (ys < 0)
@@ -2673,7 +2700,7 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
           {
 	  r2 = vtkUltraFloor(mr*y + xf - 1);
           }
-        
+      
         // next, check the radius of the fan
         double dx = (d2 - (y*y)*(ys*ys))/(xs*xs);
         if (dx < 0)
@@ -2715,8 +2742,7 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
         {
         inPtr += numscalars;
         }
-
-      if (self->GetInterpolationMode() == VTK_FREEHAND_LINEAR)
+       if (self->GetInterpolationMode() == VTK_FREEHAND_LINEAR)
         { 
         for (idX = r1; idX <= r2; idX++)
           {
@@ -2726,9 +2752,9 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
           
           int hit = vtkTrilinearInterpolation(outPoint, inPtr, outPtr, accPtr, 
                                     numscalars, outExt, outInc);
-
-          inPtr += numscalars;
-	  self->PixelCount += hit;
+	  inPtr += numscalars;
+	  //self->PixelCount += hit;
+	  self->IncrementPixelCount(threadId, hit);
           }
         }
       else 
@@ -2736,7 +2762,8 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
         vtkFreehandOptimizedNNHelper(r1, r2, outPoint, outPoint1, xAxis, 
                                      inPtr, outPtr, outExt, outInc,
                                      numscalars, accPtr);
-	self->PixelCount += r2-r1+1;
+	// self->PixelCount += r2-r1+1;
+	self->IncrementPixelCount(threadId, r2-r1+1);
         }
   
       // skip the portion of the slice we don't want to reconstruct
@@ -2868,18 +2895,13 @@ void vtkFreehandUltrasound::MultiThread(vtkImageData *inData,
 
 void vtkFreehandUltrasound::OptimizedInsertSlice()
 {
-//  cout<<"OptimizedInserSlice: \t NeedsClear -
-//  "<<this->NeedsClear<<endl;
-  // cout<<"OptimizedInserSlice: \t ReconstructionThreadId - "
-  //    <<this->ReconstructionThreadId<<endl;
   if (this->ReconstructionThreadId == -1)
     {
-    this->GetOutput()->Update();
+    // this->GetOutput()->Update();
     this->InternalExecuteInformation();
     }
   if (this->NeedsClear)
     {
-    this->UpdateInformation();
     this->InternalClearOutput();
     }
 
@@ -2896,10 +2918,8 @@ void vtkFreehandUltrasound::OptimizedInsertSlice()
     inData->SetUpdateExtent(clipExt);
     inData->Update();
   }
-  // cout<<" OptimizedInsertSlice : Before Multithread\n";
   this->MultiThread(inData, outData);
-  // cout<<" OptimizedInsertSlice : After Multithread\n";
- 
+
   this->Modified();
 }
 
@@ -2986,19 +3006,19 @@ void vtkFreehandUltrasound::ThreadedSliceExecute(
         vtkOptimizedInsertSlice(this, outData, (short *)(outPtr), 
                                 (unsigned short *)(accPtr), 
                                 inData, (short *)(inPtr), 
-                                inExt, newmatrix);
+                                inExt, newmatrix, threadId);
         break;
       case VTK_UNSIGNED_SHORT:
         vtkOptimizedInsertSlice(this,outData,(unsigned short *)(outPtr),
                                 (unsigned short *)(accPtr), 
                                 inData, (unsigned short *)(inPtr), 
-                                inExt, newmatrix);
+                                inExt, newmatrix, threadId);
         break;
       case VTK_UNSIGNED_CHAR:
         vtkOptimizedInsertSlice(this, outData,(unsigned char *)(outPtr),
                                 (unsigned short *)(accPtr), 
                                 inData, (unsigned char *)(inPtr), 
-                                inExt, newmatrix);
+                                inExt, newmatrix, threadId);
         break;
       default:
         vtkErrorMacro(<< "OptimizedInsertSlice: Unknown input ScalarType");
@@ -3037,19 +3057,19 @@ void vtkFreehandUltrasound::ThreadedSliceExecute(
         vtkOptimizedInsertSlice(this, outData, (short *)(outPtr), 
                                 (unsigned short *)(accPtr), 
                                 inData, (short *)(inPtr), 
-                                inExt, newmatrix);
+                                inExt, newmatrix, threadId);
         break;
       case VTK_UNSIGNED_SHORT:
         vtkOptimizedInsertSlice(this,outData,(unsigned short *)(outPtr),
                                 (unsigned short *)(accPtr), 
                                 inData, (unsigned short *)(inPtr), 
-                                inExt, newmatrix);
+                                inExt, newmatrix, threadId);
         break;
       case VTK_UNSIGNED_CHAR:
         vtkOptimizedInsertSlice(this, outData,(unsigned char *)(outPtr),
                                 (unsigned short *)(accPtr), 
                                 inData, (unsigned char *)(inPtr), 
-                                inExt, newmatrix);
+                                inExt, newmatrix, threadId);
         break;
       default:
         vtkErrorMacro(<< "OptimizedInsertSlice: Unknown input ScalarType");
@@ -3139,7 +3159,7 @@ static void *vtkReconstructionThread(struct ThreadInfoStruct *data)
   // the tracker tool provides the position of each inserted slice
   if (!self->GetTrackerTool())
     {
-    return 0;
+    return NULL;
     }
 
   vtkMatrix4x4 *matrix = self->GetSliceAxes();
@@ -3172,11 +3192,6 @@ static void *vtkReconstructionThread(struct ThreadInfoStruct *data)
 	vtkThreadSleep(data, sleepuntil);
 	}
       }
-    }
-
-  if (!self->RealTimeReconstruction)
-    {
-    fprintf(stderr, "In Reconstruction Thread\n");
     }
 
   double starttime = 0;
