@@ -231,6 +231,7 @@ public:
   void IncrementPixelCount(int threadId, int increment);
 
   int GetReconstructionThreadId(){ return this->ReconstructionThreadId; };
+
 protected:
   vtkFreehandUltrasound();
   ~vtkFreehandUltrasound();
@@ -292,20 +293,19 @@ protected:
   // These are the VTK 5 methods
   virtual int FillInputPortInformation(int port, vtkInformation* info);
   virtual int FillOutputPortInformation(int port, vtkInformation* info);
+  virtual int ProcessRequest(vtkInformation*,
+                             vtkInformationVector**,
+                             vtkInformationVector*);
   virtual int RequestInformation(vtkInformation* request,
                                  vtkInformationVector** inputVector,
                                  vtkInformationVector* outputVector);
-
   virtual int RequestUpdateExtent(vtkInformation*,
                                  vtkInformationVector**,
                                  vtkInformationVector*);
-  
-  // main implementation of the algorithm
+ // main implementation of the algorithm
   virtual int RequestData(vtkInformation *request,
                           vtkInformationVector** inputVector,
                           vtkInformationVector* outputVector);
-
-
   virtual int ComputePipelineMTime(vtkInformation *request,
 				   vtkInformationVector **inInfoVec,
 				   vtkInformationVector *outInfoVec,

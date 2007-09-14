@@ -37,7 +37,7 @@ Copyright (c) 2000,2002 David Gobbi.
 #include "vtkTrackerTool.h"
 #include "vtkPNGWriter.h"
 
-vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.5 $");
+vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.6 $");
 vtkStandardNewMacro(vtkFreehandUltrasound);
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,VideoSource,vtkVideoSource);
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,TrackerTool,vtkTrackerTool);
@@ -222,10 +222,6 @@ void vtkFreehandUltrasound::SetSlice(vtkImageData *slice)
     }
 }
 
-// vtkImageData* vtkFreehandUltrasound::GetReconImage()
-// {
-//   return this->ReconImage;
-// }
 //----------------------------------------------------------------------------
 vtkImageData* vtkFreehandUltrasound::GetSlice()
 {
@@ -250,8 +246,13 @@ vtkImageData* vtkFreehandUltrasound::GetSlice()
 vtkImageData *vtkFreehandUltrasound::GetOutput()
 {
   if(this->GetOutputDataObject(0))
-   return vtkImageData::SafeDownCast(this->GetOutputDataObject(0));
-  else return NULL;
+    {
+    return vtkImageData::SafeDownCast(this->GetOutputDataObject(0));
+    }
+  else
+    {
+    return NULL;
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -500,8 +501,8 @@ int vtkFreehandUltrasound::RequestData(vtkInformation* request,
     {
     this->InternalClearOutput();
     }
-  outInfo->GetInformationObject(0)->Set(vtkDemandDrivenPipeline::DATA_NOT_GENERATED(), 0);
-   ((vtkImageData *)outObject)->DataHasBeenGenerated();
+  outInfo->GetInformationObject(0)->Set(vtkDemandDrivenPipeline::DATA_NOT_GENERATED(), 1);
+  ((vtkImageData *)outObject)->DataHasBeenGenerated();
 
   return 1;
 }
@@ -587,22 +588,6 @@ int vtkFreehandUltrasound::RequestInformation(
 	  this->OldOutputOrigin[1] != this->OutputOrigin[1] ||
 	  this->OldOutputOrigin[2] != this->OutputOrigin[2])
 	{
-	
-	if (this->OldOutputExtent[0] != this->OutputExtent[0] ||
-	    this->OldOutputExtent[1] != this->OutputExtent[1] ||
-	    this->OldOutputExtent[2] != this->OutputExtent[2] ||
-	    this->OldOutputExtent[3] != this->OutputExtent[3] ||
-	    this->OldOutputExtent[4] != this->OutputExtent[4] ||
-	    this->OldOutputExtent[5] != this->OutputExtent[5])
-	  {
-	cout << "extent "
-	     << this->OldOutputExtent[0] << " " << this->OldOutputExtent[1] << " "
-	     << this->OldOutputExtent[2] << " " << this->OldOutputExtent[3] << " "
-	     << this->OldOutputExtent[4] << " " << this->OldOutputExtent[5] << "\n"
-	     << this->OutputExtent[0] << " " << this->OutputExtent[1] << " "
-	     << this->OutputExtent[2] << " " << this->OutputExtent[3] << " "
-	     << this->OutputExtent[4] << " " << this->OutputExtent[5] << "\n";
-	  }
 	this->NeedsClear = 1;
 	}
 
@@ -771,22 +756,6 @@ void vtkFreehandUltrasound::InternalExecuteInformation()
       oldorigin[1] != this->OutputOrigin[1] ||
       oldorigin[2] != this->OutputOrigin[2])
     {
-    if (oldwholeextent[0] != this->OutputExtent[0] ||
-      oldwholeextent[1] != this->OutputExtent[1] ||
-      oldwholeextent[2] != this->OutputExtent[2] ||
-      oldwholeextent[3] != this->OutputExtent[3] ||
-      oldwholeextent[4] != this->OutputExtent[4] ||
-      oldwholeextent[5] != this->OutputExtent[5])
-      {
-      cout << "extent "
-	   << oldwholeextent[0] << " " << oldwholeextent[1] << " "
-	   << oldwholeextent[2] << " " << oldwholeextent[3] << " "
-	   << oldwholeextent[4] << " " << oldwholeextent[5] << "\n"
-	   << this->OutputExtent[0] << " " << this->OutputExtent[1] << " "
-	   << this->OutputExtent[2] << " " << this->OutputExtent[3] << " "
-	   << this->OutputExtent[4] << " " << this->OutputExtent[5] << "\n";
-      }
-
     this->NeedsClear = 1;
     }
 
@@ -828,6 +797,32 @@ void vtkFreehandUltrasound::InternalExecuteInformation()
 // }
 
 //----------------------------------------------------------------------------
+// VTK 5: Change to a VTK 5 style ProcessRequest Method that will
+//makes sure that the REQUEST_DATA_NOT_GENERATED is set so that the
+//data object is not initialized everytime an update is called. 
+
+int vtkFreehandUltrasound::ProcessRequest(vtkInformation* request,
+                              vtkInformationVector** inputVector,
+                              vtkInformationVector* outputVector)
+{
+  if(request->Has(vtkDemandDrivenPipeline::REQUEST_DATA_NOT_GENERATED()))
+    {
+    // Mark all outputs as not generated so that the executive does
+    // not try to handle initialization/finalization of the outputs.
+    // We will do it here.
+    int i;
+    for(i=0; i < outputVector->GetNumberOfInformationObjects(); ++i)
+      {
+      vtkInformation* outInfo = outputVector->GetInformationObject(i);
+      outInfo->Set(vtkDemandDrivenPipeline::DATA_NOT_GENERATED(), 1);
+      }
+    }
+
+  return this->Superclass::ProcessRequest(request, inputVector, outputVector);
+
+}
+
+//----------------------------------------------------------------------------
 int vtkFreehandUltrasound::ComputePipelineMTime(
   vtkInformation *vtkNotUsed(request),
   vtkInformationVector **vtkNotUsed(inInfoVec),
@@ -838,8 +833,6 @@ int vtkFreehandUltrasound::ComputePipelineMTime(
   if(this->GetSlice())
     {
     *mtime = this->GetSlice()->GetPipelineMTime(); 
-    
-    //  cout<<"\nPipeline time After : "<< this->GetSlice()->GetMTime()<<endl;
     }
   return 1;
 }
