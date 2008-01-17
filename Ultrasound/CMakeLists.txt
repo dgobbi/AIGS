@@ -6,13 +6,13 @@ SET(KIT_LIBS vtkHybrid vtkAtamaiTracking)
 
 IF(VTK_MAJOR_VERSION LESS 5)
   SET(Kit_SRCS ${Kit_SRCS}
+  )
+ELSE(VTK_MAJOR_VERSION LESS 5)
+  SET(Kit_SRCS ${Kit_SRCS}
     vtkFreehandUltrasound.cxx
     vtkUltrasoundCompare.cxx
     vtkUltrasoundFrameAnalyze.cxx
     vtkUltrasoundImageStencilSource.cxx
-  )
-ELSE(VTK_MAJOR_VERSION LESS 5)
-  SET(Kit_SRCS ${Kit_SRCS}
   )
 ENDIF(VTK_MAJOR_VERSION LESS 5)
 

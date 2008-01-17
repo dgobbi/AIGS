@@ -3,40 +3,41 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundImageStencilSource.cxx,v $
   Language:  C++
-  Date:      $Date: 2007/08/07 20:40:19 $
-  Version:   $Revision: 1.7 $
+  Date:      $Date: 2008/01/17 16:57:23 $
+  Version:   $Revision: 1.8 $
   Thanks:    Thanks to David G Gobbi who developed this class.
 
-Copyright (c) 1993-2001 Ken Martin, Will Schroeder, Bill Lorensen 
-All rights reserved.
+==========================================================================
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+Copyright (c) 2000-2007 Atamai, Inc.
 
- * Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+Use, modification and redistribution of the software, in source or
+binary forms, are permitted provided that the following terms and
+conditions are met:
 
- * Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+1) Redistribution of the source code, in verbatim or modified
+   form, must retain the above copyright notice, this license,
+   the following disclaimer, and any notices that refer to this
+   license and/or the following disclaimer.
 
- * Neither name of Ken Martin, Will Schroeder, or Bill Lorensen nor the names
-   of any contributors may be used to endorse or promote products derived
-   from this software without specific prior written permission.
+2) Redistribution in binary form must include the above copyright
+   notice, a copy of this license and the following disclaimer
+   in the documentation or with other materials provided with the
+   distribution.
 
- * Modified source versions must be plainly marked as such, and must not be
-   misrepresented as being the original software.
+3) Modified copies of the source code must be clearly marked as such,
+   and must not be misrepresented as verbatim copies of the source code.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE SOFTWARE "AS IS"
+WITHOUT EXPRESSED OR IMPLIED WARRANTY INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE.  IN NO EVENT SHALL ANY COPYRIGHT HOLDER OR OTHER PARTY WHO MAY
+MODIFY AND/OR REDISTRIBUTE THE SOFTWARE UNDER THE TERMS OF THIS LICENSE
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, LOSS OF DATA OR DATA BECOMING INACCURATE
+OR LOSS OF PROFIT OR BUSINESS INTERRUPTION) ARISING IN ANY WAY OUT OF
+THE USE OR INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES.
 
 =========================================================================*/
 

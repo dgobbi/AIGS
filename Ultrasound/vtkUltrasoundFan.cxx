@@ -3,47 +3,50 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundFan.cxx,v $
   Language:  C++
-  Date:      $Date: 2003/02/02 20:48:29 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2008/01/17 16:57:23 $
+  Version:   $Revision: 1.2 $
   Thanks:    Thanks to David G Gobbi who developed this class.
 
-Copyright (c) 1993-1999 Ken Martin, Will Schroeder, Bill Lorensen.
+==========================================================================
 
-This software is copyrighted by Ken Martin, Will Schroeder and Bill Lorensen.
-The following terms apply to all files associated with the software unless
-explicitly disclaimed in individual files. This copyright specifically does
-not apply to the related textbook "The Visualization Toolkit" ISBN
-013199837-4 published by Prentice Hall which is covered by its own copyright.
+Copyright (c) 2000-2007 Atamai, Inc.
 
-The authors hereby grant permission to use, copy, and distribute this
-software and its documentation for any purpose, provided that existing
-copyright notices are retained in all copies and that this notice is included
-verbatim in any distributions. Additionally, the authors grant permission to
-modify this software and its documentation for any purpose, provided that
-such modifications are not distributed without the explicit consent of the
-authors and that existing copyright notices are retained in all copies. Some
-of the algorithms implemented by this software are patented, observe all
-applicable patent law.
+Use, modification and redistribution of the software, in source or
+binary forms, are permitted provided that the following terms and
+conditions are met:
 
-IN NO EVENT SHALL THE AUTHORS OR DISTRIBUTORS BE LIABLE TO ANY PARTY FOR
-DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
-OF THE USE OF THIS SOFTWARE, ITS DOCUMENTATION, OR ANY DERIVATIVES THEREOF,
-EVEN IF THE AUTHORS HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+1) Redistribution of the source code, in verbatim or modified
+   form, must retain the above copyright notice, this license,
+   the following disclaimer, and any notices that refer to this
+   license and/or the following disclaimer.
 
-THE AUTHORS AND DISTRIBUTORS SPECIFICALLY DISCLAIM ANY WARRANTIES, INCLUDING,
-BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE, AND NON-INFRINGEMENT.  THIS SOFTWARE IS PROVIDED ON AN
-"AS IS" BASIS, AND THE AUTHORS AND DISTRIBUTORS HAVE NO OBLIGATION TO PROVIDE
-MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+2) Redistribution in binary form must include the above copyright
+   notice, a copy of this license and the following disclaimer
+   in the documentation or with other materials provided with the
+   distribution.
+
+3) Modified copies of the source code must be clearly marked as such,
+   and must not be misrepresented as verbatim copies of the source code.
+
+THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE SOFTWARE "AS IS"
+WITHOUT EXPRESSED OR IMPLIED WARRANTY INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE.  IN NO EVENT SHALL ANY COPYRIGHT HOLDER OR OTHER PARTY WHO MAY
+MODIFY AND/OR REDISTRIBUTE THE SOFTWARE UNDER THE TERMS OF THIS LICENSE
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, LOSS OF DATA OR DATA BECOMING INACCURATE
+OR LOSS OF PROFIT OR BUSINESS INTERRUPTION) ARISING IN ANY WAY OUT OF
+THE USE OR INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES.
 
 =========================================================================*/
+
 #include <limits.h>
 #include <float.h>
 #include <math.h>
 #include "vtkUltrasoundFan.h"
 #include "vtkMath.h"
 #include "vtkObjectFactory.h"
-
 
 
 //------------------------------------------------------------------------------
