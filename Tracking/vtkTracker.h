@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkTracker.h,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: pdas $
-  Date:      $Date: 2007/03/30 15:14:50 $
-  Version:   $Revision: 1.6 $
+  Author:    $Author: dgobbi $
+  Date:      $Date: 2008/04/10 17:26:35 $
+  Version:   $Revision: 1.7 $
 
 ==========================================================================
 
@@ -160,17 +160,37 @@ public:
   vtkSetMacro(ReferenceTool, int);
   vtkGetMacro(ReferenceTool, int);
   
+  // Description:
+  // In addition to the default mode of operation of the tracker
+  // it can also operate in client/server mode where the server
+  // is on the machine that has the tracker attached to it, and
+  // the client is on another machine that talks to the server
+  // via TCP/IP.  Set ServerMode to 1 in order to create a "server"
+  // version of the tracker object, or set a RemoteAddress in
+  // order to create a "client" version.
   vtkSetMacro(ServerMode, int);
   vtkGetMacro(ServerMode, int);
   
+  // Description:
+  // This method is only used when you are operating the tracker
+  // in client/server mode.  Set a numerical network port for
+  // communication between the client and the server (default: 1111).  
   vtkSetMacro(NetworkPort, int);
   vtkGetMacro(NetworkPort, int);
 
-  void SetRemoteAddress( char * ra){this->RemoteAddress = ra;};
-  char* GetRemoteAddress(){ return this->RemoteAddress;};
+  // Description:
+  // This method is only used when you are operating the tracker
+  // in client/server mode.  Set the IP address of the server
+  // that the client will talk to.
+  vtkSetStringMacro(RemoteAddress);
+  vtkGetStringMacro(RemoteAddress);
 
-  vtkSocketCommunicator* GetSocketCommunicator()
-  { return this->SocketCommunicator;};
+  // Description:
+  // Get the socket communicator that is used for communication
+  // between the server and the client.
+  vtkSocketCommunicator* GetSocketCommunicator() {
+    return this->SocketCommunicator; };
+
   // Description:
   // Set the transformation matrix between tracking-system coordinates
   // and the desired world coordinate system.  You can use 
