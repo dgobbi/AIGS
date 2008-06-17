@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@cs.queensu.ca>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2008/06/17 03:59:34 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2008/06/17 14:08:46 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 
@@ -127,6 +127,25 @@ int vtkNDICertusTracker::InitializeCertusSystem()
 {
   // Variable to indicate that probe failed
   int successFlag = 1;  
+
+  // Set the NIF (Network Information File)
+  if (successFlag &&
+      OptotrakSetProcessingFlags(OPTO_USE_INTERNAL_NIF)
+      != OPTO_NO_ERROR_CODE)
+    {
+    vtkErrorMacro("Call to OptotrakSetProcessingFlags() failed.");
+    this->PrintCertusError();
+    successFlag = 0;    
+    }
+
+  // Write to the internal NIF
+  if (successFlag &&
+      TransputerDetermineSystemCfg(NULL) != OPTO_NO_ERROR_CODE)
+    {
+    vtkErrorMacro("Call to TransputerDetermineSystemCfg() failed.");
+    this->PrintCertusError();
+    successFlag = 0;    
+    }
 
   // Do the initial load.
   if (successFlag &&
