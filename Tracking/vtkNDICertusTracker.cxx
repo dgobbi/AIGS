@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@cs.queensu.ca>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2008/06/17 14:08:46 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2008/06/17 15:05:53 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 
@@ -110,17 +110,18 @@ void vtkNDICertusTracker::PrintSelf(ostream& os, vtkIndent indent)
 }
   
 //----------------------------------------------------------------------------
-int vtkNDICertusTracker::PrintCertusError()
-{
-  char szNDErrorString[MAX_ERROR_STRING_LENGTH + 1];
-  if (OptotrakGetErrorString(szNDErrorString,
-                             MAX_ERROR_STRING_LENGTH+1) == 0)
-    {
-    vtkErrorMacro("Optotrack: " << szNDErrorString);
-    }
+static char vtkCertusErrorString[MAX_ERROR_STRING_LENGTH + 1];
 
-  return 0;
-}  
+#define vtkPrintCertusErrorMacro() \
+{ \
+  if (OptotrakGetErrorString(vtkCertusErrorString, \
+                             MAX_ERROR_STRING_LENGTH+1) == 0) \
+    { \
+    vtkErrorMacro(<< vtkCertusErrorString); \
+    } \
+} 
+
+#define vtkCertusDebugMacro(t) { cerr << __FILE__ << ":" << __LINE__ << "\n " t << "\n"; }
 
 //----------------------------------------------------------------------------
 int vtkNDICertusTracker::InitializeCertusSystem()
@@ -134,7 +135,7 @@ int vtkNDICertusTracker::InitializeCertusSystem()
       != OPTO_NO_ERROR_CODE)
     {
     vtkErrorMacro("Call to OptotrakSetProcessingFlags() failed.");
-    this->PrintCertusError();
+    vtkPrintCertusErrorMacro();
     successFlag = 0;    
     }
 
@@ -143,7 +144,7 @@ int vtkNDICertusTracker::InitializeCertusSystem()
       TransputerDetermineSystemCfg(NULL) != OPTO_NO_ERROR_CODE)
     {
     vtkErrorMacro("Call to TransputerDetermineSystemCfg() failed.");
-    this->PrintCertusError();
+    vtkPrintCertusErrorMacro();
     successFlag = 0;    
     }
 
@@ -152,7 +153,7 @@ int vtkNDICertusTracker::InitializeCertusSystem()
       TransputerLoadSystem("system") != OPTO_NO_ERROR_CODE)
     {
     vtkErrorMacro("Call to Certus TransputerLoadSystem() failed");
-    this->PrintCertusError();
+    vtkPrintCertusErrorMacro();
     successFlag = 0;
     }
 
@@ -180,7 +181,7 @@ int vtkNDICertusTracker::InitializeCertusSystem()
       TransputerInitializeSystem(0) != OPTO_NO_ERROR_CODE)
     { // optionally, use "OPTO_LOG_ERRORS_FLAG" argument to above
     vtkErrorMacro("Call to Certus TransputerInitializeSystem() failed");
-    this->PrintCertusError();
+    vtkPrintCertusErrorMacro();
     successFlag = 0;
     }
   
@@ -189,7 +190,7 @@ int vtkNDICertusTracker::InitializeCertusSystem()
       OptotrakLoadCameraParameters("standard") != OPTO_NO_ERROR_CODE)
     {
     vtkErrorMacro("Call to OptotrakLoadCameraParameters()  failed");
-    this->PrintCertusError();
+    vtkPrintCertusErrorMacro();
     successFlag = 0;
     }
   
@@ -214,7 +215,7 @@ int vtkNDICertusTracker::InitializeCertusSystem()
                         &nFlags ) != OPTO_NO_ERROR_CODE)
     {
     vtkErrorMacro("Call to OptotrakGetStatus() failed");
-    this->PrintCertusError();
+    vtkPrintCertusErrorMacro();
     successFlag = 0;
     }
 
@@ -231,9 +232,9 @@ int vtkNDICertusTracker::InitializeCertusSystem()
   if (successFlag &&
       (nNumSensors != 1 || nNumOdaus != 1))
     {
-    vtkErrorMacro("Bad Certus configuration: " << nNumSensors << " sensors, "
+    vtkCertusDebugMacro("Certus configuration: " << nNumSensors << " sensors, "
                   << nNumOdaus << " odaus");
-    successFlag = 0;
+    //successFlag = 0;
     }
 
   return successFlag;
@@ -245,7 +246,7 @@ int vtkNDICertusTracker::ShutdownCertusSystem()
   // Just a simple shutdown command
   if (TransputerShutdownSystem() != OPTO_NO_ERROR_CODE)
     {
-    this->PrintCertusError();
+    vtkPrintCertusErrorMacro();
     }
 
   return 1;
@@ -303,11 +304,7 @@ int vtkNDICertusTracker::Probe()
   // Perform initialization of the system
   int successFlag = this->InitializeCertusSystem();
 
-  if (!successFlag)
-    {
-    this->PrintCertusError();
-    }
-
+  // Shut down the system
   this->ShutdownCertusSystem();
 
   return successFlag;
@@ -327,7 +324,7 @@ int vtkNDICertusTracker::InternalStartTracking()
   if (!this->InitializeCertusSystem()
       || !this->EnableToolPorts())
     {
-    this->PrintCertusError();
+    vtkPrintCertusErrorMacro();
     this->ShutdownCertusSystem();
     return 0;
     }
@@ -335,7 +332,7 @@ int vtkNDICertusTracker::InternalStartTracking()
   // count the number of markers on all tools first
   if (!this->ActivateCertusMarkers())
     {
-    this->PrintCertusError();
+    vtkPrintCertusErrorMacro();
     this->ShutdownCertusSystem();
     return 0;
     }
@@ -353,12 +350,12 @@ int vtkNDICertusTracker::InternalStopTracking()
 {
   if (!this->DisableToolPorts())
     {
-    this->PrintCertusError();
+    vtkPrintCertusErrorMacro();
     }
 
   if(OptotrakDeActivateMarkers() != OPTO_NO_ERROR_CODE)
     {
-    this->PrintCertusError();
+    vtkPrintCertusErrorMacro();
     }
 
   return 1;
@@ -399,7 +396,7 @@ void vtkNDICertusTracker::InternalUpdate()
   if (DataGetLatestTransforms2(&uFrameNumber, &uElements, &uFlags,
                                rigidBodyData, 0) != OPTO_NO_ERROR_CODE)
     {
-    this->PrintCertusError();
+    vtkPrintCertusErrorMacro();
     delete [] rigidBodyData;
     return;
     }
@@ -499,9 +496,10 @@ int vtkNDICertusTracker::EnableToolPorts()
     {
     if (this->PortEnabled[toolCounter])
       {
+	  vtkCertusDebugMacro("disabling tool " << toolCounter);
       if (RigidBodyDelete(this->PortHandle[toolCounter]) != OPTO_NO_ERROR_CODE)
         {
-        this->PrintCertusError();
+        vtkPrintCertusErrorMacro();
         }
       }
     this->PortEnabled[toolCounter] = 0;
@@ -510,9 +508,10 @@ int vtkNDICertusTracker::EnableToolPorts()
   // stop tracking
   if (this->IsDeviceTracking)
     {
+    vtkCertusDebugMacro("DeActivating Markers");
     if(!this->DeActivateCertusMarkers())
       {
-      this->PrintCertusError();
+      vtkPrintCertusErrorMacro();
       }
     }
 
@@ -525,9 +524,10 @@ int vtkNDICertusTracker::EnableToolPorts()
        trialNumber < 3 && !allDevicesEnabled;
        trialNumber++)
     {
+	vtkCertusDebugMacro("Getting Number Device Handles");
     if (OptotrakGetNumberDeviceHandles(&nDeviceHandles) != OPTO_NO_ERROR_CODE)
       {
-      this->PrintCertusError();
+      vtkPrintCertusErrorMacro();
       return 0;
       }
  
@@ -541,10 +541,11 @@ int vtkNDICertusTracker::EnableToolPorts()
     deviceHandles = new DeviceHandle[nDeviceHandles];
 
     unsigned int flags = 0;
+	vtkCertusDebugMacro("Getting Device Handles for " << nDeviceHandles << " devices");
     if (OptotrakGetDeviceHandles(deviceHandles, nDeviceHandles, &flags)
         != OPTO_NO_ERROR_CODE)
       {
-      this->PrintCertusError();
+      vtkPrintCertusErrorMacro();
       delete [] deviceHandles;
       return 0;
       }
@@ -562,17 +563,19 @@ int vtkNDICertusTracker::EnableToolPorts()
 
       if (status == DH_STATUS_UNOCCUPIED)
         {
+		vtkCertusDebugMacro("Delete port handle " << ph);
         if (OptotrakDeviceHandleFree(ph) != OPTO_NO_ERROR_CODE)
           {
-          this->PrintCertusError();
+          vtkPrintCertusErrorMacro();
           }
         allDevicesEnabled = 0;
         }
       else if (status == DH_STATUS_INITIALIZED)
         {
+		vtkCertusDebugMacro("Enable port handle " << ph);
         if (OptotrakDeviceHandleEnable(ph) != OPTO_NO_ERROR_CODE)
           {
-          this->PrintCertusError();
+          vtkPrintCertusErrorMacro();
           }
         // enabling a strober will make other tools appear,
         // so let's be paranoid and always set this to zero
@@ -601,19 +604,21 @@ int vtkNDICertusTracker::EnableToolPorts()
 
     DeviceHandleProperty *properties = 0;
     int nProperties = 0;
+	vtkCertusDebugMacro("Getting number of properties for port handle " << ph);
     if (OptotrakDeviceHandleGetNumberProperties(ph, &nProperties)
         != OPTO_NO_ERROR_CODE
         || nProperties == 0)
       {
-      this->PrintCertusError();
+      vtkPrintCertusErrorMacro();
       }
     else
       {
       properties = new DeviceHandleProperty[nProperties];
+	  vtkCertusDebugMacro("Getting " << nProperties << " properties for handle " << ph);
       if (OptotrakDeviceHandleGetProperties(ph, properties, nProperties)
           != OPTO_NO_ERROR_CODE)
         {
-        this->PrintCertusError();
+        vtkPrintCertusErrorMacro();
         }
       else
         {
@@ -673,6 +678,8 @@ int vtkNDICertusTracker::EnableToolPorts()
           // assume only one strober: index tools by SubPort
           int port = nSubPort - 1;
 
+		  vtkCertusDebugMacro("Found tool for port " << port);
+
           if (port >= 0 && port < VTK_CERTUS_NTOOLS)
             {
             if (this->PortEnabled[port] &&
@@ -714,13 +721,14 @@ int vtkNDICertusTracker::EnableToolPorts()
     if (this->PortEnabled[toolCounter])
       {
       int ph = this->PortHandle[toolCounter];
+	  vtkCertusDebugMacro("Adding rigid body for port handle" << ph);
       if (RigidBodyAddFromDeviceHandle(ph,
                                        ph, // rigID is port handle
                                        OPTOTRAK_QUATERN_RIGID_FLAG |
                                        OPTOTRAK_RETURN_QUATERN_FLAG)
           != OPTO_NO_ERROR_CODE)
         {
-        this->PrintCertusError();
+        vtkPrintCertusErrorMacro();
         }
       else
         {
@@ -754,9 +762,10 @@ int vtkNDICertusTracker::EnableToolPorts()
   // re-start the tracking
   if (this->IsDeviceTracking)
     {
+    vtkCertusDebugMacro("Activating Markers");
     if (!this->ActivateCertusMarkers())
       {
-      this->PrintCertusError();
+      vtkPrintCertusErrorMacro();
       return 0;
       }
     }
@@ -773,7 +782,7 @@ int vtkNDICertusTracker::DisableToolPorts()
     {
     if (!this->DeActivateCertusMarkers())
       {
-      this->PrintCertusError();
+      vtkPrintCertusErrorMacro();
       }
     }
 
@@ -784,7 +793,7 @@ int vtkNDICertusTracker::DisableToolPorts()
       {
       if (RigidBodyDelete(this->PortHandle[toolCounter]) != OPTO_NO_ERROR_CODE)
         {
-        this->PrintCertusError();
+        vtkPrintCertusErrorMacro();
         }
       }
     this->PortEnabled[toolCounter] = 0;
@@ -795,7 +804,7 @@ int vtkNDICertusTracker::DisableToolPorts()
     {
     if (!this->ActivateCertusMarkers())
       {
-      this->PrintCertusError();
+      vtkPrintCertusErrorMacro();
       }
     }
 

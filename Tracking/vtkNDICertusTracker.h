@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@cs.queensu.ca>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2008/06/17 03:59:34 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2008/06/17 15:05:53 $
+  Version:   $Revision: 1.2 $
 
 ==========================================================================
 
@@ -100,10 +100,6 @@ protected:
   // Description:
   // Deactivate all markers.
   int DeActivateCertusMarkers();
-
-  // Description:
-  // Print the most recent error.
-  int PrintCertusError();
 
   // Description:
   // Methods for detecting which ports have tools in them, and
