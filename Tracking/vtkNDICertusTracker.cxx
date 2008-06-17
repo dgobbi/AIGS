@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@cs.queensu.ca>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2008/06/17 15:05:53 $
-  Version:   $Revision: 1.3 $
+  Date:      $Date: 2008/06/17 15:42:13 $
+  Version:   $Revision: 1.4 $
 
 ==========================================================================
 
@@ -40,6 +40,9 @@
 #include "vtkTrackerTool.h"
 #include "vtkFrameToTimeConverter.h"
 #include "vtkObjectFactory.h"
+
+// turn this on to print lots of debug information
+#define VTK_CERTUS_DEBUG_STATEMENTS 1
 
 //----------------------------------------------------------------------------
 // map values 0, 1, 2 to the proper Certus VLED state constant 
@@ -121,7 +124,14 @@ static char vtkCertusErrorString[MAX_ERROR_STRING_LENGTH + 1];
     } \
 } 
 
-#define vtkCertusDebugMacro(t) { cerr << __FILE__ << ":" << __LINE__ << "\n " t << "\n"; }
+#if VTK_CERTUS_DEBUG_STATEMENTS
+#define vtkCertusDebugMacro(t) \
+{ \
+  cerr << "vtkNDICertusTracker.cxx:" << __LINE__ << " " t << "\n"; \
+}
+#else
+#define vtkCertusDebugMacro(t)
+#endif
 
 //----------------------------------------------------------------------------
 int vtkNDICertusTracker::InitializeCertusSystem()
@@ -348,12 +358,14 @@ int vtkNDICertusTracker::InternalStartTracking()
 //----------------------------------------------------------------------------
 int vtkNDICertusTracker::InternalStopTracking()
 {
-  if (!this->DisableToolPorts())
+  if(OptotrakDeActivateMarkers() != OPTO_NO_ERROR_CODE)
     {
     vtkPrintCertusErrorMacro();
     }
 
-  if(OptotrakDeActivateMarkers() != OPTO_NO_ERROR_CODE)
+  this->IsDeviceTracking = 0;
+
+  if (!this->DisableToolPorts())
     {
     vtkPrintCertusErrorMacro();
     }
@@ -496,7 +508,7 @@ int vtkNDICertusTracker::EnableToolPorts()
     {
     if (this->PortEnabled[toolCounter])
       {
-	  vtkCertusDebugMacro("disabling tool " << toolCounter);
+      vtkCertusDebugMacro("disabling tool " << toolCounter);
       if (RigidBodyDelete(this->PortHandle[toolCounter]) != OPTO_NO_ERROR_CODE)
         {
         vtkPrintCertusErrorMacro();
@@ -524,7 +536,7 @@ int vtkNDICertusTracker::EnableToolPorts()
        trialNumber < 3 && !allDevicesEnabled;
        trialNumber++)
     {
-	vtkCertusDebugMacro("Getting Number Device Handles");
+    vtkCertusDebugMacro("Getting Number Device Handles");
     if (OptotrakGetNumberDeviceHandles(&nDeviceHandles) != OPTO_NO_ERROR_CODE)
       {
       vtkPrintCertusErrorMacro();
@@ -541,7 +553,7 @@ int vtkNDICertusTracker::EnableToolPorts()
     deviceHandles = new DeviceHandle[nDeviceHandles];
 
     unsigned int flags = 0;
-	vtkCertusDebugMacro("Getting Device Handles for " << nDeviceHandles << " devices");
+    vtkCertusDebugMacro("Getting Device Handles for " << nDeviceHandles << " devices");
     if (OptotrakGetDeviceHandles(deviceHandles, nDeviceHandles, &flags)
         != OPTO_NO_ERROR_CODE)
       {
@@ -563,7 +575,7 @@ int vtkNDICertusTracker::EnableToolPorts()
 
       if (status == DH_STATUS_UNOCCUPIED)
         {
-		vtkCertusDebugMacro("Delete port handle " << ph);
+        vtkCertusDebugMacro("Delete port handle " << ph);
         if (OptotrakDeviceHandleFree(ph) != OPTO_NO_ERROR_CODE)
           {
           vtkPrintCertusErrorMacro();
@@ -572,7 +584,7 @@ int vtkNDICertusTracker::EnableToolPorts()
         }
       else if (status == DH_STATUS_INITIALIZED)
         {
-		vtkCertusDebugMacro("Enable port handle " << ph);
+        vtkCertusDebugMacro("Enable port handle " << ph);
         if (OptotrakDeviceHandleEnable(ph) != OPTO_NO_ERROR_CODE)
           {
           vtkPrintCertusErrorMacro();
@@ -614,7 +626,7 @@ int vtkNDICertusTracker::EnableToolPorts()
     else
       {
       properties = new DeviceHandleProperty[nProperties];
-	  vtkCertusDebugMacro("Getting " << nProperties << " properties for handle " << ph);
+      vtkCertusDebugMacro("Getting " << nProperties << " properties for handle " << ph);
       if (OptotrakDeviceHandleGetProperties(ph, properties, nProperties)
           != OPTO_NO_ERROR_CODE)
         {
@@ -678,7 +690,7 @@ int vtkNDICertusTracker::EnableToolPorts()
           // assume only one strober: index tools by SubPort
           int port = nSubPort - 1;
 
-		  vtkCertusDebugMacro("Found tool for port " << port);
+          vtkCertusDebugMacro("Found tool for port " << port);
 
           if (port >= 0 && port < VTK_CERTUS_NTOOLS)
             {
@@ -721,7 +733,7 @@ int vtkNDICertusTracker::EnableToolPorts()
     if (this->PortEnabled[toolCounter])
       {
       int ph = this->PortHandle[toolCounter];
-	  vtkCertusDebugMacro("Adding rigid body for port handle" << ph);
+      vtkCertusDebugMacro("Adding rigid body for port handle" << ph);
       if (RigidBodyAddFromDeviceHandle(ph,
                                        ph, // rigID is port handle
                                        OPTOTRAK_QUATERN_RIGID_FLAG |
