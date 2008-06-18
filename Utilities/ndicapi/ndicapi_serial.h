@@ -4,9 +4,9 @@
   Module:    $RCSfile: ndicapi_serial.h,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C
-  Author:    $Author: dgobbi $
-  Date:      $Date: 2005/07/01 22:52:05 $
-  Version:   $Revision: 1.5 $
+  Author:    $Author: kcharbon $
+  Date:      $Date: 2008/06/18 15:33:20 $
+  Version:   $Revision: 1.6 $
 
 ==========================================================================
 
@@ -72,11 +72,15 @@ extern "C" {
 typedef HANDLE NDIFileHandle;
 #define NDI_INVALID_HANDLE INVALID_HANDLE_VALUE
 
-#define NDI_NUMBER_OF_DEVICES 4
+#define NDI_NUMBER_OF_DEVICES 7
 #define NDI_DEVICE0    "COM1:"
 #define NDI_DEVICE1    "COM2:"
 #define NDI_DEVICE2    "COM3:"
 #define NDI_DEVICE3    "COM4:"
+#define NDI_DEVICE4    "COM5:"
+#define NDI_DEVICE5    "COM6:"
+#define NDI_DEVICE6    "COM7:"
+#define NDI_DEVICE7    "COM8:"
 
 #elif defined(unix) || defined(__unix__) || defined(__APPLE__)
 
@@ -84,11 +88,16 @@ typedef int NDIFileHandle;
 #define NDI_INVALID_HANDLE -1
 
 #if defined(linux) || defined(__linux__)
-#define NDI_NUMBER_OF_DEVICES 4
+#define NDI_NUMBER_OF_DEVICES 7
 #define NDI_DEVICE0    "/dev/ttyS0"
 #define NDI_DEVICE1    "/dev/ttyS1"
 #define NDI_DEVICE2    "/dev/ttyUSB0"
 #define NDI_DEVICE3    "/dev/ttyUSB1"
+#define NDI_DEVICE4    "/dev/ttyUSB2"
+#define NDI_DEVICE5    "/dev/ttyUSB3"
+#define NDI_DEVICE6	   "/dev/ttyUSB4"
+#define NDI_DEVICE7    "/dev/ttyUSB5"
+
 #elif defined(__APPLE__)
 #define NDI_NUMBER_OF_DEVICES 0
 #elif defined(sgi)
@@ -97,6 +106,10 @@ typedef int NDIFileHandle;
 #define NDI_DEVICE1    "/dev/ttyd2"
 #define NDI_DEVICE2    "/dev/ttyd3"
 #define NDI_DEVICE3    "/dev/ttyd4"
+#define NDI_DEVICE4    "/dev/ttyd5"
+#define NDI_DEVICE5    "/dev/ttyd6"
+#define NDI_DEVICE6    "/dev/ttyd7"
+#define NDI_DEVICE7    "/dev/ttyd8"
 #else
 #define NDI_NUMBER_OF_DEVICES 2
 #define NDI_DEVICE0    "/dev/ttya"
