@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@cs.queensu.ca>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2008/06/17 15:05:53 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2008/06/18 21:59:29 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 
@@ -33,6 +33,9 @@ class vtkFrameToTimeConverter;
 // the number of tools this class can handle
 #define VTK_CERTUS_NTOOLS 12
 
+
+
+
 class VTK_EXPORT vtkNDICertusTracker : public vtkTracker
 {
 public:
@@ -56,6 +59,7 @@ public:
   // Get an update from the tracking system and push the new transforms
   // to the tools.  This should only be used within vtkTracker.cxx.
   void InternalUpdate();
+  void Update();
 
 protected:
   vtkNDICertusTracker();
@@ -71,11 +75,13 @@ protected:
   // only be reset if communication cannot be established without
   // a reset.
   int InternalStartTracking();
+  void StartTracking();
 
   // Description:
   // Stop the tracking system and bring it back to its ground state:
   // Initialized, not tracking, at 9600 Baud.
   int InternalStopTracking();
+  void StopTracking();
 
   // Description:
   // Cause the device to beep the specified number of times.

@@ -5,8 +5,8 @@
   Creator:   David Gobbi <dgobbi@cs.queensu.ca>
   Language:  C++
   Author:    $Author: dgobbi $
-  Date:      $Date: 2008/06/17 15:42:13 $
-  Version:   $Revision: 1.4 $
+  Date:      $Date: 2008/06/18 21:59:29 $
+  Version:   $Revision: 1.5 $
 
 ==========================================================================
 
@@ -43,6 +43,8 @@
 
 // turn this on to print lots of debug information
 #define VTK_CERTUS_DEBUG_STATEMENTS 1
+// turn this on to turn of multithreading
+#define VTK_CERTUS_NO_THREADING 1
 
 //----------------------------------------------------------------------------
 // map values 0, 1, 2 to the proper Certus VLED state constant 
@@ -320,6 +322,15 @@ int vtkNDICertusTracker::Probe()
   return successFlag;
 } 
 
+//----------------------------------------------------------------------------
+void vtkNDICertusTracker::StartTracking()
+{
+#if VTK_CERTUS_NO_THREADING
+  this->Tracking = this->InternalStartTracking();
+#else
+  this->vtkTracker::StartTracking();
+#endif
+}
 
 //----------------------------------------------------------------------------
 int vtkNDICertusTracker::InternalStartTracking()
@@ -356,13 +367,23 @@ int vtkNDICertusTracker::InternalStartTracking()
 }
 
 //----------------------------------------------------------------------------
+void vtkNDICertusTracker::StopTracking()
+{
+#if VTK_CERTUS_NO_THREADING
+  this->InternalStopTracking();
+  this->Tracking = 0;
+#else
+  this->vtkTracker::StopTracking();
+#endif
+}
+
+//----------------------------------------------------------------------------
 int vtkNDICertusTracker::InternalStopTracking()
 {
   if(OptotrakDeActivateMarkers() != OPTO_NO_ERROR_CODE)
     {
     vtkPrintCertusErrorMacro();
     }
-
   this->IsDeviceTracking = 0;
 
   if (!this->DisableToolPorts())
@@ -370,7 +391,23 @@ int vtkNDICertusTracker::InternalStopTracking()
     vtkPrintCertusErrorMacro();
     }
 
+  // Shut down the system
+  this->ShutdownCertusSystem();
+
   return 1;
+}
+
+//----------------------------------------------------------------------------
+void vtkNDICertusTracker::Update()
+{
+#if VTK_CERTUS_NO_THREADING
+  if (this->Tracking)
+    {
+    this->InternalUpdate();
+    }
+#endif
+
+	this->vtkTracker::Update();
 }
 
 //----------------------------------------------------------------------------
@@ -413,6 +450,9 @@ void vtkNDICertusTracker::InternalUpdate()
     return;
     }
 
+  vtkCertusDebugMacro("Found " << uElements << " rigid bodies, expected " << this->NumberOfRigidBodies
+	                  << " with " << this->NumberOfMarkers << " markers");
+
   // these two calls are to generate an accurate timestamp
   this->Timer->SetLastFrame(uFrameNumber);
   double timestamp = this->Timer->GetTimeStampForFrame(uFrameNumber);
@@ -422,7 +462,12 @@ void vtkNDICertusTracker::InternalUpdate()
     {
     OptotrakRigidStruct& rigidBody = rigidBodyData[rigidCounter];
     long rigidId = rigidBody.RigidId;
-    
+	vtkCertusDebugMacro("rigidBody " << rigidCounter << " rigidId = " << rigidId);
+    if (rigidId > 10)
+      {
+      rigidId = this->PortHandle[3];
+	  }
+
     for (tool = 0; tool < VTK_CERTUS_NTOOLS; tool++)
       {
       if (this->PortHandle[tool] == rigidId)
@@ -449,7 +494,12 @@ void vtkNDICertusTracker::InternalUpdate()
       trans[5] = rigidBody.transformation.quaternion.translation.y;
       trans[6] = rigidBody.transformation.quaternion.translation.z;
       trans[7] = rigidBody.QuaternionError;
+	  vtkCertusDebugMacro(" " << trans[4] << ", " << trans[5] << ", " << trans[6]);
       }
+    else
+      {
+      vtkCertusDebugMacro("OPTOTRAK_UNDETERMINED_FLAG");
+	  }
 
     statusFlags[tool] = rigidBody.flags;
     }
@@ -491,8 +541,8 @@ void vtkNDICertusTracker::InternalUpdate()
     ndiTransformToMatrixd(transform[tool],*this->SendMatrix->Element);
     this->SendMatrix->Transpose();
 
-    // send the matrix and flags to the tool   
-    this->ToolUpdate(tool, this->SendMatrix, flags, timestamp);   
+    // send the matrix and flags to the tool's vtkTrackerBuffer
+    this->ToolUpdate(tool, this->SendMatrix, flags, timestamp);
     }
 }
 
@@ -735,7 +785,7 @@ int vtkNDICertusTracker::EnableToolPorts()
       int ph = this->PortHandle[toolCounter];
       vtkCertusDebugMacro("Adding rigid body for port handle" << ph);
       if (RigidBodyAddFromDeviceHandle(ph,
-                                       ph, // rigID is port handle
+                                       10, // rigID is port handle
                                        OPTOTRAK_QUATERN_RIGID_FLAG |
                                        OPTOTRAK_RETURN_QUATERN_FLAG)
           != OPTO_NO_ERROR_CODE)
