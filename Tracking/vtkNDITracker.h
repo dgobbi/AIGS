@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkNDITracker.h,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: pdas $
-  Date:      $Date: 2007/03/09 21:44:08 $
-  Version:   $Revision: 1.5 $
+  Author:    $Author: kcharbon $
+  Date:      $Date: 2008/07/31 14:17:49 $
+  Version:   $Revision: 1.6 $
 
 ==========================================================================
 
@@ -121,6 +121,11 @@ public:
   void InternalUpdate();
   virtual void InternalInterpretCommand( char * c);
 
+  // Description:
+  // Get the full TX reply for a tool. 
+  int GetFullTX(int tool, double transform[8]);
+  double *GetFullTX(int tool) { this->ReturnValue[0] = (double) this->GetFullTX(tool, &this->ReturnValue[1]); return this->ReturnValue; };
+
 protected:
   vtkNDITracker();
   ~vtkNDITracker();
@@ -188,14 +193,11 @@ protected:
 
   char CommandReply[VTK_NDI_REPLY_LEN];
 
+  double ReturnValue[9];
+
 private:
   vtkNDITracker(const vtkNDITracker&);
   void operator=(const vtkNDITracker&);  
 };
 
 #endif
-
-
-
-
-

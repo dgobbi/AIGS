@@ -4,9 +4,9 @@
   Module:    $RCSfile: vtkNDITracker.cxx,v $
   Creator:   David Gobbi <dgobbi@atamai.com>
   Language:  C++
-  Author:    $Author: pdas $
-  Date:      $Date: 2007/06/15 18:41:47 $
-  Version:   $Revision: 1.15 $
+  Author:    $Author: kcharbon $
+  Date:      $Date: 2008/07/31 14:17:49 $
+  Version:   $Revision: 1.16 $
 
 ==========================================================================
 
@@ -178,7 +178,7 @@ int vtkNDITracker::Probe()
   if ((this->SerialDevice == 0 || this->SerialDevice[0] == '\0') &&
       this->SerialPort < 0)
     {
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 8; i++)
       {
       devicename = ndiDeviceName(i);
       if (devicename)
@@ -1034,6 +1034,18 @@ void vtkNDITracker::DisableToolPorts()
       vtkErrorMacro(<< ndiErrorString(errnum));
       }
     }
+}
+
+//----------------------------------------------------------------------------
+int vtkNDITracker::GetFullTX(int tool, double transform[9]) {
+  
+  int ph = this->PortHandle[tool];
+  if (ph == 0)
+    {
+    return -2;
+    }
+  int status = (double) ndiGetTXTransform(this->Device, ph, transform);
+  return status;
 }
 
 //----------------------------------------------------------------------------
