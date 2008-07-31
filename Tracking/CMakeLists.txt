@@ -8,6 +8,7 @@ SET(KIT_EXTRA_LIBS)
 SET ( Kit_SRCS
 vtkTracker.cxx
 vtkTrackerTool.cxx
+vtkFakeTracker.cxx
 vtkTrackerBuffer.cxx
 vtkFrameToTimeConverter.cxx
 )
