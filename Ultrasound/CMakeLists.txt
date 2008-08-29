@@ -10,6 +10,7 @@ IF(VTK_MAJOR_VERSION LESS 5)
 ELSE(VTK_MAJOR_VERSION LESS 5)
   SET(Kit_SRCS ${Kit_SRCS}
     vtkFreehandUltrasound.cxx
+    vtkFreehandUltrasound2.cxx
     vtkUltrasoundCompare.cxx
     vtkUltrasoundFrameAnalyze.cxx
     vtkUltrasoundImageStencilSource.cxx
