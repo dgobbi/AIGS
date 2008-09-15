@@ -41,7 +41,7 @@ Copyright (c) 2000,2002 David Gobbi.
 #include "vtkImageClip.h" // added by Danielle
 #include "vtkImageFlip.h" // added by Danielle
 
-vtkCxxRevisionMacro(vtkFreehandUltrasound2, "$Revision: 1.1 $");
+vtkCxxRevisionMacro(vtkFreehandUltrasound2, "$Revision: 1.2 $");
 vtkStandardNewMacro(vtkFreehandUltrasound2);
 
 //----------------------------------------------------------------------------
@@ -2600,14 +2600,18 @@ vtkMatrix4x4 *vtkFreehandUltrasound2::GetIndexMatrix()
     {
 		// cutting this out prevents the transform from being applied
     transform->SetMatrix(this->GetSliceAxes());
-
     }
+
+  //std::cout << "***************" << std::endl;
+  //std::cout << "SLICE AXES:" << std::endl;
+  //transform->GetMatrix()->Print(std::cout);
 
   if (this->SliceTransform)
     {
     transform->PostMultiply();
     transform->Concatenate(this->SliceTransform->GetMatrix());
-
+    //std::cout << "SLICE TRANSFORM: " << std::endl;
+    //this->SliceTransform->GetMatrix()->Print(std::cout);
     }
   
   // check to see if we have an identity matrix
@@ -2626,8 +2630,12 @@ vtkMatrix4x4 *vtkFreehandUltrasound2::GetIndexMatrix()
     outMatrix->Element[i][i] = 1.0f/outSpacing[i];
     outMatrix->Element[i][3] = -outOrigin[i]/outSpacing[i];
     }
+  //std::cout << "IN MATRIX" << std::endl;
+  //inMatrix->Print(std::cout);
+  //std::cout << "OUT MATRIX" << std::endl;
+  //outMatrix->Print(std::cout);
 
-	// inMatrix * GetSliceAxes * SliceTransform->GetMatrix * outMatrix
+	// outMatrix * (sliceTransform * sliceAxes) * inMatrix
   if (!isIdentity)
     {
     transform->PostMultiply();
@@ -2638,6 +2646,8 @@ vtkMatrix4x4 *vtkFreehandUltrasound2::GetIndexMatrix()
 
 // this->IndexMatrix is the result
   transform->GetMatrix(this->IndexMatrix);
+  //std::cout << "INDEX MATRIX" << std::endl;
+  //this->IndexMatrix->Print(std::cout);
   
   transform->Delete();
   inMatrix->Delete();
@@ -3320,6 +3330,13 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 									int threadId) // current thread id
 {
 	
+
+  /*for (int u = 0; u < 4; u++)
+    {
+    std::cout << (double)matrix[u][0] << " " << (double)matrix[u][1] << " " << (double)matrix[u][2] << " " << (double)matrix[u][3] << std::endl;
+    }
+  std::cout << "*****" << std::endl;*/
+
 	//std::cout << "In vtkOptimizedInsertSlice" << std::endl;
  
 
@@ -3358,6 +3375,13 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 	// number of pixels in the x and y directions b/w the fan origin and the slice origin
 	double xf = (self->GetFanOrigin()[0]-inOrigin[0])/inSpacing[0];
 	double yf = (self->GetFanOrigin()[1]-inOrigin[1])/inSpacing[1];
+
+			if (self->GetFlipHorizontalOnOutput())
+			{
+      yf = (double)self->GetNumberOfPixelsFromTipOfFanToBottomOfScreen();
+      }
+
+
 	// fan depth squared
 	double d2 = self->GetFanDepth()*self->GetFanDepth();
 	// input spacing in the x and y directions
@@ -3372,6 +3396,7 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 	{
 		double tmp = ml; ml = mr; mr = tmp;
 	}
+
 
 	//std::cout << "going to get the clip extent" << std::endl;
 
@@ -3433,11 +3458,15 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 	}
 
 
+    static int firstFrame = 1;
+    ofstream outStream;
+    outStream.open("lines.txt");
+
 	//std::cout << "going to start looping through input pixels"<< std::endl;
 
 
 				//TODO take me out
-			static int firstTime = 0;
+			/*static int firstTime = 0;
 			ofstream outStream;
 			if (self->GetFlipHorizontalOnOutput())
 			{
@@ -3446,8 +3475,7 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 			else
 			{
 			outStream.open("firstFrame_noFlip.txt");
-			}
-
+			}*/
 
 	// Loop through INPUT pixels - remember this is a 3D cube represented by the input extent
 	for (idZ = inExt[4]; idZ <= inExt[5]; idZ++) // for each image...
@@ -3491,32 +3519,41 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 			outPoint1[2] = outPoint0[2]+idY*yAxis[2];
 			}*/
 
+    /*std::cout << "********" << std::endl;
+    for (int i = 0; i < 4; i++)
+      {
+      std::cout << (double)matrix[i][0] << " ";
+      std::cout << (double)matrix[i][1] << " ";
+      std::cout << (double)matrix[i][2] << " ";
+      std::cout << (double)matrix[i][3] << std::endl;
+      }
+    std::cout << "********" << std::endl;*/
+
 			
-			if (self->GetFlipHorizontalOnOutput())
+			/*if (self->GetFlipHorizontalOnOutput())
 			{
-			vtkFloatingPointType outSpacing[3];
-			vtkFloatingPointType videoOrigin[3];
-			vtkFloatingPointType fanOrigin[2];
-			self->GetOutputSpacing(outSpacing);
-			self->GetVideoSource()->GetDataOrigin(videoOrigin);
-			self->GetFanOrigin(fanOrigin);
-			int dist = (videoOrigin[1]-fanOrigin[1])/outSpacing[1]*-1.0;
-			//std::cout << dist << std::endl;
-			outPoint1[0] = outPoint0[0]+((dist-idY)+dist)*yAxis[0]; // incremental transform
-			outPoint1[1] = outPoint0[1]+((dist-idY)+dist)*yAxis[1];
-			outPoint1[2] = outPoint0[2]+((dist-idY)+dist)*yAxis[2];
+			//vtkFloatingPointType outSpacing[3];
+			//vtkFloatingPointType videoOrigin[3];
+			//vtkFloatingPointType fanOrigin[2];
+			//self->GetOutputSpacing(outSpacing);
+			//self->GetVideoSource()->GetDataOrigin(videoOrigin);
+			//self->GetFanOrigin(fanOrigin);
+			//int dist = (videoOrigin[1]-fanOrigin[1])/outSpacing[1]*-1.0;
+      int dist = self->GetNumberOfPixelsFromTipOfFanToBottomOfScreen();
+			outPoint1[0] = outPoint0[0]+(dist-idY)*yAxis[0]; // incremental transform
+			outPoint1[1] = outPoint0[1]+(dist-idY)*yAxis[1];
+			outPoint1[2] = outPoint0[2]+(dist-idY)*yAxis[2];
 			}
 			else
-			{
+			{*/
 			outPoint1[0] = outPoint0[0]+idY*yAxis[0]; // incremental transform
 			outPoint1[1] = outPoint0[1]+idY*yAxis[1];
 			outPoint1[2] = outPoint0[2]+idY*yAxis[2];
-			}
+			//}
 
 
 
-
-			if (!id) 
+			if (!id)
 			{
 				if (!(count%target)) 
 				{
@@ -3540,7 +3577,20 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 				std::cout << "inExt = " << inExt[0] << " " << inExt[1] << " " << inExt[2] << " " << inExt[3] << " " << inExt[4] << " " << inExt[5] << std::endl;
 			}*/
 
+      // this only changes r1 and r2
 			vtkUltraFindExtent(r1,r2,outPoint1,xAxis,outMin,outMax,inExt);
+
+
+      //std::cout << "r1 = " << r1 << ", r2 = " << r2 << std::endl;
+
+			if (self->GetFlipHorizontalOnOutput())
+			{
+      int dist = self->GetNumberOfPixelsFromTipOfFanToBottomOfScreen();
+			outPoint1[0] = outPoint0[0]+(dist-idY)*yAxis[0]; // incremental transform
+			outPoint1[1] = outPoint0[1]+(dist-idY)*yAxis[1];
+			outPoint1[2] = outPoint0[2]+(dist-idY)*yAxis[2];
+			}
+
 
 			//TODO take me out
 			/*if (firstTime == 0)
@@ -3555,8 +3605,14 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 				firstTime = 1;
 			}*/
 
+
+      //std::cout << "BEGINNING: r1 = " << r1 << ", r2 = " << r2 << std::endl;
+
+    if (firstFrame) {outStream << idY << " ";};
+
 			// next, handle the 'fan' shape of the input
 			double y = (yf - idY);
+      //std::cout << "yf = " << yf << ", y = " << y << std::endl;
 			if (ys < 0)
 			{
 				y = -y;
@@ -3567,10 +3623,12 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 				if (r1 < -vtkUltraFloor(-(ml*y + xf + 1)))
 				{
 					r1 = -vtkUltraFloor(-(ml*y + xf + 1));
+          if (firstFrame) {outStream << "angle range left ";};
 				}
 				if (r2 > vtkUltraFloor(mr*y + xf - 1))
 				{
 					r2 = vtkUltraFloor(mr*y + xf - 1);
+          if (firstFrame) {outStream << "angle range right ";};
 				}
 
 				// next, check the radius of the fan
@@ -3582,6 +3640,7 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 				{
 					r1 = inExt[0];
 					r2 = inExt[0]-1;
+          if (firstFrame) {outStream << "dx zero ";};
 				}
 				else
 				{
@@ -3589,10 +3648,12 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 					if (r1 < -vtkUltraFloor(-(xf - dx + 1)))
 					{
 						r1 = -vtkUltraFloor(-(xf - dx + 1));
+            if (firstFrame) {outStream << "dx r1 ";};
 					}
 					if (r2 > vtkUltraFloor(xf + dx - 1))
 					{
 						r2 = vtkUltraFloor(xf + dx - 1);
+            if (firstFrame) {outStream << "dx r2 ";};
 					}
 				}
 				//	  cout<< "Found Extent: ( "<< r1 << ", " << r2 <<" )"
@@ -3600,22 +3661,33 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 				//		  << " clipExt: (" << clipExt[0] << ", "<< clipExt[1] 
 				//		  << ", " << clipExt[2]<< ", " << clipExt[3] << endl;
 			}
+
+
+
+      //std::cout << "AFTER HANDLING THE FAN SHAPE: r1 = " << r1 << ", r2 = " << r2 << std::endl;
+
+
 			//cout<< "Found Extent: ( "<< r1 << ", " << r2 <<" )"
 			//	  << " clipExt: (" << ", " << clipExt[2]<< ", " << clipExt[3] << endl;
 			// bound to the ultrasound clip rectangle
 			if (r1 < clipExt[0])
 			{
 				r1 = clipExt[0];
+        if (firstFrame) {outStream << "clipping r1 ";};
 			}
 			if (r2 > clipExt[1])
 			{
 				r2 = clipExt[1];
+        if (firstFrame) {outStream << "clipping r2 ";};
 			}
+
+    //std::cout << "AFTER CLIPPING: r1 = " << r1 << ", r2 = " << r2 << std::endl;
 
 			if (r1 > r2  )//|| idY < clipExt[2] || idY > clipExt[3]) 
 			{
 				r1 = inExt[0];
 				r2 = inExt[0]-1;
+        if (firstFrame) {outStream << "swapping r1 and r2 ";};
 			}
 			else
 			{
@@ -3625,6 +3697,12 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 				cout<< "idY: "<<idY<<endl;
 				}*/
 			}
+
+    if (firstFrame)
+      {
+      outStream << std::endl;
+      }
+    //std::cout << "AFTER SWAPPING: r1 = " << r1 << ", r2 = " << r2 << std::endl;
 
 			// skip the portion of the slice to the left of the fan
 			for (idX = inExt[0]; idX < r1; idX++)
@@ -3659,7 +3737,7 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 				counter++;
 			}*/
 
-			/*if (firstTime)
+			/*(if (firstTime)
 			{
 				std::cout << idY << " " << r1 << " " << r2 << "          ";
 			}*/
@@ -3669,6 +3747,13 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 			// interpolation stuff if we are interpolating linearly (code 1)
 			if (self->GetInterpolationMode() == VTK_FREEHAND_LINEAR)
 			{ 
+      
+      //std::cout << "BEFORE RESETTING: r1 = " << r1 << ", r2 = " << r2 << std::endl;
+
+        //TODO take out
+        //r1 = inExt[0];
+        //r2 = inExt[1];
+
 				for (idX = r1; idX <= r2; idX++) // for all of the x pixels within the fan
 				{
 
@@ -3688,14 +3773,14 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 					outPoint[2] = outPoint1[2] + idX*xAxis[2];
 					}
 
-
-			if (firstTime && !(r1 == 0 && r2 == -1))
+/*			if (firstTime == 0 && !(r1 == 0 && r2 == -1))
 			{
 				int out0 = outPoint[0];
 				int out1 = outPoint[1];
 				int out2 = outPoint[2];
 				outStream << out0 << " " << out1 << " " << out2 << std::endl;
-			}
+        //std::cout << out0 << " " << out1 << " " << out2 << std::endl;
+			}*/
 
 
 
@@ -3747,13 +3832,19 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 		inPtr += inIncZ; // move to the next image
 	}
 
+  if (firstFrame) {
+    std::cout << "FIRST FRAME DONE" << std::endl;
+    outStream.close();
+    firstFrame = 1;
+    };
+
 	//TODO take me out
-	if (firstTime == 0)
+	/*if (firstTime == 0)
 	{
 		firstTime = 1;
 		outStream.close();
 		std::cout << "FIRST FRAME FINISHED" << std::endl;
-	}
+	}*/
 
 	//cout<<"Pixels inserted: "<<self->GetPixelCount()<<endl;
 	//cout<< "-->Pixels added:  " << self->GetPixelCount() - prevPixelCount << endl; // added by Danielle
@@ -4184,6 +4275,9 @@ void vtkFreehandUltrasound2::ThreadedSliceExecute(vtkImageData *inData, // input
       newmatrix[i][3] = matrix->GetElement(i,3);
       }
 
+    //std::cout << "*****" << std::endl;
+    //matrix->Print(std::cout);
+
     //if (this->LastIndexMatrix && 
     //this->CalculateMaxSliceSeparation(matrix,this->LastIndexMatrix) < 1.0)
     //{
@@ -4465,6 +4559,7 @@ static void *vtkReconstructionThread(struct ThreadInfoStruct *data)
     int flags = 0;
     if (video && (videolag > 0.0 || !self->RealTimeReconstruction)) { // only do this if videolag is nonzero
       flags = buffer->GetFlagsAndMatrixFromTime(matrix, timestamp);
+      //matrix->Print(std::cout);
     }
     else {
       buffer->GetMatrix(matrix, 0);
@@ -4499,8 +4594,9 @@ static void *vtkReconstructionThread(struct ThreadInfoStruct *data)
 	// the depth and the flipping should be constant, so there should be no thrashing -
 	// therefore this should be reliable
 
-		if (self->GetImageIsFlipped() == 1) // because we are flipping the image
+		/*if (self->GetImageIsFlipped() == 1) // because we are flipping the image
 		{
+      //std::cout << "HERE!!!!!" << std::endl;
 			// we are assuming we are flipped
 			vtkFloatingPointType spacingTemp[3] = {0,0,0};
 			int frameSizeTemp[3] = {0,0,0};
@@ -4521,7 +4617,7 @@ static void *vtkReconstructionThread(struct ThreadInfoStruct *data)
 			flipper->Delete();
 
 			// TODO more stuff here with spacing and such...?
-		}
+		}*/
 
 
 /*	if (self->GetRotationClipData() == NULL)
@@ -4608,26 +4704,49 @@ static void *vtkReconstructionThread(struct ThreadInfoStruct *data)
 	self->GetRotationThreshold()->Update();
 	int rot = self->CalculateFanRotationValue(self->GetRotationThreshold());
 	//std::cout << "**********" << std::endl;
-	//std::cout << "*  rotation = " << rot << std::endl;
-	//std::cout << "*  depth = " << self->GetFanDepthCm() << std::endl;
+	//std::cout << "*  rotation = " << rot << " ";
+	//std::cout << "*  depth = " << self->GetFanDepthCm()< std::endl;
 	//std::cout << "*  flipped = " << self->GetImageIsFlipped() << std::endl;
 	//std::cout << "**********" << std::endl;*/
+  
 	if (rot > 0)
 	{
 		self->SetPreviousFanRotation(self->GetFanRotation());
 		self->SetFanRotation(rot);
 	}
+  // ignore rotations of -1
+  else
+    {
+    self->SetPreviousFanRotation(self->GetFanRotation());
+    }
+
+  //std::cout << "rot = " << rot << ", previous = " << self->GetPreviousFanRotation() << ", current = "<< self->GetFanRotation() << std::endl;
 
 	
 	// now use the rotation to change the SliceTransform (vtkTransform)
 	// want to make sure that we're rotating in the right direction!!!
+  vtkTransform* tempTransform = vtkTransform::New();
+  vtkMatrix4x4* sliceAxesInverseMatrix = vtkMatrix4x4::New();
+  vtkMatrix4x4::Invert(matrix, sliceAxesInverseMatrix);
+
 	if (self->GetSliceTransform())
 	{
 		// the code assumes the image is flipped
 		if (self->GetFanRotation() != self->GetPreviousFanRotation())
 		{
-			((vtkTransform *) (self->GetSliceTransform()))->RotateY(-1.0 * self->GetPreviousFanRotation());
-			((vtkTransform *) (self->GetSliceTransform()))->RotateY(self->GetFanRotation());
+      // original was these two lines
+			//((vtkTransform *) (self->GetSliceTransform()))->RotateY(-1.0 * self->GetPreviousFanRotation());
+			//((vtkTransform *) (self->GetSliceTransform()))->RotateY(self->GetFanRotation());
+      
+
+      tempTransform = (vtkTransform *) (self->GetSliceTransform());
+      tempTransform->Identity();
+      tempTransform->RotateY(self->GetFanRotation());
+      //MATLAB CODE = (sliceAxes * sliceTransform(rotation) * inv(sliceAxes)
+      tempTransform->PostMultiply();
+      tempTransform->Concatenate(matrix); // remember, matrix = this->SliceAxes
+      tempTransform->PreMultiply();
+      tempTransform->Concatenate(sliceAxesInverseMatrix);
 		}
 	}
 
