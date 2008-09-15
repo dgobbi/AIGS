@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkFreehandUltrasound.cxx,v $
   Language:  C++
-  Date:      $Date: 2008/01/17 16:57:23 $
-  Version:   $Revision: 1.7 $
+  Date:      $Date: 2008/09/15 20:49:43 $
+  Version:   $Revision: 1.8 $
   Thanks:    Thanks to David G. Gobbi who developed this class.
 
 ==========================================================================
@@ -74,7 +74,7 @@ POSSIBILITY OF SUCH DAMAGES.
 #include "vtkTrackerTool.h"
 #include "vtkPNGWriter.h"
 
-vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.7 $");
+vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.8 $");
 vtkStandardNewMacro(vtkFreehandUltrasound);
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,VideoSource,vtkVideoSource);
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,TrackerTool,vtkTrackerTool);
@@ -705,6 +705,8 @@ int  vtkFreehandUltrasound::FillInputPortInformation(
     info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkImageData");
   
     }
+
+  return 0;
 }
 
 //----------------------------------------------------------------------------
