@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkFreehandUltrasound2.h,v $
   Language:  C++
-  Date:      $Date: 2008/08/29 19:25:22 $
-  Version:   $Revision: 1.1 $
+  Date:      $Date: 2008/09/15 20:50:21 $
+  Version:   $Revision: 1.2 $
   Thanks:    Thanks to David G. Gobbi who developed this class.
 
 ==========================================================================
@@ -307,6 +307,12 @@ public:
   // When determining the modified time of the source. 
   unsigned long int GetMTime();
 
+  //Description:
+  //Number of pixels from the tip of the fan to the bottom of screen,only
+  //used if flipping horizontally
+  vtkSetMacro(NumberOfPixelsFromTipOfFanToBottomOfScreen,int)
+  vtkGetMacro(NumberOfPixelsFromTipOfFanToBottomOfScreen,int)
+
   // Description:
   // Have to override because of the funny way that data is
   // generated.
@@ -383,6 +389,7 @@ protected:
   double FanAngles[2];
   double FanOrigin[2];
   double FanDepth;
+  int NumberOfPixelsFromTipOfFanToBottomOfScreen;
 
   vtkMatrix4x4 *IndexMatrix;
   vtkMatrix4x4 *LastIndexMatrix;
