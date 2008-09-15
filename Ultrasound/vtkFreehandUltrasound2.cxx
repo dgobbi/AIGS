@@ -41,7 +41,7 @@ Copyright (c) 2000,2002 David Gobbi.
 #include "vtkImageClip.h" // added by Danielle
 #include "vtkImageFlip.h" // added by Danielle
 
-vtkCxxRevisionMacro(vtkFreehandUltrasound2, "$Revision: 1.2 $");
+vtkCxxRevisionMacro(vtkFreehandUltrasound2, "$Revision: 1.3 $");
 vtkStandardNewMacro(vtkFreehandUltrasound2);
 
 //----------------------------------------------------------------------------
@@ -3489,69 +3489,21 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 		for (idY = inExt[2]; idY <= inExt[3]; idY++) // for each horizontal line in the image...
 		{
 
-			//std::cout << "Y = " << idY << std::endl;
-
-			/*if (firstTime == 0)
-			{
-				std::cout << "idZ = " << idZ << "; idY = " << idY << std::endl;
-			}*/
-
 			//TODO implement this for other options
-			/*if (self->GetFlipHorizontalOnOutput())
-			{
-			//outPoint1[0] = outPoint0[1] + (inExt[2]+inExt[3]-idY)*yAxis[0]+450;
-			//outPoint1[1] = outPoint0[1] + (inExt[2]+inExt[3]-idY)*yAxis[1]+420;//(inExt[3]-inExt[2]);
-			//outPoint1[2] = outPoint0[2] + (inExt[2]+inExt[3]-idY)*yAxis[2];
-			//outPoint1[0] = outPoint0[0]-idY*yAxis[0]; // incremental transform
-			//outPoint1[1] = outPoint0[1]-idY*yAxis[1];
-			//outPoint1[2] = outPoint0[2]-idY*yAxis[2];
-			int videoSize[3];
-			self->GetVideoSource()->GetFrameSize(videoSize);
-			int dist = 480 - 449;
-			outPoint1[0] = outPoint0[0]+((dist-idY)+dist)*yAxis[0]; // incremental transform
-			outPoint1[1] = outPoint0[1]+((dist-idY)+dist)*yAxis[1];
-			outPoint1[2] = outPoint0[2]+((dist-idY)+dist)*yAxis[2];
-			}
-			else
-			{
-			outPoint1[0] = outPoint0[0]+idY*yAxis[0]; // incremental transform
-			outPoint1[1] = outPoint0[1]+idY*yAxis[1];
-			outPoint1[2] = outPoint0[2]+idY*yAxis[2];
-			}*/
-
-    /*std::cout << "********" << std::endl;
-    for (int i = 0; i < 4; i++)
-      {
-      std::cout << (double)matrix[i][0] << " ";
-      std::cout << (double)matrix[i][1] << " ";
-      std::cout << (double)matrix[i][2] << " ";
-      std::cout << (double)matrix[i][3] << std::endl;
-      }
-    std::cout << "********" << std::endl;*/
-
 			
-			/*if (self->GetFlipHorizontalOnOutput())
+			if (self->GetFlipHorizontalOnOutput())
 			{
-			//vtkFloatingPointType outSpacing[3];
-			//vtkFloatingPointType videoOrigin[3];
-			//vtkFloatingPointType fanOrigin[2];
-			//self->GetOutputSpacing(outSpacing);
-			//self->GetVideoSource()->GetDataOrigin(videoOrigin);
-			//self->GetFanOrigin(fanOrigin);
-			//int dist = (videoOrigin[1]-fanOrigin[1])/outSpacing[1]*-1.0;
       int dist = self->GetNumberOfPixelsFromTipOfFanToBottomOfScreen();
 			outPoint1[0] = outPoint0[0]+(dist-idY)*yAxis[0]; // incremental transform
 			outPoint1[1] = outPoint0[1]+(dist-idY)*yAxis[1];
 			outPoint1[2] = outPoint0[2]+(dist-idY)*yAxis[2];
 			}
 			else
-			{*/
+			{
 			outPoint1[0] = outPoint0[0]+idY*yAxis[0]; // incremental transform
 			outPoint1[1] = outPoint0[1]+idY*yAxis[1];
 			outPoint1[2] = outPoint0[2]+idY*yAxis[2];
-			//}
-
-
+			}
 
 			if (!id)
 			{
@@ -3564,51 +3516,19 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 
 			// find intersections of x raster line with the output extent
 			
-			//TODO take me out
-			/*static int firstTime = 0;
-			if (firstTime == 0)
-			{
-				std::cout << "first time ***********" << std::endl;
-				std::cout << "r1 = " << r1 << "; r2 = " << r2 << std::endl;
-				//std::cout << "outPoint1 = " << outPoint1[0] << " " << outPoint1[1] << " " << outPoint1[2] << std::endl;
-				//std::cout << "xAxis = " << xAxis[0] << " " << xAxis[1] << " " << xAxis[2] << std::endl;
-				std::cout << "outMin = " << outMin[0] << " " << outMin[1] << " " << outMin[2] << std::endl;
-				std::cout << "outMax = " << outMax[0] << " " << outMax[1] << " " << outMax[2] << std::endl;
-				std::cout << "inExt = " << inExt[0] << " " << inExt[1] << " " << inExt[2] << " " << inExt[3] << " " << inExt[4] << " " << inExt[5] << std::endl;
-			}*/
 
       // this only changes r1 and r2
 			vtkUltraFindExtent(r1,r2,outPoint1,xAxis,outMin,outMax,inExt);
 
-
       //std::cout << "r1 = " << r1 << ", r2 = " << r2 << std::endl;
 
-			if (self->GetFlipHorizontalOnOutput())
+			/*if (self->GetFlipHorizontalOnOutput())
 			{
       int dist = self->GetNumberOfPixelsFromTipOfFanToBottomOfScreen();
 			outPoint1[0] = outPoint0[0]+(dist-idY)*yAxis[0]; // incremental transform
 			outPoint1[1] = outPoint0[1]+(dist-idY)*yAxis[1];
 			outPoint1[2] = outPoint0[2]+(dist-idY)*yAxis[2];
-			}
-
-
-			//TODO take me out
-			/*if (firstTime == 0)
-			{
-				std::cout << "after ***********" << std::endl;
-				std::cout << "r1 = " << r1 << "; r2 = " << r2 << std::endl;
-				//std::cout << "outPoint1 = " << outPoint1[0] << " " << outPoint1[1] << " " << outPoint1[2] << std::endl;
-				//std::cout << "xaxis = " << xAxis[0] << " " << xAxis[1] << " " << xAxis[2] << std::endl;
-				std::cout << "outMin = " << outMin[0] << " " << outMin[1] << " " << outMin[2] << std::endl;
-				std::cout << "outMax = " << outMax[0] << " " << outMax[1] << " " << outMax[2] << std::endl;
-				std::cout << "inExt = " << inExt[0] << " " << inExt[1] << " " << inExt[2] << " " << inExt[3] << " " << inExt[4] << " " << inExt[5] << std::endl;
-				firstTime = 1;
 			}*/
-
-
-      //std::cout << "BEGINNING: r1 = " << r1 << ", r2 = " << r2 << std::endl;
-
-    if (firstFrame) {outStream << idY << " ";};
 
 			// next, handle the 'fan' shape of the input
 			double y = (yf - idY);
@@ -3617,43 +3537,50 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 			{
 				y = -y;
 			}
+
+      // first, check the angle range of the fan - choose r1 and r2 based
+      // on the triangle that the fan makes from the fan origin to the bottom
+      // line of the video image
 			if (!(ml == 0 && mr == 0))
 			{
-				// first, check the angle range of the fan
+				// equivalent to: r1 < vtkUltraCeil(ml*y + xf + 1)
+        // this is what the radius would be based on tan(fanAngle)
 				if (r1 < -vtkUltraFloor(-(ml*y + xf + 1)))
 				{
 					r1 = -vtkUltraFloor(-(ml*y + xf + 1));
-          if (firstFrame) {outStream << "angle range left ";};
 				}
 				if (r2 > vtkUltraFloor(mr*y + xf - 1))
 				{
 					r2 = vtkUltraFloor(mr*y + xf - 1);
-          if (firstFrame) {outStream << "angle range right ";};
 				}
 
-				// next, check the radius of the fan
-				// r1 is the left radius of the fan, r2 is the right radius of the fan
+        //if (firstFrame) {outStream << r1 << " " << r2 << " ";};
 
+				// next, check the radius of the fan - crop the triangle to the fan
+        // depth
 				double dx = (d2 - (y*y)*(ys*ys))/(xs*xs);
 
+        // if we are outside the fan's radius, ex at the bottom lines
 				if (dx < 0)
 				{
 					r1 = inExt[0];
 					r2 = inExt[0]-1;
-          if (firstFrame) {outStream << "dx zero ";};
 				}
+        // if we are within the fan's radius, we have to adjust if we are in
+        // the "ellipsoidal" (bottom) part of the fan instead of the top
+        // "triangular" part
 				else
 				{
 					dx = sqrt(dx);
+          // this is what r1 would be if we calculated it based on the
+          // pythagorean theorem
 					if (r1 < -vtkUltraFloor(-(xf - dx + 1)))
 					{
 						r1 = -vtkUltraFloor(-(xf - dx + 1));
-            if (firstFrame) {outStream << "dx r1 ";};
 					}
 					if (r2 > vtkUltraFloor(xf + dx - 1))
 					{
 						r2 = vtkUltraFloor(xf + dx - 1);
-            if (firstFrame) {outStream << "dx r2 ";};
 					}
 				}
 				//	  cout<< "Found Extent: ( "<< r1 << ", " << r2 <<" )"
@@ -3673,12 +3600,10 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 			if (r1 < clipExt[0])
 			{
 				r1 = clipExt[0];
-        if (firstFrame) {outStream << "clipping r1 ";};
 			}
 			if (r2 > clipExt[1])
 			{
 				r2 = clipExt[1];
-        if (firstFrame) {outStream << "clipping r2 ";};
 			}
 
     //std::cout << "AFTER CLIPPING: r1 = " << r1 << ", r2 = " << r2 << std::endl;
@@ -3687,7 +3612,6 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 			{
 				r1 = inExt[0];
 				r2 = inExt[0]-1;
-        if (firstFrame) {outStream << "swapping r1 and r2 ";};
 			}
 			else
 			{
@@ -3697,12 +3621,6 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 				cout<< "idY: "<<idY<<endl;
 				}*/
 			}
-
-    if (firstFrame)
-      {
-      outStream << std::endl;
-      }
-    //std::cout << "AFTER SWAPPING: r1 = " << r1 << ", r2 = " << r2 << std::endl;
 
 			// skip the portion of the slice to the left of the fan
 			for (idX = inExt[0]; idX < r1; idX++)
@@ -3831,12 +3749,6 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 		}
 		inPtr += inIncZ; // move to the next image
 	}
-
-  if (firstFrame) {
-    std::cout << "FIRST FRAME DONE" << std::endl;
-    outStream.close();
-    firstFrame = 1;
-    };
 
 	//TODO take me out
 	/*if (firstTime == 0)
