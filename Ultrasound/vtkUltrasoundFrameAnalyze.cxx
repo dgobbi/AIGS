@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundFrameAnalyze.cxx,v $
   Language:  C++
-  Date:      $Date: 2008/01/17 16:57:23 $
-  Version:   $Revision: 1.5 $
+  Date:      $Date: 2008/11/17 15:51:27 $
+  Version:   $Revision: 1.6 $
 
 ==========================================================================
 
@@ -142,7 +142,8 @@ static void vtkGetBlackAndWhite(vtkUltrasoundFrameAnalyze *self,
                                 float& black, float& white)
 {
   int i,j;
-  int inExt[6], inInc[3], numScalars;
+  int inExt[6], numScalars;
+  vtkIdType inInc[3];
   input->GetExtent(inExt);
   input->GetIncrements(inInc);
   numScalars = input->GetNumberOfScalarComponents();
@@ -394,7 +395,7 @@ static unsigned char SSD5000_FOCUS[]   = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 // The return value from this function is the number of matches actually
 // found, which might be either greater or less than ncoords.
 static int vtkGetGlyphPositions(unsigned char *imPtr, int imExt[6], 
-                                int imInc[3], float black, float white,
+                                vtkIdType imInc[3], float black, float white,
                                 unsigned char *glyph, 
                                 int (*coords)[2], int ncoords)
 {
@@ -407,8 +408,8 @@ static int vtkGetGlyphPositions(unsigned char *imPtr, int imExt[6],
   int minj = imExt[2];
   int maxj = imExt[3] - 16;
   
-  int imIncX = imInc[0];
-  int imIncY = imInc[1];
+  vtkIdType imIncX = imInc[0];
+  vtkIdType imIncY = imInc[1];
 
   unsigned char *tmpGlyph = new unsigned char[288];
   memset(tmpGlyph,0,288);
@@ -548,7 +549,8 @@ static void vtkGetSpacingAndOrigin(vtkUltrasoundFrameAnalyze *self,
 				   double ClipRectangle[6])
 {
   int i, j, jstart, jstop;
-  int inExt[6], inInc[3], numScalars;
+  int inExt[6], numScalars;
+  vtkIdType inInc[3];
   input->GetExtent(inExt);
   input->GetIncrements(inInc);
   numScalars = input->GetNumberOfScalarComponents();
@@ -791,7 +793,8 @@ static void vtkGetFlip(vtkUltrasoundFrameAnalyze *self,
                        vtkImageData *input, unsigned char *inPtr,
                        int flip[2])
 {
-  int inExt[6], inInc[3], inWholeExt[6], numScalars;
+  int inExt[6], inWholeExt[6], numScalars;
+  vtkIdType inInc[3];
   input->GetExtent(inExt);
   input->GetWholeExtent(inWholeExt);
   input->GetIncrements(inInc);
@@ -846,7 +849,8 @@ static void vtkGetFanAngles(vtkUltrasoundFrameAnalyze *self,
                             double FanAngles[2], double FanOrigin[2],
                             double &FanDepth)
 {
-  int inExt[6], inInc[3], inWholeExt[6], numScalars;
+  int inExt[6], inWholeExt[6], numScalars;
+  vtkIdType inInc[3];
   input->GetExtent(inExt);
   input->GetWholeExtent(inWholeExt);
   input->GetIncrements(inInc);
@@ -1059,7 +1063,8 @@ void vtkUltrasoundFrameAnalyze::Analyze()
 {
   vtkImageData *input = this->GetInput();
   vtkFloatingPointType *inSpacing, *inOrigin;
-  int inExt[6], inInc[3], numScalars;
+  int inExt[6], numScalars;
+  vtkIdType inInc[3];
   unsigned char *inPtr;
 
   // Check the inputs

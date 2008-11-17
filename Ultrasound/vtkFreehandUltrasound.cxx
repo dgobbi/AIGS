@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkFreehandUltrasound.cxx,v $
   Language:  C++
-  Date:      $Date: 2008/09/15 20:49:43 $
-  Version:   $Revision: 1.8 $
+  Date:      $Date: 2008/11/17 15:51:27 $
+  Version:   $Revision: 1.9 $
   Thanks:    Thanks to David G. Gobbi who developed this class.
 
 ==========================================================================
@@ -74,7 +74,7 @@ POSSIBILITY OF SUCH DAMAGES.
 #include "vtkTrackerTool.h"
 #include "vtkPNGWriter.h"
 
-vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.8 $");
+vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.9 $");
 vtkStandardNewMacro(vtkFreehandUltrasound);
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,VideoSource,vtkVideoSource);
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,TrackerTool,vtkTrackerTool);
@@ -987,7 +987,7 @@ template <class F, class T>
 static int vtkNearestNeighborInterpolation(F *point, T *inPtr, T *outPtr,
                                            unsigned short *accPtr, 
                                            int numscalars, 
-                                           int outExt[6], int outInc[3])
+                                           int outExt[6], vtkIdType outInc[3])
 {
   int i;
   int outIdX = vtkUltraRound(point[0])-outExt[0];
@@ -999,7 +999,7 @@ static int vtkNearestNeighborInterpolation(F *point, T *inPtr, T *outPtr,
        outIdY | (outExt[3]-outExt[2] - outIdY) |
        outIdZ | (outExt[5]-outExt[4] - outIdZ)) >= 0)
     {
-    int inc = outIdX*outInc[0]+outIdY*outInc[1]+outIdZ*outInc[2];
+    vtkIdType inc = outIdX*outInc[0]+outIdY*outInc[1]+outIdZ*outInc[2];
     outPtr += inc;
     if (accPtr)
       {
@@ -1040,7 +1040,7 @@ static int vtkNearestNeighborInterpolation(F *point, T *inPtr, T *outPtr,
 template <class F, class T>
 static int vtkTrilinearInterpolation(F *point, T *inPtr, T *outPtr,
                                      unsigned short *accPtr, int numscalars, 
-                                     int outExt[6], int outInc[3])
+                                     int outExt[6], vtkIdType outInc[3])
 {
   F fx, fy, fz;
 
@@ -1057,20 +1057,20 @@ static int vtkTrilinearInterpolation(F *point, T *inPtr, T *outPtr,
        outIdY0 | (outExt[3]-outExt[2] - outIdY1) |
        outIdZ0 | (outExt[5]-outExt[4] - outIdZ1)) >= 0)
     {// do reverse trilinear interpolation
-    int factX0 = outIdX0*outInc[0];
-    int factY0 = outIdY0*outInc[1];
-    int factZ0 = outIdZ0*outInc[2];
+    vtkIdType factX0 = outIdX0*outInc[0];
+    vtkIdType factY0 = outIdY0*outInc[1];
+    vtkIdType factZ0 = outIdZ0*outInc[2];
 
-    int factX1 = outIdX1*outInc[0];
-    int factY1 = outIdY1*outInc[1];
-    int factZ1 = outIdZ1*outInc[2];
+    vtkIdType factX1 = outIdX1*outInc[0];
+    vtkIdType factY1 = outIdY1*outInc[1];
+    vtkIdType factZ1 = outIdZ1*outInc[2];
 
-    int factY0Z0 = factY0 + factZ0;
-    int factY0Z1 = factY0 + factZ1;
-    int factY1Z0 = factY1 + factZ0;
-    int factY1Z1 = factY1 + factZ1;
+    vtkIdType factY0Z0 = factY0 + factZ0;
+    vtkIdType factY0Z1 = factY0 + factZ1;
+    vtkIdType factY1Z0 = factY1 + factZ0;
+    vtkIdType factY1Z1 = factY1 + factZ1;
 
-    int idx[8];
+    vtkIdType idx[8];
     idx[0] = factX0 + factY0Z0;
     idx[1] = factX0 + factY0Z1;
     idx[2] = factX0 + factY1Z0;
@@ -1207,7 +1207,7 @@ static void vtkGetUltraInterpFunc(vtkFreehandUltrasound *self,
                                                         unsigned short *accPtr,
                                                         int numscalars, 
                                                         int outExt[6], 
-                                                        int outInc[3]))
+                                                        vtkIdType outInc[3]))
 {
   switch (self->GetInterpolationMode())
     {
@@ -1235,15 +1235,16 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
 {
   int numscalars;
   int idX, idY, idZ;
-  int inIncX, inIncY, inIncZ;
-  int outExt[6], outInc[3], clipExt[6];
+  vtkIdType inIncX, inIncY, inIncZ;
+  vtkIdType outInc[3];
+  int outExt[6], clipExt[6];
   vtkFloatingPointType inSpacing[3], inOrigin[3];
   unsigned long target;
   double outPoint[4], inPoint[4];
 
   int (*interpolate)(double *point, T *inPtr, T *outPtr,
 		     unsigned short *accPtr,
-                     int numscalars, int outExt[6], int outInc[3]);
+                     int numscalars, int outExt[6], vtkIdType outInc[3]);
   
   inData->GetSpacing(inSpacing);
   inData->GetOrigin(inOrigin);
@@ -1439,8 +1440,8 @@ static void vtkFreehandUltrasoundFillHolesInOutput(vtkFreehandUltrasound *self,
 						   int outExt[6])
 {
   int idX, idY, idZ;
-  int incX, incY, incZ;
-  int accIncX, accIncY, accIncZ;
+  vtkIdType incX, incY, incZ;
+  vtkIdType accIncX, accIncY, accIncZ;
   int startX, endX, numscalars;
   int c;
   // clip the extent by 1 voxel width relative to whole extent
@@ -1540,13 +1541,13 @@ static void vtkFreehandUltrasoundFillHolesInOutput(vtkFreehandUltrasound *self,
           //  (this is turned off for now)
 	  if (0) // (accPtr)
 	    { // use accumulation buffer to do weighted average
-	    for (int k = -accIncZ; k <= accIncZ; k += accIncZ)
+	    for (vtkIdType k = -accIncZ; k <= accIncZ; k += accIncZ)
 	      {
-	      for (int j = -accIncY; j <= accIncY; j += accIncY)
+	      for (vtkIdType j = -accIncY; j <= accIncY; j += accIncY)
 		{
-		for (int i = -accIncX; i <= accIncX; i += accIncX)
+		for (vtkIdType i = -accIncX; i <= accIncX; i += accIncX)
 		  {
-		  int inc = j + k + i;
+		  vtkIdType inc = j + k + i;
 		  blockPtr = outPtrX + inc*incX;
 		  accBlockPtr = accPtrX + inc;
 		  if (blockPtr[numscalars] == 255)
@@ -1577,13 +1578,13 @@ static void vtkFreehandUltrasoundFillHolesInOutput(vtkFreehandUltrasound *self,
 		}	      
 	      nmin = 63;
 	      n = 0;
-	      for (int k = -accIncZ*2; k <= accIncZ*2; k += accIncZ)
+	      for (vtkIdType k = -accIncZ*2; k <= accIncZ*2; k += accIncZ)
 		{
-		for (int j = -accIncY*2; j <= accIncY*2; j += accIncY)
+		for (vtkIdType j = -accIncY*2; j <= accIncY*2; j += accIncY)
 		  {
-		  for (int i = -accIncX*2; i <= accIncX*2; i += accIncX)
+		  for (vtkIdType i = -accIncX*2; i <= accIncX*2; i += accIncX)
 		    {
-		    int inc = j + k + i;
+		    vtkIdType inc = j + k + i;
 		    blockPtr = outPtrX + inc*incX;
 		    accBlockPtr = accPtrX + inc;
 		    if (blockPtr[numscalars] == 255)
@@ -2440,7 +2441,7 @@ static inline void vtkFreehandOptimizedNNHelper(int r1, int r2,
                                                 double *outPoint1,
 						double *xAxis,
                                                 T *&inPtr, T *outPtr,
-                                                int *outExt, int *outInc,
+                                                int *outExt, vtkIdType *outInc,
                                                 int numscalars, 
                                                 unsigned short *accPtr)
 {
@@ -2466,7 +2467,7 @@ static inline void vtkFreehandOptimizedNNHelper(int r1, int r2,
         return;
         }
       */
-      int inc = outIdX*outInc[0] + outIdY*outInc[1] + outIdZ*outInc[2];
+      vtkIdType inc = outIdX*outInc[0] + outIdY*outInc[1] + outIdZ*outInc[2];
       T *outPtr1 = outPtr + inc;
       unsigned short *accPtr1 = accPtr + inc/outInc[0];
       unsigned short newa = *accPtr1 + 255;
@@ -2509,7 +2510,7 @@ static inline void vtkFreehandOptimizedNNHelper(int r1, int r2,
         }
       */
 
-      int inc = outIdX*outInc[0] + outIdY*outInc[1] + outIdZ*outInc[2];
+      vtkIdType inc = outIdX*outInc[0] + outIdY*outInc[1] + outIdZ*outInc[2];
       T *outPtr1 = outPtr + inc;
       int i = numscalars;
       do
@@ -2529,7 +2530,7 @@ static inline void vtkFreehandOptimizedNNHelper(int r1, int r2,
                                                 fixed *outPoint,
                                                 fixed *outPoint1, fixed *xAxis,
                                                 T *&inPtr, T *outPtr,
-                                                int *outExt, int *outInc,
+                                                int *outExt, vtkIdType *outInc,
                                                 int numscalars, 
                                                 unsigned short *accPtr)
 {
@@ -2555,7 +2556,7 @@ static inline void vtkFreehandOptimizedNNHelper(int r1, int r2,
         return;
         }
       */
-      int inc = outIdX*outInc[0] + outIdY*outInc[1] + outIdZ*outInc[2];
+      vtkIdType inc = outIdX*outInc[0] + outIdY*outInc[1] + outIdZ*outInc[2];
       T *outPtr1 = outPtr + inc;
       unsigned short *accPtr1 = accPtr + inc/outInc[0];
       unsigned short newa = *accPtr1 + 255;
@@ -2597,7 +2598,7 @@ static inline void vtkFreehandOptimizedNNHelper(int r1, int r2,
         return;
         }
       */
-      int inc = outIdX*outInc[0] + outIdY*outInc[1] + outIdZ*outInc[2];
+      vtkIdType inc = outIdX*outInc[0] + outIdY*outInc[1] + outIdZ*outInc[2];
       T *outPtr1 = outPtr + inc;
       int i = numscalars;
       do
@@ -2626,10 +2627,10 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
   int id = 0;
   int i, numscalars;
   int idX, idY, idZ;
-  int inIncX, inIncY, inIncZ;
+  vtkIdType inIncX, inIncY, inIncZ;
   int outExt[6];
   int outMax[3], outMin[3];
-  int outInc[3];
+  vtkIdType outInc[3];
   int clipExt[6];
   unsigned long count = 0;
   unsigned long target;

@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkUltrasoundCompare.cxx,v $
   Language:  C++
-  Date:      $Date: 2008/01/17 16:57:23 $
-  Version:   $Revision: 1.2 $
+  Date:      $Date: 2008/11/17 15:51:27 $
+  Version:   $Revision: 1.3 $
 
 ==========================================================================
 
@@ -92,9 +92,9 @@ void vtkUltrasoundCompare::ThreadedExecute(vtkImageData **inData,
   unsigned char *outPtr0, *outPtr1, *outPtr2;
   int min0, max0, min1, max1, min2, max2;
   int idx0, idx1, idx2;
-  int in1Inc0, in1Inc1, in1Inc2;
-  int in2Inc0, in2Inc1, in2Inc2;
-  int outInc0, outInc1, outInc2;
+  vtkIdType in1Inc0, in1Inc1, in1Inc2;
+  vtkIdType in2Inc0, in2Inc1, in2Inc2;
+  vtkIdType outInc0, outInc1, outInc2;
   int alpha1 = 0;
   int alpha2 = 0;
   int alphaO = 0;
