@@ -15,6 +15,8 @@
 #include "vtkTransform.h"
 #include "vtkTrackerTool.h"
 
+#include "vtkTimerLog.h"
+
 vtkFakeTracker* vtkFakeTracker::New()
 {
   // First try to create the object from the vtkObjectFactory
@@ -29,7 +31,7 @@ vtkFakeTracker* vtkFakeTracker::New()
 
 vtkFakeTracker::vtkFakeTracker() 
   {
-  this->TimeStamp = 0;
+  this->TimeStamp = vtkTimerLog::GetUniversalTime();
   this->Frame = 0;
   this->InternalTransform = vtkTransform::New();
   this->SerialPort = 0;
@@ -125,6 +127,7 @@ void vtkFakeTracker::InternalUpdate()
       }
     
     this->ToolUpdate(tool,this->InternalTransform->GetMatrix(),flags,this->TimeStamp);   
-    this->TimeStamp++;
+    //this->TimeStamp++;
+    this->TimeStamp += 0.1;
     }
   }

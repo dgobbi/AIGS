@@ -36,7 +36,7 @@ protected:
   ~vtkFakeTracker();
 
   int Frame;
-  int TimeStamp;
+  double TimeStamp;
   vtkTransform *InternalTransform;
   int SerialPort;
 };
