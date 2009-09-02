@@ -31,7 +31,11 @@ vtkFakeTracker* vtkFakeTracker::New()
 
 vtkFakeTracker::vtkFakeTracker() 
   {
+#if (VTK_MAJOR_VERSION <= 4)
+  this->TimeStamp = vtkTimerLog::GetCurrentTime();
+#else
   this->TimeStamp = vtkTimerLog::GetUniversalTime();
+#endif
   this->Frame = 0;
   this->InternalTransform = vtkTransform::New();
   this->SerialPort = 0;
@@ -131,3 +135,4 @@ void vtkFakeTracker::InternalUpdate()
     this->TimeStamp += 0.1;
     }
   }
+
