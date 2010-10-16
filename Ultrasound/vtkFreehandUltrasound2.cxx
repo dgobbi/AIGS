@@ -41,7 +41,7 @@ Copyright (c) 2000,2002 David Gobbi.
 #include "vtkImageClip.h" // added by Danielle
 #include "vtkImageFlip.h" // added by Danielle
 
-vtkCxxRevisionMacro(vtkFreehandUltrasound2, "$Revision: 1.3 $");
+vtkCxxRevisionMacro(vtkFreehandUltrasound2, "$Revision: 1.4 $");
 vtkStandardNewMacro(vtkFreehandUltrasound2);
 
 //----------------------------------------------------------------------------
@@ -1763,8 +1763,9 @@ static void vtkFreehandUltrasound2InsertSlice(vtkFreehandUltrasound2 *self, /* t
   double xs = fabs((double)(inSpacing[0]));
   double ys = fabs((double)(inSpacing[1]));
   // tan of the left and right fan angles
-  double ml = tan(self->GetFanAngles()[0]*vtkMath::DoubleDegreesToRadians())/xs*ys;
-  double mr = tan(self->GetFanAngles()[1]*vtkMath::DoubleDegreesToRadians())/xs*ys;
+  const double degToRad = 0.017453292519943295;
+  double ml = tan(self->GetFanAngles()[0]*degToRad)/xs*ys;
+  double mr = tan(self->GetFanAngles()[1]*degToRad)/xs*ys;
   // the tan of the right fan angle is always greater than the left one
   if (ml > mr)
     {
@@ -3389,8 +3390,9 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound2 *self, // the freehan
 	double xs = inSpacing[0];
 	double ys = inSpacing[1];
 	//tan of the left and right fan angles
-	double ml = tan(self->GetFanAngles()[0]*vtkMath::DoubleDegreesToRadians())/xs*ys;
-	double mr = tan(self->GetFanAngles()[1]*vtkMath::DoubleDegreesToRadians())/xs*ys;
+        const double degToRad = 0.017453292519943295;
+	double ml = tan(self->GetFanAngles()[0]*degToRad)/xs*ys;
+	double mr = tan(self->GetFanAngles()[1]*degToRad)/xs*ys;
 	// the tan of the right fan angle is always greater than the left one
 	if (ml > mr)
 	{

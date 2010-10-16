@@ -3,8 +3,8 @@
   Program:   Visualization Toolkit
   Module:    $RCSfile: vtkFreehandUltrasound.cxx,v $
   Language:  C++
-  Date:      $Date: 2008/11/17 15:51:27 $
-  Version:   $Revision: 1.9 $
+  Date:      $Date: 2010/10/16 04:12:43 $
+  Version:   $Revision: 1.10 $
   Thanks:    Thanks to David G. Gobbi who developed this class.
 
 ==========================================================================
@@ -74,7 +74,7 @@ POSSIBILITY OF SUCH DAMAGES.
 #include "vtkTrackerTool.h"
 #include "vtkPNGWriter.h"
 
-vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.9 $");
+vtkCxxRevisionMacro(vtkFreehandUltrasound, "$Revision: 1.10 $");
 vtkStandardNewMacro(vtkFreehandUltrasound);
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,VideoSource,vtkVideoSource);
 vtkCxxSetObjectMacro(vtkFreehandUltrasound,TrackerTool,vtkTrackerTool);
@@ -1256,10 +1256,10 @@ static void vtkFreehandUltrasoundInsertSlice(vtkFreehandUltrasound *self,
   double xs = fabs((double)(inSpacing[0]));
   double ys = fabs((double)(inSpacing[1]));
 
-  double ml = tan(self->GetFanAngles()[0]*vtkMath::DoubleDegreesToRadians())/
-    xs*ys;
-  double mr = tan(self->GetFanAngles()[1]*vtkMath::DoubleDegreesToRadians())/
-    xs*ys;
+  const double degToRad = 0.017453292519943295;
+
+  double ml = tan(self->GetFanAngles()[0]*degToRad)/xs*ys;
+  double mr = tan(self->GetFanAngles()[1]*degToRad)/xs*ys;
 
   if (ml > mr)
     {
@@ -2652,10 +2652,10 @@ static void vtkOptimizedInsertSlice(vtkFreehandUltrasound *self,
   double xs = inSpacing[0];
   double ys = inSpacing[1];
 
-  double ml = tan(self->GetFanAngles()[0]*vtkMath::DoubleDegreesToRadians())/
-    xs*ys;
-  double mr = tan(self->GetFanAngles()[1]*vtkMath::DoubleDegreesToRadians())/
-    xs*ys;
+  const double degToRad = 0.017453292519943295;
+
+  double ml = tan(self->GetFanAngles()[0]*degToRad)/xs*ys;
+  double mr = tan(self->GetFanAngles()[1]*degToRad)/xs*ys;
 
   if (ml > mr)
     {
