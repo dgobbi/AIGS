@@ -287,7 +287,7 @@ int vtkTracker::Probe()
     {
     int success[1] = {0};
     int len = 6;
-    char *msg = "Probe";
+    const char *msg = "Probe";
     if(this->SocketCommunicator->GetIsConnected()>0)
       {
       if(this->SocketCommunicator->Send(&len, 1, 1, 11))
@@ -382,7 +382,7 @@ void vtkTracker::StartTracking()
     {
     // ask the communication thread to send a message" StartTracking"
     int len = 16;
-    char* msg1 = "StartTracking";
+    const char* msg1 = "StartTracking";
     
     if(this->SocketCommunicator->GetIsConnected()>0 )
       {
@@ -399,7 +399,7 @@ void vtkTracker::StartTracking()
 	else
 	  {
 	  // wait to receive the Tool Information acknowledgement
-	  char *msg = "InternalStartTracking";
+	  const char *msg = "InternalStartTracking";
 	  const int maxMessages = 50;
 	  int messageNum = 0;
 	  for (messageNum = 0; 
@@ -413,15 +413,15 @@ void vtkTracker::StartTracking()
 	      char *rmsg = new char [rlen[0]];
 	      if(!this->SocketCommunicator->Receive(rmsg, rlen[0], 1, 22) )
 		{
-		vtkErrorMacro("Could not RecieveToolInfo");
+		vtkErrorMacro("Could not ReceiveToolInfo");
 		exit(0);
 		}
 	      else
 		{
 		this->InterpretCommands( rmsg );
-		msg = NULL;
-		msg = new char [rlen[0]];
-		memcpy(msg, rmsg, rlen[0]);
+		char *tmsg = new char [rlen[0]];
+		memcpy(tmsg, rmsg, rlen[0]);
+                msg = tmsg;
 		}
 	      }
 	    }
@@ -450,7 +450,7 @@ void vtkTracker::StartTracking()
       {
       if(this->SocketCommunicator->GetIsConnected()>0)
 	{
-	char *msgText = "InternalStartTrackingSuccessful";
+	const char *msgText = "InternalStartTrackingSuccessful";
 	int len = strlen(msgText);
 	if( this->SocketCommunicator->Send(&len, 1, 1, 11) )
 	  {
@@ -522,7 +522,7 @@ void vtkTracker::StopTracking()
       return;
       }
     int slen = 13;
-    char *smsg = "StopTracking";
+    const char *smsg = "StopTracking";
     if( this->SocketCommunicator->GetIsConnected()>0)
       {
       if ( this->SocketCommunicator->Send(&slen, 1, 1, 11))
@@ -579,7 +579,7 @@ void vtkTracker::StopTracking()
       int len = 31;
       if(this->SocketCommunicator->Send(&len, 1, 1, 11))
 	{
-	char *msg = "InternalStopTrackingSuccessful";
+	const char *msg = "InternalStopTrackingSuccessful";
 	if(!this->SocketCommunicator->Send(msg, 31, 1, 22))
 	  {
 	  vtkErrorMacro("Could not send InternalStopTrackingSuccessful\n");
@@ -708,7 +708,7 @@ void vtkTracker::Disconnect()
       int len = 12;
       if (this->SocketCommunicator->Send( &len, 1, 1, 11 ))
 	{
-	char *msg = "Disconnect";
+	const char *msg = "Disconnect";
 	if(!this->SocketCommunicator->Send( msg, len, 1, 22))
 	  {
 	  vtkErrorMacro("Could not receive message text\n");
@@ -767,7 +767,7 @@ void vtkTracker::StartServer()
 }
 
 //-----------------------------------------------------------------------------
-void vtkTracker::InterpretCommands( char *messageText )
+void vtkTracker::InterpretCommands( const char *messageText )
 {
   if(!messageText)
     {

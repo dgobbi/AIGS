@@ -147,7 +147,7 @@ int vtkNDITracker::Probe()
   if(!this->ServerMode && this->RemoteAddress)
     {
     int success[1] = {0};
-    char *msg = "Probe";
+    const char *msg = "Probe";
     int len = 6;
 
     if(this->SocketCommunicator->GetIsConnected()>0)
@@ -1214,9 +1214,9 @@ void vtkNDITracker::InternalClearVirtualSROM(int tool)
 }
 
 //----------------------------------------------------------------------------
-void vtkNDITracker::InternalInterpretCommand( char * messageText)
+void vtkNDITracker::InternalInterpretCommand(const char *msg)
 {
-  if( !messageText)
+  if(!msg)
     {
     return;
     }
@@ -1225,6 +1225,8 @@ void vtkNDITracker::InternalInterpretCommand( char * messageText)
   char *token1 = NULL;
   char *token2= NULL;
   char *token3 = NULL;
+  char *messageText = new char[strlen(msg) + 1];
+  strcpy(messageText, msg);
   token1 = strtok(messageText,":");
   int port;
    
@@ -1241,10 +1243,9 @@ void vtkNDITracker::InternalInterpretCommand( char * messageText)
     // copy the 1024 bytes from messageText to VirtualSROM
     memcpy(this->VirtualSROM[tool], messageText+18, 1024);
     this->LoadVirtualSROM(tool, NULL);
-    return ;
     }
    
-  if( token1 && !strcmp( token1, "SetToolManufacturer" ))
+  else if( token1 && !strcmp( token1, "SetToolManufacturer" ))
     {
     token2 = strtok(NULL,":");
     if(token2)
@@ -1253,9 +1254,9 @@ void vtkNDITracker::InternalInterpretCommand( char * messageText)
       token3 = strtok(NULL,":");
       }
     this->Tools[port]->SetToolManufacturer(token3);
-    return ;
     }
-  if( token1 && !strcmp( token1, "SetToolRevision" ))
+
+  else if( token1 && !strcmp( token1, "SetToolRevision" ))
     {
     token2 = strtok(NULL,":");
     if(token2)
@@ -1264,10 +1265,9 @@ void vtkNDITracker::InternalInterpretCommand( char * messageText)
       token3 = strtok(NULL,":");
       }
     this->Tools[port]->SetToolRevision( token3);
-    return ;
     }
 
-  if( token1 && !strcmp( token1, "SetToolType" ))
+  else if( token1 && !strcmp( token1, "SetToolType" ))
     {
     token2 = strtok(NULL,":");
     if(token2)
@@ -1276,10 +1276,9 @@ void vtkNDITracker::InternalInterpretCommand( char * messageText)
       token3 = strtok(NULL,":");
       }
     this->Tools[port]->SetToolType( token3);
-    return ;
     }
 
-  if( token1 && !strcmp( token1, "SetToolPartNumber" ))
+  else if( token1 && !strcmp( token1, "SetToolPartNumber" ))
     {
     token2 = strtok(NULL,":");
     if(token2)
@@ -1288,10 +1287,9 @@ void vtkNDITracker::InternalInterpretCommand( char * messageText)
       token3 = strtok(NULL,":");
       }
     this->Tools[port]->SetToolPartNumber( token3);
-    return ;
     }
 
-  if( token1 && !strcmp( token1, "SetToolSerialNumber" ))
+  else if( token1 && !strcmp( token1, "SetToolSerialNumber" ))
     {
     token2 = strtok(NULL,":");
     if(token2)
@@ -1300,9 +1298,9 @@ void vtkNDITracker::InternalInterpretCommand( char * messageText)
       token3 = strtok(NULL,":");
       }
     this->Tools[port]->SetToolSerialNumber( token3);
-    return ;
     }
-  if( token1 && !strcmp( token1, "InternalStopTrackingSuccessful" ))
+
+  else if( token1 && !strcmp( token1, "InternalStopTrackingSuccessful" ))
     {
     this->IsDeviceTracking = 0;
     this->Tracking = 0;
@@ -1316,8 +1314,8 @@ void vtkNDITracker::InternalInterpretCommand( char * messageText)
       this->PortEnabled[tool] = 0;
       this->PortHandle[tool] = 0;
       }
-    return ;
     }
+  delete [] messageText;
 }
 
 

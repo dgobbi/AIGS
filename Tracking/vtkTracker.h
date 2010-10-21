@@ -239,7 +239,7 @@ public:
   void Connect();
   void Disconnect();
   void StartServer();
-  void InterpretCommands(char *message);
+  void InterpretCommands(const char *message);
 
   // Description:
   // helper function that converts all the buffer info into a DoubleArray
@@ -280,7 +280,7 @@ protected:
   // or 0 if they are not.
   virtual int InternalStartTracking() { return 1; };
   virtual int InternalStopTracking() { return 1; };
-  virtual void InternalInterpretCommand( char * c) { };
+  virtual void InternalInterpretCommand(const char *c) { };
   // Description:
   // This method should be overridden in derived classes that can make
   // an audible beep.  The return value should be zero if an error

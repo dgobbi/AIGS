@@ -119,7 +119,7 @@ public:
   // Get an update from the tracking system and push the new transforms
   // to the tools.  This should only be used within vtkTracker.cxx.
   void InternalUpdate();
-  virtual void InternalInterpretCommand( char * c);
+  virtual void InternalInterpretCommand(const char *c);
 
   // Description:
   // Get the full TX reply for a tool. 
