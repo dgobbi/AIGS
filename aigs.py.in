@@ -1,0 +1,29 @@
+import os
+import string
+import vtk
+
+AIGSLibrariesString = "@AIGS_LIBRARIES@"
+
+# A list of AIGS packages
+AIGSLibraries = string.split(AIGSLibrariesString, ';')
+
+VTK_MAJOR_VERSION = vtk.vtkVersion.GetVTKMajorVersion()
+VTK_MINOR_VERSION = vtk.vtkVersion.GetVTKMinorVersion()
+
+for name in AIGSLibraries:
+    if (os.name == 'posix') and (VTK_MAJOR_VERSION < 5):
+        libname = "libvtk" + name + "Python"
+    else:
+        libname = "vtk" + name + "Python"
+
+    try:
+        exec('import %s' % libname)
+        exec('from %s import *' % libname)
+        classnames = eval('dir(%s)' % libname)
+        for classname in classnames:
+            if classname not in ["__doc__", "__file__", "__name__"]:
+                s = "vtk." + classname + "=" + libname + "." + classname
+                exec('%s' % s)
+    except:
+        print "import error loading library %s" % libname
+        pass

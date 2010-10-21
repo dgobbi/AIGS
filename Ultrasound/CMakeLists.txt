@@ -1,7 +1,7 @@
-#PROJECT(ATAMAIULTRASOUND)
+#PROJECT(ULTRASOUND)
 
-SET(KIT AtamaiUltrasound)
-SET(UKIT ATAMAIULTRASOUND)
+SET(KIT Ultrasound)
+SET(UKIT ULTRASOUND)
 SET(KIT_LIBS vtkHybrid vtkAtamaiTracking)
 
 IF(VTK_MAJOR_VERSION LESS 5)
@@ -17,8 +17,8 @@ ELSE(VTK_MAJOR_VERSION LESS 5)
   )
 ENDIF(VTK_MAJOR_VERSION LESS 5)
 
-INCLUDE_DIRECTORIES(${ATAMAITRACKING_SOURCE_DIR}
-                    ${ATAMAITRACKING_BINARY_DIR})
+INCLUDE_DIRECTORIES(${TRACKING_SOURCE_DIR}
+                    ${TRACKING_BINARY_DIR})
 
 SET(Kit_EXTRA_SRCS)
 SET(Kit_EXTRA_CMDS)
@@ -29,4 +29,4 @@ SET(Kit_JAVA_EXTRA_SRCS)
 # -----------------------------------------------------------------
 
 # Include the common setting file
-INCLUDE(${AtamaiVTK_SOURCE_DIR}/CMake/KitCommonBlock.cmake)
+INCLUDE(${AIGS_SOURCE_DIR}/CMake/AIGSCommonBlock.cmake)
