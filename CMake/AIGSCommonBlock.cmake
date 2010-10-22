@@ -1,24 +1,6 @@
 # Need to include class headers and the configuration header.
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-# Add this kit to the configuration variables
-IF(AtamaiVTK_KITS)
-  STRING(REGEX MATCH "${KIT}" already_have_kit ${AtamaiVTK_KITS})
-ELSE(AtamaiVTK_KITS)
-  SET(already_have_kit 0)
-ENDIF(AtamaiVTK_KITS)
-
-IF(NOT already_have_kit)
-  SET(AtamaiVTK_KITS ${AtamaiVTK_KITS} ${KIT}
-    CACHE INTERNAL "AtamaiVTK Kits" FORCE)
-
-  SET(AtamaiVTK_LIBRARIES ${AtamaiVTK_LIBRARIES} vtk${KIT}
-    CACHE INTERNAL "AtamaiVTK libraries" FORCE)
-
-  SET(AtamaiVTK_INCLUDE_DIRS ${AtamaiVTK_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
-    CACHE INTERNAL "AtamaiVTK libraries" FORCE)
-ENDIF(NOT already_have_kit)
-
 # Add the wrapper libraries
 SET(KIT_TCL_LIBS "")
 SET(KIT_PYTHON_LIBS "")
@@ -45,12 +27,6 @@ ENDFOREACH( lib ${KIT_LIBS})
 
 #ADD_LIBRARY(vtk${KIT} ${Kit_SRCS} ${Kit_EXTRA_SRCS} ${KitInstantiator_SRCS})
 ADD_LIBRARY(vtk${KIT} ${Kit_SRCS} ${Kit_EXTRA_SRCS})
-
-# Allow the user to customize their build with some local options
-#
-SET(LOCALUSERMACRODEFINED 0)
-INCLUDE (${VTK_BINARY_DIR}/${KIT}/LocalUserOptions.cmake OPTIONAL)
-INCLUDE (${VTK_SOURCE_DIR}/${KIT}/LocalUserOptions.cmake OPTIONAL)
 
 # Do the TCL wrapping
 #
