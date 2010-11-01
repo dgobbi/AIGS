@@ -130,3 +130,10 @@ IF(VTK_WRAP_PYTHON)
       ${LIBRARY_OUTPUT_PATH}/aigs.py)
   ENDIF(WIN32 AND CMAKE_CONFIGURATION_TYPES)
 ENDIF(VTK_WRAP_PYTHON)
+
+#-----------------------------------------------------------------------------
+# The commands in this directory are intended to be executed as
+# the end of the whole configuration process, as a "last step".
+# This directory is typically the last SUBDIRS in the main CMakeLists.txt.
+ADD_SUBDIRECTORY(CMake/LastConfigureStep)
+
