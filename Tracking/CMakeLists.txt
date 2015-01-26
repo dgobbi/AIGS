@@ -3,11 +3,9 @@
 SET(KIT Tracking)
 SET(UKIT Tracking)
 IF(${VTK_MAJOR_VERSION} VERSION_LESS 6)
-  SET(KIT_LIBS vtkHybrid vtkParallel)
+  SET(KIT_LIBS vtkHybrid)
 ELSE(${VTK_MAJOR_VERSION} VERSION_LESS 6)
-  SET(KIT_LIBS
-      vtkCommonCore vtkCommonSystem vtkCommonMath vtkCommonTransforms
-      vtkParallelCore)
+  SET(KIT_LIBS vtkCommonCore vtkCommonSystem vtkCommonMath vtkCommonTransforms)
 ENDIF(${VTK_MAJOR_VERSION} VERSION_LESS 6)
 
 SET(VTK_WRAP_HINTS ${CMAKE_CURRENT_SOURCE_DIR}/hints)

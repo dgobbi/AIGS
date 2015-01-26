@@ -19,7 +19,7 @@ conditions are met:
 1) Redistribution of the source code, in verbatim or modified
    form, must retain the above copyright notice, this license,
    the following disclaimer, and any notices that refer to this
-   license and/or the following disclaimer.  
+   license and/or the following disclaimer.
 
 2) Redistribution in binary form must include the above copyright
    notice, a copy of this license and the following disclaimer
@@ -73,7 +73,7 @@ public:
   static vtkNDITracker *New();
   vtkTypeMacro(vtkNDITracker,vtkTracker);
   void PrintSelf(ostream& os, vtkIndent indent);
- 
+
   // Description:
   // Probe to see if the tracking system is present on the
   // specified serial port.  If the SerialPort is set to -1,
@@ -105,7 +105,7 @@ public:
   vtkGetStringMacro(SerialDevice);
 
   // Description:
-  // Set the desired baud rate.  Default: 9600.  
+  // Set the desired baud rate.  Default: 9600.
   vtkSetMacro(BaudRate, int);
   vtkGetMacro(BaudRate, int);
 
@@ -119,10 +119,9 @@ public:
   // Get an update from the tracking system and push the new transforms
   // to the tools.  This should only be used within vtkTracker.cxx.
   void InternalUpdate();
-  virtual void InternalInterpretCommand(const char *c);
 
   // Description:
-  // Get the full TX reply for a tool. 
+  // Get the full TX reply for a tool.
   int GetFullTX(int tool, double transform[8]);
   double *GetFullTX(int tool) { this->ReturnValue[0] = (double) this->GetFullTX(tool, &this->ReturnValue[1]); return this->ReturnValue; };
 
@@ -183,7 +182,7 @@ protected:
   char *SerialDevice;
 
   vtkMatrix4x4 *SendMatrix;
-  int SerialPort; 
+  int SerialPort;
   int BaudRate;
   int IsDeviceTracking;
 
@@ -197,7 +196,7 @@ protected:
 
 private:
   vtkNDITracker(const vtkNDITracker&);
-  void operator=(const vtkNDITracker&);  
+  void operator=(const vtkNDITracker&);
 };
 
 #endif

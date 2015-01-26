@@ -19,7 +19,7 @@ conditions are met:
 1) Redistribution of the source code, in verbatim or modified
    form, must retain the above copyright notice, this license,
    the following disclaimer, and any notices that refer to this
-   license and/or the following disclaimer.  
+   license and/or the following disclaimer.
 
 2) Redistribution in binary form must include the above copyright
    notice, a copy of this license and the following disclaimer
@@ -99,7 +99,7 @@ public:
   // Probe to see to see if the tracking system is connected to the
   // computer.  Returns 1 if the tracking system was found and is working.
   // Do not call this method while the system is Tracking.  This method
-  // should be overridden in subclasses. 
+  // should be overridden in subclasses.
   virtual int Probe();
 
   // Description:
@@ -116,19 +116,19 @@ public:
 
   // Description:
   // Test whether or not the system is tracking.
-  virtual int IsTracking() { return this->Tracking; };
+  virtual int IsTracking() { return this->Tracking; }
 
   // Description:
   // This method will call Update() on each of the tools.  Note that
   // this method does not call the InternalUpdate() method, which
   // is called by a separate thread.
   virtual void Update();
-  
+
   // Description:
   // Get the internal update rate for this tracking system.  This is
   // the number of transformations sent by the tracking system per
   // second per tool.
-  double GetInternalUpdateRate() { return this->InternalUpdateRate; };
+  double GetInternalUpdateRate() { return this->InternalUpdateRate; }
 
   // Description:
   // Get the tool object for the specified port.  The first tool is
@@ -159,42 +159,11 @@ public:
   // if a reference tool is not desired.
   vtkSetMacro(ReferenceTool, int);
   vtkGetMacro(ReferenceTool, int);
-  
-  // Description:
-  // In addition to the default mode of operation of the tracker
-  // it can also operate in client/server mode where the server
-  // is on the machine that has the tracker attached to it, and
-  // the client is on another machine that talks to the server
-  // via TCP/IP.  Set ServerMode to 1 in order to create a "server"
-  // version of the tracker object, or set a RemoteAddress in
-  // order to create a "client" version.
-  vtkSetMacro(ServerMode, int);
-  vtkGetMacro(ServerMode, int);
-  
-  // Description:
-  // This method is only used when you are operating the tracker
-  // in client/server mode.  Set a numerical network port for
-  // communication between the client and the server (default: 1111).  
-  vtkSetMacro(NetworkPort, int);
-  vtkGetMacro(NetworkPort, int);
-
-  // Description:
-  // This method is only used when you are operating the tracker
-  // in client/server mode.  Set the IP address of the server
-  // that the client will talk to.
-  vtkSetStringMacro(RemoteAddress);
-  vtkGetStringMacro(RemoteAddress);
-
-  // Description:
-  // Get the socket communicator that is used for communication
-  // between the server and the client.
-  vtkSocketCommunicator* GetSocketCommunicator() {
-    return this->SocketCommunicator; };
 
   // Description:
   // Set the transformation matrix between tracking-system coordinates
-  // and the desired world coordinate system.  You can use 
-  // vtkLandmarkTransform to create this matrix from a set of 
+  // and the desired world coordinate system.  You can use
+  // vtkLandmarkTransform to create this matrix from a set of
   // registration points.  Warning: the matrix is copied,
   // not referenced.
   void SetWorldCalibrationMatrix(vtkMatrix4x4* vmat);
@@ -204,7 +173,7 @@ public:
   // Make the unit emit a string of audible beeps.  This is
   // supported by the POLARIS.
   void Beep(int n);
-  
+
   // Description:
   // Turn one of the LEDs on the specified tool on or off.  This
   // is supported by the POLARIS.
@@ -220,7 +189,7 @@ public:
   // pause the thread by locking this->UpdateMutex->Lock() e.g. if you
   // need to communicate with the device from outside of InternalUpdate().
   // A call to this->UpdateMutex->Unlock() will resume the thread.
-  virtual void InternalUpdate() {};
+  virtual void InternalUpdate() {}
 
 //BTX
   // These are used by static functions in vtkTracker.cxx, and since
@@ -230,31 +199,8 @@ public:
   vtkCriticalSection *UpdateMutex;
   vtkCriticalSection *RequestUpdateMutex;
   vtkTimeStamp UpdateTime;
-  double InternalUpdateRate;  
+  double InternalUpdateRate;
   //ETX
-  
-  // Description:
-  // The ServerTracker should call only this function. This creates
-  // a thread that allows it to wait till a client connects. 
-  void Connect();
-  void Disconnect();
-  void StartServer();
-  void InterpretCommands(const char *message);
-
-  // Description:
-  // helper function that converts all the buffer info into a DoubleArray
-  void ConvertBufferToMessage( int tool, vtkMatrix4x4 *matrix, 
-			       long flags, double ts,
-			       double *msg );
-  // Description:
-  // helper function that converts all the buffer info into a DoubleArray
-  void ConvertMessageToBuffer( double *msg, 
-			       double*vals, vtkMatrix4x4 *matrix); 
-			       //long flags, double ts );
-  
-  void ServerToolUpdate( int tool, 
-			 vtkMatrix4x4 *matrix, 
-			 long flags, double ts );
 
 protected:
   vtkTracker();
@@ -264,7 +210,7 @@ protected:
   // This function is called by InternalUpdate() so that the subclasses
   // can communicate information back to the vtkTracker base class, which
   // will in turn relay the information to the appropriate vtkTrackerTool.
-  void ToolUpdate(int tool, vtkMatrix4x4 *matrix, long flags, 
+  void ToolUpdate(int tool, vtkMatrix4x4 *matrix, long flags,
       double timestamp);
 
   // Description:
@@ -273,14 +219,14 @@ protected:
   void SetNumberOfTools(int num);
 
   // Description:
-  // These methods should be overridden in derived classes: 
+  // These methods should be overridden in derived classes:
   // InternalStartTracking() should initialize the tracking device, and
   // InternalStopTracking() should free all resources associated with
   // the device.  These methods should return 1 if they are successful,
   // or 0 if they are not.
-  virtual int InternalStartTracking() { return 1; };
-  virtual int InternalStopTracking() { return 1; };
-  virtual void InternalInterpretCommand(const char *vtkNotUsed(c)) { };
+  virtual int InternalStartTracking() { return 1; }
+  virtual int InternalStopTracking() { return 1; }
+  virtual void InternalInterpretCommand(const char *vtkNotUsed(c)) {}
 
   // Description:
   // This method should be overridden in derived classes that can make
@@ -293,30 +239,23 @@ protected:
   // on the tracked tools. The return value should be zero if an error
   // occurred while the request was being processed.
   virtual int InternalSetToolLED(int vtkNotUsed(tool), int vtkNotUsed(led),
-                                 int vtkNotUsed(state)) { return 1; };
+                                 int vtkNotUsed(state)) { return 1; }
 
   vtkMatrix4x4 *WorldCalibrationMatrix;
   int NumberOfTools;
   vtkTrackerTool **Tools;
   int ReferenceTool;
   int Tracking;
-  
+
   double UpdateTimeStamp;
   unsigned long LastUpdateTime;
 
   vtkMultiThreader *Threader;
   int ThreadId;
 
-  int ServerMode;
-  int NetworkPort;
-  int ClientConnected;
-  char *RemoteAddress;
-  vtkSocketCommunicator *SocketCommunicator;
-  
 private:
   vtkTracker(const vtkTracker&);
-  void operator=(const vtkTracker&);  
+  void operator=(const vtkTracker&);
 };
 
 #endif
-
