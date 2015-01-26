@@ -15,7 +15,6 @@ SET(VTK_WRAP_HINTS ${CMAKE_CURRENT_SOURCE_DIR}/hints)
 SET ( Kit_SRCS
 vtkTracker.cxx
 vtkTrackerTool.cxx
-vtkFakeTracker.cxx
 vtkTrackerBuffer.cxx
 vtkFrameToTimeConverter.cxx
 )
