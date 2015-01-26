@@ -57,7 +57,6 @@ POSSIBILITY OF SUCH DAMAGES.
 #include "vtkTrackerTool.h"
 #include "vtkFrameToTimeConverter.h"
 #include "vtkObjectFactory.h"
-#include "vtkSocketCommunicator.h"
 #include <string.h>
 #include "vtkCharArray.h"
 
