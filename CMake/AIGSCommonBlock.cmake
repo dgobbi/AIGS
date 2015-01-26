@@ -1,6 +1,8 @@
 # Need to include class headers and the configuration header.
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
+INCLUDE_DIRECTORIES(${AIGS_INCLUDE_DIRS})
+
 # Add the wrapper libraries
 SET(KIT_TCL_LIBS "")
 SET(KIT_PYTHON_LIBS "")

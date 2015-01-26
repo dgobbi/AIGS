@@ -26,7 +26,7 @@ SET(AIGS_USE_FILE "@AIGS_USE_FILE_CONFIG@")
 # The VTK options.
 SET(AIGS_VTK_DIR "@AIGS_VTK_DIR_CONFIG@")
 
-# The library dependencies file.
-IF(NOT AIGS_NO_LIBRARY_DEPENDS)
-  INCLUDE("@AIGS_LIBRARY_DEPENDS_FILE@")
-ENDIF(NOT AIGS_NO_LIBRARY_DEPENDS)
+# Our library dependencies (contains definitions for IMPORTED targets)
+if(NOT AIRS_BINARY_DIR)
+  include("@AIRS_TARGET_FILE_CONFIG@")
+endif()

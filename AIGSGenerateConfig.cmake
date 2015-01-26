@@ -9,8 +9,8 @@ SET(DOLLAR "$")
 #-----------------------------------------------------------------------------
 # Settings for the build tree.
 
-EXPORT_LIBRARY_DEPENDENCIES(
-  ${AIGS_BINARY_DIR}/AIGSLibraryDepends.cmake)
+EXPORT(TARGETS ${AIGS_LIBRARIES}
+  FILE ${AIGS_BINARY_DIR}/AIGSTargets.cmake)
 
 # Set the source dir
 SET(AIGS_SOURCE_DIR_CONFIG ${AIGS_SOURCE_DIR})
@@ -31,6 +31,10 @@ SET(AIGS_USE_FILE_CONFIG
 # The build settings file.
 SET(AIGS_BUILD_SETTINGS_FILE_CONFIG
   ${AIGS_BINARY_DIR}/AIGSBuildSettings.cmake)
+
+# The target file
+SET(AIGS_TARGET_FILE_CONFIG
+  ${AIGS_BINARY_DIR}/AIGSTargets.cmake)
 
 # The library directories.
 SET(AIGS_LIBRARY_DIRS_CONFIG ${AIGS_LIBRARY_DIR})
@@ -63,4 +67,3 @@ CONFIGURE_FILE(
 # Configure the UseAIGS file
 CONFIGURE_FILE(${AIGS_SOURCE_DIR}/UseAIGS.cmake
                ${AIGS_BINARY_DIR}/UseAIGS.cmake COPYONLY)
-

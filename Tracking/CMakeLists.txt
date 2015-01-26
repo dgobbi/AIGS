@@ -1,9 +1,16 @@
-PROJECT(TRACKING)
+#PROJECT(Tracking)
 
 SET(KIT Tracking)
-SET(UKIT TRACKING)
-SET(KIT_LIBS vtkHybrid vtkParallel)
-SET(KIT_EXTRA_LIBS)
+SET(UKIT Tracking)
+IF(${VTK_MAJOR_VERSION} VERSION_LESS 6)
+  SET(KIT_LIBS vtkHybrid vtkParallel)
+ELSE(${VTK_MAJOR_VERSION} VERSION_LESS 6)
+  SET(KIT_LIBS
+      vtkCommonCore vtkCommonSystem vtkCommonMath vtkCommonTransforms
+      vtkParallelCore)
+ENDIF(${VTK_MAJOR_VERSION} VERSION_LESS 6)
+
+SET(VTK_WRAP_HINTS ${CMAKE_CURRENT_SOURCE_DIR}/hints)
 
 SET ( Kit_SRCS
 vtkTracker.cxx
@@ -77,6 +84,5 @@ SET(Kit_PYTHON_EXTRA_SRCS)
 SET(Kit_JAVA_EXTRA_SRCS)
 
 # -----------------------------------------------------------------
-
 # Include the common setting file
 INCLUDE(${AIGS_SOURCE_DIR}/CMake/AIGSCommonBlock.cmake)

@@ -1,0 +1,24 @@
+/*=========================================================================
+
+Program:   Atamai Image Registration and Segmentation
+Module:    AIGSConfig.h.in
+
+   This software is distributed WITHOUT ANY WARRANTY; without even the
+   implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+=========================================================================*/
+
+#ifndef __AIGSConfig_h
+#define __AIGSConfig_h
+
+/* Configuration information. */
+#cmakedefine AIGS_BUILD_SHARED_LIBS
+#cmakedefine AIGS_BUILD_TESTING
+#cmakedefine AIGS_USE_NDI
+#cmakedefine AIGS_USE_CERTUS
+#cmakedefine AIGS_USE_FLOCK
+#cmakedefine AIGS_USE_LOGITECH
+#cmakedefine AIGS_USE_POLHEMUS
+#cmakedefine AIGS_USE_MICRONTRACKER
+
+#endif

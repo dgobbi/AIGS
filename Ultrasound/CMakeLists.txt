@@ -1,24 +1,25 @@
-#PROJECT(ULTRASOUND)
+#PROJECT(Ultrasound)
 
 SET(KIT Ultrasound)
-SET(UKIT ULTRASOUND)
-SET(KIT_LIBS vtkHybrid vtkAtamaiTracking)
+SET(UKIT Ultrasound)
+IF(${VTK_MAJOR_VERSION} VERSION_LESS 6)
+  SET(KIT_LIBS vtkHybrid vtkTracking)
+ELSE(${VTK_MAJOR_VERSION} VERSION_LESS 6)
+  SET(KIT_LIBS
+      vtkCommonCore vtkCommonSystem vtkCommonMath vtkCommonTransforms
+      vtkCommonDataModel vtkCommonExecutionModel)
+ENDIF(${VTK_MAJOR_VERSION} VERSION_LESS 6)
 
-IF(VTK_MAJOR_VERSION LESS 5)
-  SET(Kit_SRCS ${Kit_SRCS}
-  )
-ELSE(VTK_MAJOR_VERSION LESS 5)
-  SET(Kit_SRCS ${Kit_SRCS}
-    vtkFreehandUltrasound.cxx
-    #vtkFreehandUltrasound2.cxx
-    vtkUltrasoundCompare.cxx
-    vtkUltrasoundFrameAnalyze.cxx
-    vtkUltrasoundImageStencilSource.cxx
-  )
-ENDIF(VTK_MAJOR_VERSION LESS 5)
+SET(VTK_WRAP_HINTS ${CMAKE_CURRENT_SOURCE_DIR}/hints)
 
-INCLUDE_DIRECTORIES(${TRACKING_SOURCE_DIR}
-                    ${TRACKING_BINARY_DIR})
+SET ( Kit_SRCS
+vtkFreehandUltrasound.cxx
+#vtkFreehandUltrasound2.cxx
+vtkUltrasoundCompare.cxx
+vtkUltrasoundFan.cxx
+vtkUltrasoundFrameAnalyze.cxx
+vtkUltrasoundImageStencilSource.cxx
+)
 
 SET(Kit_EXTRA_SRCS)
 SET(Kit_EXTRA_CMDS)
@@ -27,6 +28,5 @@ SET(Kit_PYTHON_EXTRA_SRCS)
 SET(Kit_JAVA_EXTRA_SRCS)
 
 # -----------------------------------------------------------------
-
 # Include the common setting file
 INCLUDE(${AIGS_SOURCE_DIR}/CMake/AIGSCommonBlock.cmake)
