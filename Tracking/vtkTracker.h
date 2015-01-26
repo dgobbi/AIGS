@@ -280,18 +280,20 @@ protected:
   // or 0 if they are not.
   virtual int InternalStartTracking() { return 1; };
   virtual int InternalStopTracking() { return 1; };
-  virtual void InternalInterpretCommand(const char *c) { };
+  virtual void InternalInterpretCommand(const char *vtkNotUsed(c)) { };
+
   // Description:
   // This method should be overridden in derived classes that can make
   // an audible beep.  The return value should be zero if an error
   // occurred while the request was being processed.
-  virtual int InternalBeep(int n) { return 1; };
+  virtual int InternalBeep(int vtkNotUsed(n)) { return 1; };
 
   // Description:
   // This method should be overridden for devices that have one or more LEDs
   // on the tracked tools. The return value should be zero if an error
   // occurred while the request was being processed.
-  virtual int InternalSetToolLED(int tool, int led, int state) { return 1; };
+  virtual int InternalSetToolLED(int vtkNotUsed(tool), int vtkNotUsed(led),
+                                 int vtkNotUsed(state)) { return 1; };
 
   vtkMatrix4x4 *WorldCalibrationMatrix;
   int NumberOfTools;

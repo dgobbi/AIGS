@@ -615,7 +615,6 @@ char *vtkTrackerBufferEatWhitespace(char *text)
         break;
       default:
         return text;
-        break;
       }
     }
 

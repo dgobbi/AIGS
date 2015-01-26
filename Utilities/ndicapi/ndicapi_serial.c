@@ -199,8 +199,8 @@ HANDLE ndiSerialOpen(const char *device)
 
 int ndiSerialOpen(const char *device)
 {
-  static struct flock fl = { F_WRLCK, 0, 0, 0 }; /* for file locking */
-  static struct flock fu = { F_UNLCK, 0, 0, 0 }; /* for file unlocking */
+  static struct flock fl = { F_WRLCK, 0, 0, 0, 0 }; /* for file locking */
+  static struct flock fu = { F_UNLCK, 0, 0, 0, 0 }; /* for file unlocking */
   int serial_port;
   struct termios t;
   int i;
@@ -325,7 +325,7 @@ void ndiSerialClose(HANDLE serial_port)
 
 void ndiSerialClose(int serial_port)
 {
-  static struct flock fu = { F_UNLCK, 0, 0, 0 }; /* for file unlocking */
+  static struct flock fu = { F_UNLCK, 0, 0, 0, 0 }; /* for file unlocking */
   int i;
 
   /* restore the comm port state to from before it was opened */

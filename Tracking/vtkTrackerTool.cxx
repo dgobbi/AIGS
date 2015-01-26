@@ -276,11 +276,12 @@ double vtkTrackerTool::DoToolTipCalibration()
 //----------------------------------------------------------------------------
 void vtkTrackerTool::SetCalibrationMatrix(vtkMatrix4x4 *vmat)
 {
-  int i, j;
+  int i = 0;
+  int j = 0;
 
-  for (i = 0; i < 4; i++) 
+  for (; i < 4; i++) 
     {
-    for (j = 0; j < 4; j++)
+    for (; j < 4; j++)
       {
       if (this->CalibrationMatrix->GetElement(i,j) != vmat->GetElement(i,j))
         {
@@ -366,7 +367,9 @@ void vtkTrackerTool::UpdateAndCalibrate(vtkMatrix4x4 *trans, long flags)
     this->RawMatrix->DeepCopy(trans);
     }
  
-  int i,j;
+  int i = 0;
+  int j = 0;
+
   vtkMatrix4x4 *matrix = this->Transform->GetMatrix();
   
   vtkMatrix4x4::Multiply4x4(this->RawMatrix,
@@ -376,9 +379,9 @@ void vtkTrackerTool::UpdateAndCalibrate(vtkMatrix4x4 *trans, long flags)
                             this->TempMatrix,
                             this->TempMatrix);
     
-  for (i = 0; i < 4; i++) 
+  for (; i < 4; i++) 
     {
-    for (j = 0; j < 4; j++)
+    for (; j < 4; j++)
       {
       if (matrix->GetElement(i,j) != TempMatrix->GetElement(i,j))
         {

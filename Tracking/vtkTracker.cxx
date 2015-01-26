@@ -203,7 +203,7 @@ static void *vtkTrackerThread(vtkMultiThreader::ThreadInfo *data)
     if( !self->GetServerMode() && self->GetRemoteAddress() )
       {
       // client 
-      for( int i = 0; i< self->GetNumberOfTools(); i++ )
+      for( int j = 0; j< self->GetNumberOfTools(); j++ )
 	{
 	double *msg = new double[19];
 	vtkMatrix4x4 *matrix = NULL;
@@ -232,15 +232,15 @@ static void *vtkTrackerThread(vtkMultiThreader::ThreadInfo *data)
       if(self->GetServerMode())
 	{
         // server
-	for( int i = 0; i< self->GetNumberOfTools(); i++ )
+	for( int j = 0; j< self->GetNumberOfTools(); j++ )
 	  {
-	  vtkTrackerBuffer* buffer  = self->GetTool(i)->GetBuffer();
+	  vtkTrackerBuffer* buffer  = self->GetTool(j)->GetBuffer();
 	  if(buffer)
 	    {
 	    vtkMatrix4x4 *mat = vtkMatrix4x4::New(); 
 	    long flags;
 	    double ts;
-	    int tool = i;
+	    int tool = j;
 	    buffer->Lock();
 	    buffer->GetUncalibratedMatrix(mat, 0);
 	    flags = buffer->GetFlags(0);
@@ -616,10 +616,11 @@ void vtkTracker::Update()
 //----------------------------------------------------------------------------
 void vtkTracker::SetWorldCalibrationMatrix(vtkMatrix4x4 *vmat)
 {
-  int i, j;
-  for (i = 0; i < 4; i++) 
+  int i = 0;
+  int j = 0;
+  for (; i < 4; i++) 
     {
-    for (j = 0; j < 4; j++)
+    for (; j < 4; j++)
       {
       if (this->WorldCalibrationMatrix->GetElement(i,j) 
           != vmat->GetElement(i,j))

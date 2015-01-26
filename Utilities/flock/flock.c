@@ -240,7 +240,7 @@ char *fbDeviceName(int i)
     {
       strncpy(devicenames[j],"/dev/",5);
       strncpy(devicenames[j]+5,ep->d_name,255);
-      devicenames[j][255+5] == '\0';
+      devicenames[j][255+5] = '\0';
       dev_names[j] = devicenames[j];
       j++;
     }
@@ -569,8 +569,10 @@ int fbOpen(fbird *fb, const char *device, int baud, int mode)
 
 #elif defined(__unix__) || defined(unix) || defined(__APPLE__) /* start of UNIX portion of code -------------------*/
 
-  static struct flock fl = { F_WRLCK, 0, 0, 0 }; /* for file locking */
-  static struct flock fu = { F_UNLCK, 0, 0, 0 }; /* for file unlocking */
+#ifndef __APPLE__
+  static struct flock fl = { F_WRLCK, 0, 0, 0, 0 }; /* for file locking */
+  static struct flock fu = { F_UNLCK, 0, 0, 0, 0 }; /* for file unlocking */
+#endif
   struct termios t;
 
   fb->asynchronous = mode;
@@ -716,7 +718,9 @@ void fbClose(fbird *fb)
 #if defined(_WIN32) || defined(WIN32)
   DCB comm_settings;
 #elif defined(__unix__) || defined(unix) || defined(__APPLE__)
+#ifndef __APPLE__
   static struct flock fu = { F_UNLCK, 0, 0, 0 }; /* for file unlocking */
+#endif
   int term_bits;
 #endif
 

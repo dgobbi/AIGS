@@ -484,7 +484,7 @@ char *ndiDeviceName(int i)
       if (j == i) {
         strncpy(devicenames[j],"/dev/",5);
         strncpy(devicenames[j]+5,ep->d_name,255);
-        devicenames[j][255+5] == '\0';
+        devicenames[j][255+5] = '\0';
         closedir(dirp);
         return devicenames[j];
       }
@@ -884,9 +884,9 @@ char *ndiCommandVA(ndicapi *pol, const char *format, va_list ap)
   /* if the command is GX and thread_mode is on, we copy the reply from
      the thread rather than getting it directly from the Measurement System */
   if (pol->thread_mode && pol->tracking && 
-      nc == 2 && (cp[0] == 'G' && cp[1] == 'X' ||
-                  cp[0] == 'T' && cp[1] == 'X' ||
-                  cp[0] == 'B' && cp[1] == 'X')) {
+      nc == 2 && ((cp[0] == 'G' && cp[1] == 'X') ||
+                  (cp[0] == 'T' && cp[1] == 'X') ||
+                  (cp[0] == 'B' && cp[1] == 'X'))) {
     int errcode = 0;
 
     /* check that the thread is sending the GX command that we want */
