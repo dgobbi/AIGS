@@ -27,6 +27,6 @@ SET(AIGS_USE_FILE "@AIGS_USE_FILE_CONFIG@")
 SET(AIGS_VTK_DIR "@AIGS_VTK_DIR_CONFIG@")
 
 # Our library dependencies (contains definitions for IMPORTED targets)
-if(NOT AIRS_BINARY_DIR)
-  include("@AIRS_TARGET_FILE_CONFIG@")
+if(NOT AIGS_BINARY_DIR)
+  include("@AIGS_TARGET_FILE_CONFIG@")
 endif()
